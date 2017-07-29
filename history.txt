@@ -1,0 +1,20 @@
+test
+foo
+test
+foo
+bar
+foo
+test
+foo
+bar
+(+ 1 2)
+(test foo bar)
+(* 1 2 3)
+(+ 1 1)
+1
+(1)
+1
+(add 1 2)
+(add 1 2 3)
+(add (add 1 2) 3)
+(add (mul 10 20) 30)
