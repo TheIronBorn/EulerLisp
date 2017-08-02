@@ -5,6 +5,7 @@ extern crate rustyline;
 mod repl;
 mod parser;
 mod eval;
+mod env;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Value {

@@ -18,3 +18,6 @@ bar
 (add 1 2 3)
 (add (add 1 2) 3)
 (add (mul 10 20) 30)
+(def a 1)
+(def a 10)
+a
