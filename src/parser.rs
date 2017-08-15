@@ -25,20 +25,28 @@ named!(
     )
 );
 
-named!(value<&[u8], Value>,
-    alt!(
-      map!(ws!(list), |x| Value::List(x)) |
-      map!(ws!(number), |x| Value::Number(x)) |
-      map!(ws!(string), |x| Value::Atom(x))
-    )
-);
-
 named!(list<&[u8], Vec<Value>>,
     do_parse!(
         tag!("(") >>
         elements: ws!(many0!(value)) >>
         tag!(")") >>
         (elements)
+    )
+);
+
+named!(boolean<&[u8], bool>,
+    alt!(
+        map!(tag!("true"), |_| true) |
+        map!(tag!("false"), |_| false)
+    )
+);
+
+named!(value<&[u8], Value>,
+    alt!(
+      map!(ws!(boolean), |x| Value::Bool(x)) |
+      map!(ws!(list), |x| Value::List(x)) |
+      map!(ws!(number), |x| Value::Number(x)) |
+      map!(ws!(string), |x| Value::Atom(x))
     )
 );
 

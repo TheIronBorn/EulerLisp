@@ -12,6 +12,7 @@ pub enum Value {
     List(Vec<Value>),
     Number(i64),
     Atom(String),
+    Bool(bool),
 }
 
 fn main() {

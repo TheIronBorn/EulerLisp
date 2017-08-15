@@ -2,36 +2,52 @@ use ::Value;
 
 use env::Environment;
 
-pub struct Evaluator {
-    env: Environment
-}
+pub struct Evaluator { env: Environment }
 
 impl Evaluator {
     pub fn new() -> Self {
         Evaluator { env: Environment::new() }
     }
 
+    pub fn builtin_def(&mut self, args: &[Value]) -> Value {
+        if args.len() != 2 {
+            panic!("Usage: (def <key> <value>)");
+        } else {
+            match args[0] {
+                Value::Atom(ref a) => {
+                    let value = self.eval(&args[1]);
+                    self.env.define_rep(a, value)
+                },
+                _ => panic!("def key must be atom"),
+            };
+            Value::Atom("ok".to_string())
+        }
+    }
+
+    pub fn builtin_if(&mut self, args: &[Value]) -> Value {
+        if args.len() != 3 {
+            panic!("Usage: (if <cond> <then> <else>)");
+        } else {
+            let cond = self.eval(&args[0]);
+
+            match cond {
+              Value::Bool(true) => self.eval(&args[1]),
+              Value::Bool(false) => self.eval(&args[2]),
+              _ => panic!("if condition must eval to a boolean")
+            }
+        }
+    }
+
     pub fn eval(&mut self, v: &Value) -> Value {
         match *v {
             Value::List(ref elems) => {
                 if elems.len() >= 1 {
+                    // let args: Vec<Value> = elems[1..].iter().map(|e| self.eval(e)).collect();
                     match elems[0].clone() {
                         Value::Atom(s) => {
                             match s.as_ref() {
-                                "def" => {
-                                    if elems.len() != 3 {
-                                        panic!("Usage: (def key value)");
-                                    } else {
-                                        match elems[1].clone() {
-                                            Value::Atom(a) => {
-                                                self.env.define(&a, &elems[2].clone());
-                                            },
-                                            _ => panic!("def key must be atom"),
-                                        };
-
-                                        Value::Atom("ok".to_string())
-                                    }
-                                },
+                                "def" => self.builtin_def(&elems[1..]),
+                                "if" => self.builtin_if(&elems[1..]),
                                 _ => panic!("Unknown command"),
                             }
                         },

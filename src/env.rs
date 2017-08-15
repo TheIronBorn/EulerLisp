@@ -18,6 +18,10 @@ impl Environment {
         self.bindings.insert(key.clone(), value.clone());
     }
 
+    pub fn define_rep(&mut self, key: &String, value: Value) {
+        self.bindings.insert(key.clone(), value);
+    }
+
     pub fn get(&self, key: &String) -> &Value {
         match self.bindings.get(key) {
             Some(value) => value,
