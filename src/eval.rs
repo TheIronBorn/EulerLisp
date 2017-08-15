@@ -24,6 +24,46 @@ impl Evaluator {
         }
     }
 
+    pub fn builtin_eq(&mut self, args: &[Value]) -> Value {
+        if args.len() != 2 {
+            panic!("Usage: (= <a> <b>)");
+        } else {
+            Value::Bool(self.eval(&args[0]) == self.eval(&args[1]))
+        }
+    }
+
+    pub fn builtin_ge(&mut self, args: &[Value]) -> Value {
+        if args.len() != 2 {
+            panic!("Usage: (>= <a> <b>)");
+        } else {
+            Value::Bool(self.eval(&args[0]) >= self.eval(&args[1]))
+        }
+    }
+
+    pub fn builtin_le(&mut self, args: &[Value]) -> Value {
+        if args.len() != 2 {
+            panic!("Usage: (<= <a> <b>)");
+        } else {
+            Value::Bool(self.eval(&args[0]) <= self.eval(&args[1]))
+        }
+    }
+
+    pub fn builtin_gt(&mut self, args: &[Value]) -> Value {
+        if args.len() != 2 {
+            panic!("Usage: (> <a> <b>)");
+        } else {
+            Value::Bool(self.eval(&args[0]) > self.eval(&args[1]))
+        }
+    }
+
+    pub fn builtin_lt(&mut self, args: &[Value]) -> Value {
+        if args.len() != 2 {
+            panic!("Usage: (< <a> <b>)");
+        } else {
+            Value::Bool(self.eval(&args[0]) < self.eval(&args[1]))
+        }
+    }
+
     pub fn builtin_if(&mut self, args: &[Value]) -> Value {
         if args.len() != 3 {
             panic!("Usage: (if <cond> <then> <else>)");
@@ -48,28 +88,23 @@ impl Evaluator {
                             match s.as_ref() {
                                 "def" => self.builtin_def(&elems[1..]),
                                 "if" => self.builtin_if(&elems[1..]),
+                                "=" => self.builtin_eq(&elems[1..]),
+                                "<" => self.builtin_lt(&elems[1..]),
+                                ">" => self.builtin_gt(&elems[1..]),
+                                "<=" => self.builtin_le(&elems[1..]),
+                                ">=" => self.builtin_ge(&elems[1..]),
                                 _ => panic!("Unknown command"),
                             }
                         },
                         _ => panic!("Command must be atom"),
-                        // let mut values = Vec::new();
-                        // let mut env_ = env.clone();
-                        // for e in elems.iter() {
-                        //   let res = eval(e, env_);
-                        //   values.push(res.0);
-                        //   env_ = res.1;
-                        // }
-
-                        // let res = apply_function(&values[0], &values[1..]);
-                        // (res, env_)
                     }
                 } else {
                     panic!("Empty calls are not allowed")
                 }
             },
-            Value::Atom(ref v) => {
-                self.env.get(v).clone()
-            }
+            // Value::Atom(ref v) => {
+            //     self.env.get(v).clone()
+            // }
             ref other => {
                 other.clone()
             }

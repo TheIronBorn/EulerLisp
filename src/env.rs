@@ -25,7 +25,7 @@ impl Environment {
     pub fn get(&self, key: &String) -> &Value {
         match self.bindings.get(key) {
             Some(value) => value,
-            None => panic!("Could not find key!")
+            None => panic!(format!("Undefined variable '{}'", key))
         }
     }
 }

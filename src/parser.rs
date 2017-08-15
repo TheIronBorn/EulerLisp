@@ -7,9 +7,9 @@ use ::std::str;
 use ::nom::*;
 
 named!(
-    string<&[u8], String>,
+    atom<&[u8], String>,
     do_parse!(
-        word: ws!(alphanumeric) >>
+        word: is_a_s!("abcdefghijklmnopqrstuvwxyz=?+-/*><") >>
         (String::from_utf8(word.to_vec()).unwrap())
     )
 );
@@ -46,7 +46,7 @@ named!(value<&[u8], Value>,
       map!(ws!(boolean), |x| Value::Bool(x)) |
       map!(ws!(list), |x| Value::List(x)) |
       map!(ws!(number), |x| Value::Number(x)) |
-      map!(ws!(string), |x| Value::Atom(x))
+      map!(ws!(atom), |x| Value::Atom(x))
     )
 );
 
@@ -61,12 +61,12 @@ pub fn parse(s: &String) -> Value {
 fn string_parser() {
     let comp_string = String::from("hi");
 
-    match string(b"hi") {
+    match atom(b"hi") {
         IResult::Done(_, s) => assert_eq!(comp_string, s),
         _ => panic!("Failed to parse string")
     }
 
-    match string(b"   hi  ") {
+    match atom(b"   hi  ") {
         IResult::Done(_, s) => assert_eq!(comp_string, s),
         _ => panic!("Failed to parse string")
     }
