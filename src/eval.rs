@@ -2,53 +2,61 @@ use ::Value;
 
 use env::Environment;
 
-pub fn eval(v: &Value, env: Environment) -> (Value, Environment) {
-    match *v {
-        Value::List(ref elems) => {
-            if elems.len() >= 1 {
-                match elems[0].clone() {
-                    Value::Atom(s) => {
-                        match s.as_ref() {
-                            "def" => {
-                                if elems.len() != 3 {
-                                    panic!("Usage: (def key value)");
-                                } else {
-                                    let mut e_ = env.clone();
+pub struct Evaluator {
+    env: Environment
+}
 
-                                    match elems[1].clone() {
-                                        Value::Atom(a) => {
-                                            e_.define(&a, &elems[2].clone());
-                                        },
-                                        _ => panic!("def key must be atom"),
-                                    };
+impl Evaluator {
+    pub fn new() -> Self {
+        Evaluator { env: Environment::new() }
+    }
 
-                                    (Value::Atom("ok".to_string()), e_)
-                                }
-                            },
-                            _ => panic!("Unknown command"),
-                        }
-                    },
-                    _ => panic!("Command must be atom"),
-                    // let mut values = Vec::new();
-                    // let mut env_ = env.clone();
-                    // for e in elems.iter() {
-                    //   let res = eval(e, env_);
-                    //   values.push(res.0);
-                    //   env_ = res.1;
-                    // }
+    pub fn eval(&mut self, v: &Value) -> Value {
+        match *v {
+            Value::List(ref elems) => {
+                if elems.len() >= 1 {
+                    match elems[0].clone() {
+                        Value::Atom(s) => {
+                            match s.as_ref() {
+                                "def" => {
+                                    if elems.len() != 3 {
+                                        panic!("Usage: (def key value)");
+                                    } else {
+                                        match elems[1].clone() {
+                                            Value::Atom(a) => {
+                                                self.env.define(&a, &elems[2].clone());
+                                            },
+                                            _ => panic!("def key must be atom"),
+                                        };
 
-                    // let res = apply_function(&values[0], &values[1..]);
-                    // (res, env_)
+                                        Value::Atom("ok".to_string())
+                                    }
+                                },
+                                _ => panic!("Unknown command"),
+                            }
+                        },
+                        _ => panic!("Command must be atom"),
+                        // let mut values = Vec::new();
+                        // let mut env_ = env.clone();
+                        // for e in elems.iter() {
+                        //   let res = eval(e, env_);
+                        //   values.push(res.0);
+                        //   env_ = res.1;
+                        // }
+
+                        // let res = apply_function(&values[0], &values[1..]);
+                        // (res, env_)
+                    }
+                } else {
+                    panic!("Empty calls are not allowed")
                 }
-            } else {
-                panic!("Empty calls are not allowed")
+            },
+            Value::Atom(ref v) => {
+                self.env.get(v).clone()
             }
-        },
-        Value::Atom(ref v) => {
-            (env.get(v).clone(), env)
-        }
-        ref other => {
-            (other.clone(), env)
+            ref other => {
+                other.clone()
+            }
         }
     }
 }

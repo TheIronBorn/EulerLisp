@@ -2,12 +2,11 @@ use ::rustyline::error::ReadlineError;
 use ::rustyline::Editor;
 
 use parser;
-use eval;
-use env::Environment;
+use eval::Evaluator;
 
 pub fn run() {
     let mut rl = Editor::<()>::new();
-    let mut env = Environment::new();
+    let mut eval = Evaluator::new();
 
     if let Err(_) = rl.load_history("history.txt") {
       println!("No previous history.");
@@ -19,9 +18,8 @@ pub fn run() {
           Ok(line) => {
             rl.add_history_entry(&line);
             let mut result = parser::parse(&line);
-            let foo = eval::eval(&result, env);
-            println!("{:?}", foo.0);
-            env = foo.1;
+            let foo = eval.eval(&result);
+            println!("{:?}", foo);
           },
           Err(ReadlineError::Interrupted) => {
             println!("CTRL-C");
