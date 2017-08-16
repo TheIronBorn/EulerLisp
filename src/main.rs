@@ -20,7 +20,7 @@ pub enum Value {
     Pair(Box<Value>, Box<Value>),
     Str(String),
     // TODO: Find a way to use just Value here
-    Lambda(Environment, Box<Value>),
+    Lambda(Environment, Vec<String>, Box<Value>),
     Nil,
 }
 
@@ -63,7 +63,7 @@ impl fmt::Display for Value {
             Pair(ref a, ref b) => write!(f, "({} . {})", a, b),
             Str(ref s) => write!(f, "\"{}\"", s),
             Nil => write!(f, "'()"),
-            Lambda(_, _) => write!(f, "<lambda>"),
+            Lambda(_, _, _) => write!(f, "<lambda>"),
         }
     }
 }

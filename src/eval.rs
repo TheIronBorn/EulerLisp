@@ -45,11 +45,25 @@ impl Evaluator {
     }
 
     pub fn builtin_lambda(&mut self, args: &[Value]) -> Value {
-        if args.len() != 1 {
-            panic!("Usage: (fn <body>)");
+        if args.len() != 2 {
+            panic!("Usage: (fn (args, ...) <body>)");
         } else {
-            let body = args[0].clone();
-            Value::Lambda(self.env.clone(), Box::new(body))
+            let mut params: Vec<String> = Vec::new();
+
+            match args[0] {
+                Value::List(ref elems) => {
+                    for a in elems {
+                        match *a {
+                            Value::Atom(ref v) => params.push(v.clone()),
+                            _ => panic!("Lambda arguments must be strings"),
+                        }
+                    }
+                },
+                _ => panic!("Usage: (fn (args, ...) <body>)"),
+            }
+
+            let body = args[1].clone();
+            Value::Lambda(self.env.clone(), params, Box::new(body))
         }
     }
 
@@ -150,8 +164,18 @@ impl Evaluator {
 
     pub fn apply(&mut self, f: Value, args: &[Value]) -> Value {
         match f {
-            Value::Lambda(env, body) => {
-                let mut ev = Evaluator { env };
+            Value::Lambda(env, params, body) => {
+                let mut e = env.clone();
+                if params.len() != args.len() {
+                    panic!("Not enough / too many arguments");
+                } else {
+                    for (p, a) in params.iter().zip(args.iter()) {
+                        let value = self.eval(&a);
+                        e.define(p, a);
+                    }
+                }
+
+                let mut ev = Evaluator { env: e };
                 ev.eval(&body)
             },
             _ => panic!("Not a lambda"),
