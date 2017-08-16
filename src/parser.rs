@@ -46,6 +46,7 @@ named!(value<&[u8], Value>,
       map!(ws!(boolean), |x| Value::Bool(x)) |
       map!(ws!(list), |x| Value::List(x)) |
       map!(ws!(number), |x| Value::Number(x)) |
+      map!(ws!(tag!("'()")), |x| Value::Nil) |
       map!(ws!(atom), |x| Value::Atom(x))
     )
 );
