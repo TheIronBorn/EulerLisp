@@ -35,6 +35,38 @@ impl Evaluator {
         }
     }
 
+    pub fn builtin_list(&mut self, args: &[Value]) -> Value {
+        if args.len() == 0 {
+            Value::Nil
+        } else {
+            let fst = self.eval(&args[0]);
+            Value::Pair(Box::new(fst), Box::new(self.builtin_list(&args[1..])))
+        }
+    }
+
+    pub fn builtin_lambda(&mut self, args: &[Value]) -> Value {
+        if args.len() != 1 {
+            panic!("Usage: (fn <body>)");
+        } else {
+            let body = args[0].clone();
+            Value::Lambda(self.env.clone(), Box::new(body))
+        }
+    }
+
+    pub fn builtin_puts(&mut self, args: &[Value]) -> Value {
+        if args.len() != 1 {
+            panic!("Usage: (puts <value>)");
+        } else {
+            let value = self.eval(&args[0]);
+            match value {
+                // Print string without " around them
+                Value::Str(ref x) => print!("{}\n", x),
+                _ => println!("{}", value),
+            };
+            Value::Nil
+        }
+    }
+
     pub fn builtin_eq(&mut self, args: &[Value]) -> Value {
         if args.len() != 2 {
             panic!("Usage: (= <a> <b>)");
@@ -43,37 +75,37 @@ impl Evaluator {
         }
     }
 
-    pub fn builtin_ge(&mut self, args: &[Value]) -> Value {
-        if args.len() != 2 {
-            panic!("Usage: (>= <a> <b>)");
-        } else {
-            Value::Bool(self.eval(&args[0]) >= self.eval(&args[1]))
-        }
-    }
+    // pub fn builtin_ge(&mut self, args: &[Value]) -> Value {
+    //     if args.len() != 2 {
+    //         panic!("Usage: (>= <a> <b>)");
+    //     } else {
+    //         Value::Bool(self.eval(&args[0]) >= self.eval(&args[1]))
+    //     }
+    // }
 
-    pub fn builtin_le(&mut self, args: &[Value]) -> Value {
-        if args.len() != 2 {
-            panic!("Usage: (<= <a> <b>)");
-        } else {
-            Value::Bool(self.eval(&args[0]) <= self.eval(&args[1]))
-        }
-    }
+    // pub fn builtin_le(&mut self, args: &[Value]) -> Value {
+    //     if args.len() != 2 {
+    //         panic!("Usage: (<= <a> <b>)");
+    //     } else {
+    //         Value::Bool(self.eval(&args[0]) <= self.eval(&args[1]))
+    //     }
+    // }
 
-    pub fn builtin_gt(&mut self, args: &[Value]) -> Value {
-        if args.len() != 2 {
-            panic!("Usage: (> <a> <b>)");
-        } else {
-            Value::Bool(self.eval(&args[0]) > self.eval(&args[1]))
-        }
-    }
+    // pub fn builtin_gt(&mut self, args: &[Value]) -> Value {
+    //     if args.len() != 2 {
+    //         panic!("Usage: (> <a> <b>)");
+    //     } else {
+    //         Value::Bool(self.eval(&args[0]) > self.eval(&args[1]))
+    //     }
+    // }
 
-    pub fn builtin_lt(&mut self, args: &[Value]) -> Value {
-        if args.len() != 2 {
-            panic!("Usage: (< <a> <b>)");
-        } else {
-            Value::Bool(self.eval(&args[0]) < self.eval(&args[1]))
-        }
-    }
+    // pub fn builtin_lt(&mut self, args: &[Value]) -> Value {
+    //     if args.len() != 2 {
+    //         panic!("Usage: (< <a> <b>)");
+    //     } else {
+    //         Value::Bool(self.eval(&args[0]) < self.eval(&args[1]))
+    //     }
+    // }
 
     pub fn builtin_if(&mut self, args: &[Value]) -> Value {
         if args.len() != 3 {
@@ -82,9 +114,9 @@ impl Evaluator {
             let cond = self.eval(&args[0]);
 
             match cond {
-              Value::Bool(true) => self.eval(&args[1]),
-              Value::Bool(false) => self.eval(&args[2]),
-              _ => panic!("if condition must eval to a boolean")
+                Value::Bool(true) => self.eval(&args[1]),
+                Value::Bool(false) => self.eval(&args[2]),
+                _ => panic!("if condition must eval to a boolean")
             }
         }
     }
@@ -116,6 +148,16 @@ impl Evaluator {
         }
     }
 
+    pub fn apply(&mut self, f: Value, args: &[Value]) -> Value {
+        match f {
+            Value::Lambda(env, body) => {
+                let mut ev = Evaluator { env };
+                ev.eval(&body)
+            },
+            _ => panic!("Not a lambda"),
+        }
+    } 
+
     pub fn eval(&mut self, v: &Value) -> Value {
         match *v {
             Value::List(ref elems) => {
@@ -125,28 +167,37 @@ impl Evaluator {
                         Value::Atom(s) => {
                             match s.as_ref() {
                                 "def"  => self.builtin_def(&elems[1..]),
+                                "fn"  => self.builtin_lambda(&elems[1..]),
                                 "if"   => self.builtin_if(&elems[1..]),
                                 "cons" => self.builtin_cons(&elems[1..]),
+                                "list"   => self.builtin_list(&elems[1..]),
+                                "puts"   => self.builtin_puts(&elems[1..]),
                                 "="    => self.builtin_eq(&elems[1..]),
-                                "<"    => self.builtin_lt(&elems[1..]),
-                                ">"    => self.builtin_gt(&elems[1..]),
-                                "<="   => self.builtin_le(&elems[1..]),
-                                ">="   => self.builtin_ge(&elems[1..]),
+                                // "<"    => self.builtin_lt(&elems[1..]),
+                                // ">"    => self.builtin_gt(&elems[1..]),
+                                // "<="   => self.builtin_le(&elems[1..]),
+                                // ">="   => self.builtin_ge(&elems[1..]),
                                 "pair?"   => self.builtin_is_pair(&elems[1..]),
                                 "list?"   => self.builtin_is_list(&elems[1..]),
                                 "nil?"   => self.builtin_is_nil(&elems[1..]),
-                                _      => panic!("Unknown command"),
+                                other    => {
+                                    let v = self.env.get(&other.to_string()).clone();
+                                    self.apply(v, &elems[1..])
+                                },
                             }
                         },
-                        _ => panic!("Command must be atom"),
+                        other => {
+                            let v = self.eval(&other);
+                            self.apply(v, &elems[1..])
+                        },
                     }
                 } else {
                     panic!("Empty calls are not allowed")
                 }
             },
-            // Value::Atom(ref v) => {
-            //     self.env.get(v).clone()
-            // }
+            Value::Atom(ref v) => {
+                self.env.get(v).clone()
+            }
             ref other => {
                 other.clone()
             }

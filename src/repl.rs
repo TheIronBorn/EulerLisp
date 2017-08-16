@@ -19,7 +19,7 @@ pub fn run() {
             rl.add_history_entry(&line);
             let mut result = parser::parse(&line);
             let foo = eval.eval(&result);
-            println!("{}", foo);
+            println!("=> {}", foo);
           },
           Err(ReadlineError::Interrupted) => {
             println!("CTRL-C");

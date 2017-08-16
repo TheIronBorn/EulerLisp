@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use ::Value;
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Environment {
     bindings: HashMap<String, Value>
 }

@@ -41,12 +41,22 @@ named!(boolean<&[u8], bool>,
     )
 );
 
+named!(string<&[u8], String>,
+    do_parse!(
+        tag!("\"") >>
+        body: alphanumeric >>
+        tag!("\"") >>
+        (String::from_utf8(body.to_vec()).unwrap())
+    )
+);
+
 named!(value<&[u8], Value>,
     alt!(
       map!(ws!(boolean), |x| Value::Bool(x)) |
       map!(ws!(list), |x| Value::List(x)) |
       map!(ws!(number), |x| Value::Number(x)) |
       map!(ws!(tag!("'()")), |x| Value::Nil) |
+      map!(ws!(string), |x| Value::Str(x)) |
       map!(ws!(atom), |x| Value::Atom(x))
     )
 );

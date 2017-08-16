@@ -9,13 +9,18 @@ mod env;
 
 use std::fmt;
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
+use env::Environment;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Value {
     Atom(String),
     Bool(bool),
     List(Vec<Value>),
     Number(i64),
     Pair(Box<Value>, Box<Value>),
+    Str(String),
+    // TODO: Find a way to use just Value here
+    Lambda(Environment, Box<Value>),
     Nil,
 }
 
@@ -56,7 +61,9 @@ impl fmt::Display for Value {
             List(ref x) => write!(f, "{:#?}", x),
             Number(x) => write!(f, "{}", x),
             Pair(ref a, ref b) => write!(f, "({} . {})", a, b),
+            Str(ref s) => write!(f, "\"{}\"", s),
             Nil => write!(f, "'()"),
+            Lambda(_, _) => write!(f, "<lambda>"),
         }
     }
 }
