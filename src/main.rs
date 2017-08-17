@@ -6,6 +6,7 @@ mod repl;
 mod parser;
 mod eval;
 mod env;
+mod desugar;
 
 use std::fmt;
 

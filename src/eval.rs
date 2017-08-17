@@ -122,17 +122,48 @@ impl Evaluator {
     // }
 
     pub fn builtin_if(&mut self, args: &[Value]) -> Value {
-        if args.len() != 3 {
-            panic!("Usage: (if <cond> <then> <else>)");
-        } else {
-            let cond = self.eval(&args[0]);
+        let usage = "Usage: (if <condition> <consequent> [<alternative>])";
+        let cond = args.get(0).expect(usage);
+        let cons = args.get(1).expect(usage);
+        let default_alt = Value::Nil;
+        let alt = args.get(2).unwrap_or(&default_alt);
 
-            match cond {
-                Value::Bool(true) => self.eval(&args[1]),
-                Value::Bool(false) => self.eval(&args[2]),
-                _ => panic!("if condition must eval to a boolean")
+        match self.eval(&cond) {
+            Value::Bool(true) => self.eval(cons),
+            Value::Bool(false) => self.eval(alt),
+            _ => panic!("if condition must eval to a boolean")
+        }
+    }
+
+    pub fn builtin_cond(&mut self, args: &[Value]) -> Value {
+        let usage = "Usage: (cond (<condition> <consequent>)... [(else <alternative>)])";
+        if args.len() == 0 {
+            panic!(usage);
+        }
+
+        for arg in args.iter() {
+            match *arg {
+                Value::List(ref elems) => {
+                    let cond = elems.get(0).expect(usage);
+                    let cons = elems.get(1).expect(usage);
+
+                    // TODO this does not check if "else" comes last
+                    if *cond == Value::Atom("else".to_string()) {
+                        return self.eval(cons);
+                    } else {
+                        let res = self.eval(cond);
+                        if res == Value::Bool(true) {
+                            return self.eval(cons);
+                        } else {
+                            continue
+                        }
+                    }
+                },
+                _ => panic!(usage)
             }
         }
+
+        Value::Nil
     }
 
     pub fn builtin_is_pair(&mut self, args: &[Value]) -> Value {
@@ -193,6 +224,7 @@ impl Evaluator {
                                 "def"  => self.builtin_def(&elems[1..]),
                                 "fn"  => self.builtin_lambda(&elems[1..]),
                                 "if"   => self.builtin_if(&elems[1..]),
+                                "cond"   => self.builtin_cond(&elems[1..]),
                                 "cons" => self.builtin_cons(&elems[1..]),
                                 "list"   => self.builtin_list(&elems[1..]),
                                 "puts"   => self.builtin_puts(&elems[1..]),

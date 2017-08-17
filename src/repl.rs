@@ -3,6 +3,7 @@ use ::rustyline::Editor;
 
 use parser;
 use eval::Evaluator;
+use desugar;
 
 pub fn run() {
     let mut rl = Editor::<()>::new();
@@ -18,7 +19,8 @@ pub fn run() {
           Ok(line) => {
             rl.add_history_entry(&line);
             let mut result = parser::parse(&line);
-            let foo = eval.eval(&result);
+            let desugared = desugar::desugar(&result);
+            let foo = eval.eval(&desugared);
             println!("=> {}", foo);
           },
           Err(ReadlineError::Interrupted) => {
