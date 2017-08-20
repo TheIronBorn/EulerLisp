@@ -31,7 +31,32 @@ impl Evaluator {
         } else {
             let fst = self.eval(&args[0]);
             let rst = self.eval(&args[1]);
-            Value::Pair(Box::new(fst), Box::new(rst))
+
+            match rst {
+                Value::Nil => Value::List(vec![fst]),
+                Value::DottedList(ref elems) => {
+                    let mut new = elems.clone();
+                    new.insert(0, fst);
+                    Value::DottedList(new)
+                }
+                Value::List(ref elems) => {
+                    let mut new = elems.clone();
+                    new.insert(0, fst);
+                    Value::List(new)
+                }
+                other => Value::DottedList(vec![fst, other])
+            }
+        }
+    }
+
+    pub fn builtin_quote(&mut self, args: &[Value]) -> Value {
+        if args.len() != 1 {
+            panic!("Usage: (quote <value>)");
+        } else {
+            match args[0] {
+                // Value::List(ref l) => self.builtin_list(&l[..]),
+                ref other => other.clone()
+            }
         }
     }
 
@@ -39,8 +64,8 @@ impl Evaluator {
         if args.len() == 0 {
             Value::Nil
         } else {
-            let fst = self.eval(&args[0]);
-            Value::Pair(Box::new(fst), Box::new(self.builtin_list(&args[1..])))
+            let vals: Vec<Value> = args.iter().map(|v| self.eval(v)).collect();
+            Value::List(vals)
         }
     }
 
@@ -214,6 +239,7 @@ impl Evaluator {
     } 
 
     pub fn eval(&mut self, v: &Value) -> Value {
+        println!("Evaling {}", v);
         match *v {
             Value::List(ref elems) => {
                 if elems.len() >= 1 {
@@ -227,6 +253,7 @@ impl Evaluator {
                                 "cond"   => self.builtin_cond(&elems[1..]),
                                 "cons" => self.builtin_cons(&elems[1..]),
                                 "list"   => self.builtin_list(&elems[1..]),
+                                "quote"   => self.builtin_quote(&elems[1..]),
                                 "puts"   => self.builtin_puts(&elems[1..]),
                                 "="    => self.builtin_eq(&elems[1..]),
                                 // "<"    => self.builtin_lt(&elems[1..]),

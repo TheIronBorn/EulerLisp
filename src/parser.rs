@@ -6,10 +6,19 @@ use ::std::str;
 
 use ::nom::*;
 
+static identifier_start: &'static str = "abcdefghijklmnopqrstuvwxyz!$%&*+-./:<=>?@^_~";
+static identifier_main: &'static str = "abcdefghijklmnopqrstuvwxyz0123456789!$%&*+-./:<=>?@^_~";
+
 named!(
-    atom<&[u8], String>,
+    identifier<&[u8], String>,
     do_parse!(
-        word: is_a_s!("abcdefghijklmnopqrstuvwxyz=?+-/*><") >>
+        word: recognize!(
+            do_parse!(
+                one_of!(identifier_start) >>
+                many0!(one_of!(identifier_main)) >>
+                ()
+            )
+        ) >>
         (String::from_utf8(word.to_vec()).unwrap())
     )
 );
@@ -50,6 +59,14 @@ named!(string<&[u8], String>,
     )
 );
 
+named!(quote<&[u8], Vec<Value>>,
+    do_parse!(
+        tag!("'") >>
+        value: value >>
+        (vec![Value::Atom(String::from("quote")), value])
+    )
+);
+
 named!(value<&[u8], Value>,
     alt!(
       map!(ws!(boolean), |x| Value::Bool(x)) |
@@ -57,7 +74,8 @@ named!(value<&[u8], Value>,
       map!(ws!(number), |x| Value::Number(x)) |
       map!(ws!(tag!("'()")), |x| Value::Nil) |
       map!(ws!(string), |x| Value::Str(x)) |
-      map!(ws!(atom), |x| Value::Atom(x))
+      map!(ws!(identifier), |x| Value::Atom(x)) |
+      map!(ws!(quote), |x| Value::List(x))
     )
 );
 
@@ -67,37 +85,3 @@ pub fn parse(s: &String) -> Value {
       _ => panic!("Failed to parse value")
     }
 }
-
-#[test]
-fn string_parser() {
-    let comp_string = String::from("hi");
-
-    match atom(b"hi") {
-        IResult::Done(_, s) => assert_eq!(comp_string, s),
-        _ => panic!("Failed to parse string")
-    }
-
-    match atom(b"   hi  ") {
-        IResult::Done(_, s) => assert_eq!(comp_string, s),
-        _ => panic!("Failed to parse string")
-    }
-}
-
-#[test]
-fn op_parser() {
-    match op(b"atomop") {
-        IResult::Done(_, s) => assert_eq!(Op::Atom(String::from("atomop")), s),
-        _ => panic!("Failed to parse string")
-    }
-
-    match op(b"  +  ") {
-        IResult::Done(_, s) => assert_eq!(Op::Primitive(Prim::Add), s),
-        _ => panic!("Failed to parse string")
-    }
-
-    match op(b"  let ") {
-        IResult::Done(_, s) => assert_eq!(Op::SpecialFrom(SForm::Let), s),
-        _ => panic!("Failed to parse string")
-    }
-}
-
