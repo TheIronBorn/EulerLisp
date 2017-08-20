@@ -4,7 +4,6 @@ use env::Environment;
 
 pub struct Evaluator { env: Environment }
 
-
 impl Evaluator {
     pub fn new() -> Self {
         Evaluator { env: Environment::new() }
@@ -264,6 +263,16 @@ impl Evaluator {
         }
     }
 
+    pub fn builtin_do(&mut self, args: &[Value]) -> Value {
+        let mut result = Value::Nil;
+
+        for a in args.iter() {
+            result = self.eval(a);
+        }
+
+        result
+    }
+
     pub fn apply(&mut self, f: Value, args: &[Value]) -> Value {
         match f {
             Value::Lambda(env, params, body) => {
@@ -297,6 +306,7 @@ impl Evaluator {
                                 "fn"  => self.builtin_lambda(&elems[1..]),
                                 "if"   => self.builtin_if(&elems[1..]),
                                 "cond"   => self.builtin_cond(&elems[1..]),
+                                "do"   => self.builtin_do(&elems[1..]),
                                 "cons" => self.builtin_cons(&elems[1..]),
                                 "fst" => self.builtin_first(&elems[1..]),
                                 "rst" => self.builtin_rest(&elems[1..]),
@@ -310,7 +320,7 @@ impl Evaluator {
                                 // ">="   => self.builtin_ge(&elems[1..]),
                                 "pair?"   => self.builtin_is_pair(&elems[1..]),
                                 "list?"   => self.builtin_is_list(&elems[1..]),
-                                "nil?"   => self.builtin_is_nil(&elems[1..]),
+                                "null?"   => self.builtin_is_nil(&elems[1..]),
                                 other    => {
                                     let v = self.env.get(&other.to_string()).clone();
                                     self.apply(v, &elems[1..])
