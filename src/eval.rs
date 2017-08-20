@@ -218,6 +218,52 @@ impl Evaluator {
         }
     }
 
+    pub fn builtin_first(&mut self, args: &[Value]) -> Value {
+        if args.len() != 1 {
+            panic!("Usage: (fst <value>)");
+        } else {
+            let value = self.eval(&args[0]);
+            match value {
+                // TODO: find some way to ensure dotted list size >= 2
+                Value::DottedList(ref elems) => {
+                    elems.first().unwrap().clone()
+                },
+                Value::List(ref elems) => {
+                    elems.first().unwrap().clone()
+                },
+                _ => panic!("Can't take first of non-list value")
+            }
+        }
+    }
+
+    pub fn builtin_rest(&mut self, args: &[Value]) -> Value {
+        if args.len() != 1 {
+            panic!("Usage: (rst <value>)");
+        } else {
+            let value = self.eval(&args[0]);
+            match value {
+                // TODO: find some way to ensure dotted list size >= 2
+                Value::DottedList(ref elems) => {
+                    if elems.len() == 2 {
+                        elems.get(1).unwrap().clone()
+                    } else {
+                        let rest: Vec<Value> = elems[1..].iter().map(|v| v.clone()).collect();
+                        Value::DottedList(rest)
+                    }
+                },
+                Value::List(ref elems) => {
+                    if elems.len() == 1 {
+                        Value::Nil
+                    } else {
+                        let rest: Vec<Value> = elems[1..].iter().map(|v| v.clone()).collect();
+                        Value::List(rest)
+                    }
+                },
+                _ => panic!("Can't take first of non-list value")
+            }
+        }
+    }
+
     pub fn apply(&mut self, f: Value, args: &[Value]) -> Value {
         match f {
             Value::Lambda(env, params, body) => {
@@ -252,6 +298,8 @@ impl Evaluator {
                                 "if"   => self.builtin_if(&elems[1..]),
                                 "cond"   => self.builtin_cond(&elems[1..]),
                                 "cons" => self.builtin_cons(&elems[1..]),
+                                "fst" => self.builtin_first(&elems[1..]),
+                                "rst" => self.builtin_rest(&elems[1..]),
                                 "list"   => self.builtin_list(&elems[1..]),
                                 "quote"   => self.builtin_quote(&elems[1..]),
                                 "puts"   => self.builtin_puts(&elems[1..]),
