@@ -1,6 +1,8 @@
 use ::Value;
 
 use env::Environment;
+use parser;
+use desugar;
 
 pub struct Evaluator { env: Environment }
 
@@ -9,6 +11,9 @@ impl Evaluator {
         Evaluator { env: Environment::new() }
     }
 
+    // If the key is already set in the current env,
+    // throw an error,
+    // otherwise define it
     pub fn builtin_def(&mut self, args: &[Value]) -> Value {
         if args.len() != 2 {
             panic!("Usage: (def <key> <value>)");
@@ -16,9 +21,29 @@ impl Evaluator {
             match args[0] {
                 Value::Atom(ref a) => {
                     let value = self.eval(&args[1]);
-                    self.env.define_rep(a, value)
+                    if self.env.define_into(a, value) {
+                        Value::Atom("ok".to_string())
+                    } else {
+                        panic!("{} is already defined", a);
+                    }
                 },
                 _ => panic!("def key must be atom"),
+            }
+        }
+    }
+
+    // Walk up the env tree until key is set,
+    // then change its value
+    pub fn builtin_set(&mut self, args: &[Value]) -> Value {
+        if args.len() != 2 {
+            panic!("Usage: (set! <key> <value>)");
+        } else {
+            match args[0] {
+                Value::Atom(ref a) => {
+                    let value = self.eval(&args[1]);
+                    self.env.set_into(a, value)
+                },
+                _ => panic!("set! key must be atom"),
             };
             Value::Atom("ok".to_string())
         }
@@ -273,7 +298,70 @@ impl Evaluator {
         result
     }
 
+    pub fn builtin_plus(&mut self, args: &[Value]) -> Value {
+        let mut result = 0;
+
+        for a in args.iter() {
+            if let Value::Number(n) = self.eval(a) {
+                result += n;
+            } else {
+                panic!("+ only works with numbers");
+            }
+        }
+
+        Value::Number(result)
+    }
+
+    pub fn builtin_mult(&mut self, args: &[Value]) -> Value {
+        let mut result = 1;
+
+        for a in args.iter() {
+            if let Value::Number(n) = self.eval(a) {
+                result *= n;
+            } else {
+                panic!("* only works with numbers");
+            }
+        }
+
+        Value::Number(result)
+    }
+
+    pub fn builtin_minus(&mut self, args: &[Value]) -> Value {
+        let mut result = 0;
+
+        if args.len() == 0 {
+            panic!("Too few arguments for -");
+        }
+
+        // (- ...) is a bit weird,
+        // (- 1) => -1
+        // (- 1 2 3) = 1 - 2 - 3 = -4
+        if let Value::Number(n) = self.eval(&args[0]) {
+            if args.len() == 1 {
+                result = -n;
+            } else {
+                result = n; 
+            }
+        } else {
+            panic!("+ only works with numbers");
+        }
+
+        if args.len() == 1 {
+        }
+
+        for a in args[1..].iter() {
+            if let Value::Number(n) = self.eval(a) {
+                result -= n;
+            } else {
+                panic!("+ only works with numbers");
+            }
+        }
+
+        Value::Number(result)
+    }
+
     pub fn apply(&mut self, f: Value, args: &[Value]) -> Value {
+        // println!("Applying {:?} to {:?}", args, f);
         match f {
             Value::Lambda(env, params, body) => {
                 let mut e = env.clone();
@@ -293,16 +381,22 @@ impl Evaluator {
         }
     } 
 
+    pub fn eval_str(&mut self, input: &str) -> Value {
+        let mut result = parser::parse(input);
+        let desugared = desugar::desugar(&result);
+        self.eval(&desugared)
+    }
+
     pub fn eval(&mut self, v: &Value) -> Value {
-        println!("Evaling {}", v);
+        // println!("Evaling {}", v);
         match *v {
             Value::List(ref elems) => {
                 if elems.len() >= 1 {
-                    // let args: Vec<Value> = elems[1..].iter().map(|e| self.eval(e)).collect();
                     match elems[0].clone() {
                         Value::Atom(s) => {
                             match s.as_ref() {
                                 "def"  => self.builtin_def(&elems[1..]),
+                                "set!"  => self.builtin_set(&elems[1..]),
                                 "fn"  => self.builtin_lambda(&elems[1..]),
                                 "if"   => self.builtin_if(&elems[1..]),
                                 "cond"   => self.builtin_cond(&elems[1..]),
@@ -315,6 +409,9 @@ impl Evaluator {
                                 "puts"   => self.builtin_puts(&elems[1..]),
                                 "="    => self.builtin_eq(&elems[1..]),
                                 // "<"    => self.builtin_lt(&elems[1..]),
+                                "+"    => self.builtin_plus(&elems[1..]),
+                                "*"    => self.builtin_mult(&elems[1..]),
+                                "-"    => self.builtin_minus(&elems[1..]),
                                 // ">"    => self.builtin_gt(&elems[1..]),
                                 // "<="   => self.builtin_le(&elems[1..]),
                                 // ">="   => self.builtin_ge(&elems[1..]),
@@ -323,13 +420,15 @@ impl Evaluator {
                                 "null?"   => self.builtin_is_nil(&elems[1..]),
                                 other    => {
                                     let v = self.env.get(&other.to_string()).clone();
-                                    self.apply(v, &elems[1..])
+                                    let args: Vec<Value> = elems[1..].iter().map(|e| self.eval(e)).collect();
+                                    self.apply(v, &args[..])
                                 },
                             }
                         },
                         other => {
                             let v = self.eval(&other);
-                            self.apply(v, &elems[1..])
+                            let args: Vec<Value> = elems[1..].iter().map(|e| self.eval(e)).collect();
+                            self.apply(v, &args[..])
                         },
                     }
                 } else {
@@ -344,41 +443,4 @@ impl Evaluator {
             }
         }
     }
-}
-
-fn apply_function(v: &Value, args: &[Value]) -> Value {
-    match *v {
-        Value::Atom(ref x) => match &x[..] {
-            "add" => primitive_add(args),
-            "mul" => primitive_mul(args),
-            ref other => panic!("Unknown function {:?}", other)
-        },
-        ref other => panic!("Unknown function {:?}", *other)
-    }
-}
-
-fn primitive_add(args: &[Value]) -> Value {
-    let mut sum = 0;
-    for i in args {
-        match i {
-            &Value::Number(n) => {
-                sum += n;
-            },
-            other => panic!("Invalid argument for `add`: {:?}", other)
-        }
-    }
-    Value::Number(sum)
-}
-
-fn primitive_mul(args: &[Value]) -> Value {
-    let mut sum = 1;
-    for i in args {
-        match i {
-            &Value::Number(n) => {
-                sum *= n;
-            },
-            other => panic!("Invalid argument for `add`: {:?}", other)
-        }
-    }
-    Value::Number(sum)
 }

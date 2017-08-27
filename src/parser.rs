@@ -79,7 +79,7 @@ named!(value<&[u8], Value>,
     )
 );
 
-pub fn parse(s: &String) -> Value {
+pub fn parse(s: &str) -> Value {
     match value(s.as_bytes()) {
       IResult::Done(_, v) => v,
       _ => panic!("Failed to parse value")
