@@ -1,6 +1,7 @@
 use ::rustyline::error::ReadlineError;
 use ::rustyline::Editor;
 
+use ::LispResult;
 use parser;
 use eval::Evaluator;
 use desugar;
@@ -20,8 +21,10 @@ pub fn run() {
             rl.add_history_entry(&line);
             let mut result = parser::parse(&line);
             let desugared = desugar::desugar(&result);
-            let foo = eval.eval(&desugared);
-            println!("=> {}", foo);
+            match eval.eval(&desugared) {
+                Ok(res) => println!("=> {}", res),
+                Err(msg) => println!("!! {}", msg),
+            };
           },
           Err(ReadlineError::Interrupted) => {
             println!("CTRL-C");

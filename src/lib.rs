@@ -4,6 +4,7 @@ extern crate rustyline;
 
 pub mod repl;
 pub mod eval;
+
 mod parser;
 mod env;
 mod desugar;
@@ -11,6 +12,10 @@ mod desugar;
 use std::fmt;
 
 use env::Environment;
+
+// TODO: &str leads to problems with lifetimes,
+// is String really better?
+pub type LispResult = Result<Value, String>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Value {

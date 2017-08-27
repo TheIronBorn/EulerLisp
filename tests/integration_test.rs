@@ -10,11 +10,11 @@ fn definitions() {
     ev.eval_str("(def b 2)");
     assert_eq!(
         ev.eval_str("a"),
-        Number(1)
+        Ok(Number(1))
     );
     assert_eq!(
         ev.eval_str("b"),
-        Number(2)
+        Ok(Number(2))
     );
 }
 
@@ -25,6 +25,6 @@ fn redefinitions() {
     ev.eval_str("(set! a 2)");
     assert_eq!(
         ev.eval_str("a"),
-        Number(2)
+        Ok(Number(2))
     );
 }
