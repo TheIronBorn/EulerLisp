@@ -200,16 +200,15 @@ impl Evaluator {
     }
 
     pub fn builtin_cond(&mut self, args: &[Value]) -> LispResult {
-        let usage_err = Err(InvalidNumberOfArguments);
         if args.len() == 0 {
-            return usage_err;
+            return Err(InvalidNumberOfArguments);
         }
 
         for arg in args.iter() {
             match *arg {
                 Value::List(ref elems) => {
                     if elems.len() != 2 {
-                        return usage_err;
+                        return Err(InvalidTypeOfArguments);
                     }
                     let cond = elems.get(0).unwrap();
                     let cons = elems.get(1).unwrap();
@@ -227,7 +226,7 @@ impl Evaluator {
                     }
                 },
                 _ => {
-                    return usage_err;
+                    return Err(InvalidTypeOfArguments);
                 }
             }
         }
@@ -348,11 +347,11 @@ impl Evaluator {
     }
 
     pub fn builtin_minus(&mut self, args: &[Value]) -> LispResult {
-        let mut result = 0;
-
         if args.len() == 0 {
             return Err(InvalidNumberOfArguments);
         }
+
+        let mut result;
 
         // (- ...) is a bit weird,
         // (- 1) => -1
@@ -367,10 +366,7 @@ impl Evaluator {
             return Err(InvalidTypeOfArguments);
         }
 
-        if args.len() == 1 {
-        }
-
-        for a in args[1..].iter() {
+        for a in args.iter().skip(1) {
             if let Value::Number(n) = self.eval(a)? {
                 result -= n;
             } else {
@@ -415,7 +411,12 @@ impl Evaluator {
                 } else {
                     for (p, a) in params.iter().zip(args.iter()) {
                         let value = self.eval(&a);
-                        e.define(p, a);
+                        match value {
+                            Ok(v) => e.define_into(p, v),
+                            Err(err) => {
+                                return Err(err)
+                            },
+                        };
                     }
                 }
 
@@ -427,7 +428,7 @@ impl Evaluator {
     } 
 
     pub fn eval_str(&mut self, input: &str) -> LispResult {
-        let mut result = parser::parse(input);
+        let result = parser::parse(input);
         let desugared = desugar::desugar(&result);
         self.eval(&desugared)
     }

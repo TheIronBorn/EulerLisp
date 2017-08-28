@@ -13,8 +13,6 @@ use std::fmt;
 
 use env::Environment;
 
-// TODO: &str leads to problems with lifetimes,
-// is String really better?
 pub type LispResult = Result<Value, LispErr>;
 
 #[derive(Debug, PartialEq, Eq)]

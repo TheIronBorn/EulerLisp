@@ -1,4 +1,3 @@
-use std::fs::File;
 use std::str::FromStr;
 use std::str::from_utf8;
 use std::str;
@@ -8,16 +7,16 @@ use nom::*;
 
 use ::Value;
 
-static identifier_start: &'static str = "abcdefghijklmnopqrstuvwxyz!$%&*+-./:<=>?@^_~";
-static identifier_main: &'static str = "abcdefghijklmnopqrstuvwxyz0123456789!$%&*+-./:<=>?@^_~";
+static IDENTIFIER_START: &'static str = "abcdefghijklmnopqrstuvwxyz!$%&*+-./:<=>?@^_~";
+static IDENTIFIER_MAIN: &'static str = "abcdefghijklmnopqrstuvwxyz0123456789!$%&*+-./:<=>?@^_~";
 
 named!(
     identifier<&[u8], String>,
     do_parse!(
         word: recognize!(
             do_parse!(
-                one_of!(identifier_start) >>
-                many0!(one_of!(identifier_main)) >>
+                one_of!(IDENTIFIER_START) >>
+                many0!(one_of!(IDENTIFIER_MAIN)) >>
                 ()
             )
         ) >>
@@ -32,7 +31,7 @@ named!(
             digit,
             ::std::str::from_utf8
         ),
-        (::std::str::FromStr::from_str)
+        (FromStr::from_str)
     )
 );
 

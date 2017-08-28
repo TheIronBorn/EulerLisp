@@ -15,7 +15,7 @@ impl Environment {
     }
 
     pub fn define(&mut self, key: &String, value: &Value) -> bool {
-        self.define(key, &value.clone())
+        self.define_into(key, value.clone())
     }
 
     pub fn define_into(&mut self, key: &String, value: Value) -> bool {
@@ -28,7 +28,7 @@ impl Environment {
     }
 
     pub fn set(&mut self, key: &String, value: &Value) {
-        self.set(key, &value.clone());
+        self.set_into(key, value.clone());
     }
 
     pub fn set_into(&mut self, key: &String, value: Value) {
