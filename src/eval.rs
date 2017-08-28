@@ -1,5 +1,6 @@
 use ::Value;
 use ::LispResult;
+use ::LispErr::*;
 
 use env::Environment;
 use parser;
@@ -17,7 +18,7 @@ impl Evaluator {
     // otherwise define it
     pub fn builtin_def(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 2 {
-            Err("Usage: (def <key> <value>)".to_string())
+            Err(InvalidNumberOfArguments)
         } else {
             match args[0] {
                 Value::Atom(ref a) => {
@@ -25,10 +26,10 @@ impl Evaluator {
                     if self.env.define_into(a, value) {
                         Ok(Value::Atom("ok".to_string()))
                     } else {
-                        Err("Already defined".to_string())
+                        Err(DefinitionAlreadyDefined)
                     }
                 },
-                _ => Err("def key must be atom".to_string()),
+                _ => Err(InvalidTypeOfArguments),
             }
         }
     }
@@ -37,7 +38,7 @@ impl Evaluator {
     // then change its value
     pub fn builtin_set(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 2 {
-            Err("Usage: (set! <key> <value>)".to_string())
+            Err(InvalidNumberOfArguments)
         } else {
             match args[0] {
                 Value::Atom(ref a) => {
@@ -46,14 +47,14 @@ impl Evaluator {
                     // TODO: Handle errors
                     Ok(Value::Atom("ok".to_string()))
                 },
-                _ => Err("set! key must be atom".to_string()),
+                _ => Err(InvalidTypeOfArguments),
             }
         }
     }
 
     pub fn builtin_cons(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 2 {
-            Err("Usage: (cons <fst> <rst>)".to_string())
+            Err(InvalidNumberOfArguments)
         } else {
             let fst = self.eval(&args[0])?;
             let rst = self.eval(&args[1])?;
@@ -77,7 +78,7 @@ impl Evaluator {
 
     pub fn builtin_quote(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 1 {
-            Err("Usage: (quote <value>)".to_string())
+            Err(InvalidNumberOfArguments)
         } else {
             match args[0] {
                 // Value::List(ref l) => self.builtin_list(&l[..]),
@@ -105,7 +106,7 @@ impl Evaluator {
 
     pub fn builtin_lambda(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 2 {
-            Err("Usage: (fn (args, ...) <body>)".to_string())
+            Err(InvalidNumberOfArguments)
         } else {
             let mut params: Vec<String> = Vec::new();
 
@@ -114,11 +115,11 @@ impl Evaluator {
                     for a in elems {
                         match *a {
                             Value::Atom(ref v) => params.push(v.clone()),
-                            _ => return Err("Lambda arguments must be strings".to_string()),
+                            _ => return Err(InvalidTypeOfArguments),
                         }
                     }
                 },
-                _ => return Err("Usage: (fn (args, ...) <body>)".to_string()),
+                _ => return Err(InvalidTypeOfArguments),
             }
 
             let body = args[1].clone();
@@ -128,7 +129,7 @@ impl Evaluator {
 
     pub fn builtin_puts(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 1 {
-            Err("Usage: (puts <value>)".to_string())
+            Err(InvalidNumberOfArguments)
         } else {
             let value = self.eval(&args[0])?;
             match value {
@@ -142,7 +143,7 @@ impl Evaluator {
 
     pub fn builtin_eq(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 2 {
-            Err("Usage: (= <a> <b>)".to_string())
+            Err(InvalidNumberOfArguments)
         } else {
             Ok(Value::Bool(self.eval(&args[0]) == self.eval(&args[1])))
         }
@@ -181,21 +182,25 @@ impl Evaluator {
     // }
 
     pub fn builtin_if(&mut self, args: &[Value]) -> LispResult {
-        let usage = "Usage: (if <condition> <consequent> [<alternative>])";
-        let cond = args.get(0).expect(usage);
-        let cons = args.get(1).expect(usage);
+        if !(args.len() == 2 || args.len() == 3) {
+            return Err(InvalidNumberOfArguments);
+        }
+
+        let cond = args.get(0).unwrap();
+        let cons = args.get(1).unwrap();
+
         let default_alt = Value::Nil;
         let alt = args.get(2).unwrap_or(&default_alt);
 
         match self.eval(&cond)? {
             Value::Bool(true) => self.eval(cons),
             Value::Bool(false) => self.eval(alt),
-            _ => Err("if condition must eval to a boolean".to_string())
+            _ => Err(InvalidTypeOfArguments)
         }
     }
 
     pub fn builtin_cond(&mut self, args: &[Value]) -> LispResult {
-        let usage_err = Err("Usage: (cond (<condition> <consequent>)... [(else <alternative>)])".to_string());
+        let usage_err = Err(InvalidNumberOfArguments);
         if args.len() == 0 {
             return usage_err;
         }
@@ -232,7 +237,7 @@ impl Evaluator {
 
     pub fn builtin_is_pair(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 1 {
-            Err("Usage: (is_pair <value>)".to_string())
+            Err(InvalidNumberOfArguments)
         } else {
             let value = self.eval(&args[0])?;
             Ok(Value::Bool(value.is_pair()))
@@ -241,7 +246,7 @@ impl Evaluator {
 
     pub fn builtin_is_list(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 1 {
-            Err("Usage: (is_pair <value>)".to_string())
+            Err(InvalidNumberOfArguments)
         } else {
             let value = self.eval(&args[0])?;
             Ok(Value::Bool(value.is_list()))
@@ -250,7 +255,7 @@ impl Evaluator {
 
     pub fn builtin_is_nil(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 1 {
-            Err("Usage: (is_pair <value>)".to_string())
+            Err(InvalidNumberOfArguments)
         } else {
             let value = self.eval(&args[0])?;
             Ok(Value::Bool(value.is_nil()))
@@ -259,7 +264,7 @@ impl Evaluator {
 
     pub fn builtin_first(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 1 {
-            Err("Usage: (fst <value>)".to_string())
+            Err(InvalidNumberOfArguments)
         } else {
             let value = self.eval(&args[0])?;
             match value {
@@ -270,14 +275,14 @@ impl Evaluator {
                 Value::List(ref elems) => {
                     Ok(elems.first().unwrap().clone())
                 },
-                _ => Err("Can't take first of non-list value".to_string())
+                _ => Err(InvalidTypeOfArguments)
             }
         }
     }
 
     pub fn builtin_rest(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 1 {
-            Err("Usage: (rst <value>)".to_string())
+            Err(InvalidNumberOfArguments)
         } else {
             let value = self.eval(&args[0])?;
             match value {
@@ -298,7 +303,7 @@ impl Evaluator {
                         Ok(Value::List(rest))
                     }
                 },
-                _ => Err("Can't take first of non-list value".to_string())
+                _ => Err(InvalidTypeOfArguments)
             }
         }
     }
@@ -321,7 +326,7 @@ impl Evaluator {
             if let Value::Number(n) = self.eval(a)? {
                 result += n;
             } else {
-                return Err("+ only works with numbers".to_string());
+                return Err(InvalidTypeOfArguments);
             }
         }
 
@@ -335,7 +340,7 @@ impl Evaluator {
             if let Value::Number(n) = self.eval(a)? {
                 result *= n;
             } else {
-                return Err("* only works with numbers".to_string());
+                return Err(InvalidTypeOfArguments);
             }
         }
 
@@ -346,7 +351,7 @@ impl Evaluator {
         let mut result = 0;
 
         if args.len() == 0 {
-            return Err("Too few arguments for -".to_string());
+            return Err(InvalidNumberOfArguments);
         }
 
         // (- ...) is a bit weird,
@@ -359,7 +364,7 @@ impl Evaluator {
                 result = n; 
             }
         } else {
-            return Err("- only works with numbers".to_string());
+            return Err(InvalidTypeOfArguments);
         }
 
         if args.len() == 1 {
@@ -369,7 +374,7 @@ impl Evaluator {
             if let Value::Number(n) = self.eval(a)? {
                 result -= n;
             } else {
-                return Err("- only works with numbers".to_string());
+                return Err(InvalidTypeOfArguments);
             }
         }
 
@@ -378,7 +383,7 @@ impl Evaluator {
 
     fn builtin_read(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 1 {
-            return Err("Invalid number of arguments".to_string());
+            return Err(InvalidNumberOfArguments);
         }
 
         let value = self.eval(&args[0])?;
@@ -387,13 +392,13 @@ impl Evaluator {
                 let result = parser::parse(input);
                 Ok(result)
             },
-            _ => Err("Invalid argument type".to_string())
+            _ => Err(InvalidTypeOfArguments)
         }
     }
 
     fn builtin_eval(&mut self, args: &[Value]) -> LispResult {
         if args.len() != 1 {
-            return Err("Invalid number of arguments".to_string());
+            return Err(InvalidNumberOfArguments);
         }
 
         let value = self.eval(&args[0])?;
@@ -406,7 +411,7 @@ impl Evaluator {
             Value::Lambda(env, params, body) => {
                 let mut e = env.clone();
                 if params.len() != args.len() {
-                    return Err("Not enough / too many arguments".to_string());
+                    return Err(InvalidNumberOfArguments);
                 } else {
                     for (p, a) in params.iter().zip(args.iter()) {
                         let value = self.eval(&a);
@@ -417,7 +422,7 @@ impl Evaluator {
                 let mut ev = Evaluator { env: e };
                 ev.eval(&body)
             },
-            _ => Err("Not a lambda".to_string()),
+            _ => Err(InvalidTypeOfArguments),
         }
     } 
 
@@ -490,7 +495,7 @@ impl Evaluator {
                         },
                     }
                 } else {
-                    Err("Empty calls are not allowed".to_string())
+                    Err(InvalidNumberOfArguments)
                 }
             },
             Value::Atom(ref v) => {

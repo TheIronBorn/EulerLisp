@@ -15,7 +15,26 @@ use env::Environment;
 
 // TODO: &str leads to problems with lifetimes,
 // is String really better?
-pub type LispResult = Result<Value, String>;
+pub type LispResult = Result<Value, LispErr>;
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum LispErr {
+    InvalidNumberOfArguments,
+    InvalidTypeOfArguments,
+    DefinitionAlreadyDefined,
+    DefinitionNotFound,
+}
+
+impl fmt::Display for LispErr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            LispErr::InvalidNumberOfArguments => write!(f, "Invalid number of arguments"),
+            LispErr::InvalidTypeOfArguments => write!(f, "Invalid types of arguments"),
+            LispErr::DefinitionAlreadyDefined => write!(f, "Definition is already defined"),
+            LispErr::DefinitionNotFound => write!(f, "Definition not found"),
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Value {
