@@ -391,6 +391,15 @@ impl Evaluator {
         }
     }
 
+    fn builtin_eval(&mut self, args: &[Value]) -> LispResult {
+        if args.len() != 1 {
+            return Err("Invalid number of arguments".to_string());
+        }
+
+        let value = self.eval(&args[0])?;
+        self.eval(&value)
+    }
+
     pub fn apply(&mut self, f: Value, args: &[Value]) -> LispResult {
         // println!("Applying {:?} to {:?}", args, f);
         match f {
@@ -439,6 +448,7 @@ impl Evaluator {
                                 "quote"   => self.builtin_quote(&elems[1..]),
                                 "puts"   => self.builtin_puts(&elems[1..]),
                                 "read"   => self.builtin_read(&elems[1..]),
+                                "eval"   => self.builtin_eval(&elems[1..]),
                                 "="    => self.builtin_eq(&elems[1..]),
                                 // "<"    => self.builtin_lt(&elems[1..]),
                                 "+"    => self.builtin_plus(&elems[1..]),

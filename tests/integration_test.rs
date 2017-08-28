@@ -28,3 +28,25 @@ fn redefinitions() {
         Ok(Number(2))
     );
 }
+
+#[test]
+fn builtin_read() {
+    let mut ev = Evaluator::new();
+    assert_eq!(
+        ev.eval_str("(read \"1\")"),
+        Ok(Number(1))
+    );
+}
+
+#[test]
+fn builtin_eval() {
+    let mut ev = Evaluator::new();
+    assert_eq!(
+        ev.eval_str("(eval '(+ 1 2 3))"),
+        Ok(Number(6))
+    );
+    assert_eq!(
+        ev.eval_str("(eval (read \"(+ 1 2 3)\"))"),
+        Ok(Number(6))
+    );
+}
