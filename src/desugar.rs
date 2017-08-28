@@ -8,6 +8,7 @@ pub fn desugar(v: &Value) -> Value {
                     Value::Atom(s) => {
                         match s.as_ref() {
                             "defn" => desugar_defn(&elems[1..]),
+                            "fn" => desugar_fn(&elems[1..]),
                             _ => v.clone()
                             // TODO: desugar the whole list
                         }
@@ -23,19 +24,29 @@ pub fn desugar(v: &Value) -> Value {
     }
 }
 
+// (defn name args body) -> (def name (fn args body))
 fn desugar_defn(args: &[Value]) -> Value {
     let usage = "Usage: (defn name (args...) body)";
     let name = args.get(0).expect(usage);
-    let fn_args = args.get(1).expect(usage);
-    let body = args.get(2).expect(usage);
 
     Value::List(vec![
         Value::Atom("def".to_string()),
         desugar(name),
-        Value::List(vec![
-            Value::Atom("fn".to_string()),
-            desugar(fn_args),
-            desugar(body),
-        ]),
+        desugar_fn(&args[1..])
+    ])
+}
+
+// (fn args body*) -> (fn args (do *body))
+fn desugar_fn(args: &[Value]) -> Value {
+    let usage = "Usage: (defn name (args...) body)";
+    let params = args.get(0).expect(usage);
+
+    let mut new_body = vec![Value::Atom("do".to_string())];
+    new_body.extend(args[1..].iter().map(|v| desugar(v)));
+
+    Value::List(vec![
+        Value::Atom("fn".to_string()),
+        params.clone(),
+        Value::List(new_body)
     ])
 }

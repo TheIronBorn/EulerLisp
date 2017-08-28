@@ -307,7 +307,7 @@ impl Evaluator {
         }
     }
 
-    pub fn builtin_do(&mut self, args: &[Value]) -> LispResult {
+    pub fn builtin_begin(&mut self, args: &[Value]) -> LispResult {
         let mut result = Ok(Value::Nil);
 
         // TODO: Fail all if one threw an error?
@@ -446,7 +446,7 @@ impl Evaluator {
                                 "fn"  => self.builtin_lambda(&elems[1..]),
                                 "if"   => self.builtin_if(&elems[1..]),
                                 "cond"   => self.builtin_cond(&elems[1..]),
-                                "do"   => self.builtin_do(&elems[1..]),
+                                "do"   => self.builtin_begin(&elems[1..]),
                                 "cons" => self.builtin_cons(&elems[1..]),
                                 "fst" => self.builtin_first(&elems[1..]),
                                 "rst" => self.builtin_rest(&elems[1..]),
