@@ -34,7 +34,7 @@ impl fmt::Display for LispErr {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub enum Value {
     Atom(String),
     Bool(bool),

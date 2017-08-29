@@ -151,30 +151,6 @@ impl Evaluator {
         }
     }
 
-    pub fn builtin_puts(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
-        if args.len() != 1 {
-            Err(InvalidNumberOfArguments)
-        } else {
-            let value = self.eval(&args[0], env_ref)?;
-            match value {
-                // Print string without " around them
-                Value::Str(ref x) => print!("{}\n", x),
-                _ => println!("{}", value),
-            };
-            Ok(Value::Nil)
-        }
-    }
-
-    pub fn builtin_inspect(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
-        if args.len() != 1 {
-            Err(InvalidNumberOfArguments)
-        } else {
-            let value = self.eval(&args[0], env_ref)?;
-            println!("{:?}", value);
-            Ok(Value::Nil)
-        }
-    }
-
     pub fn builtin_eq(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         if args.len() != 2 {
             Err(InvalidNumberOfArguments)
@@ -182,38 +158,6 @@ impl Evaluator {
             Ok(Value::Bool(self.eval(&args[0], env_ref) == self.eval(&args[1], env_ref)))
         }
     }
-
-    // pub fn builtin_ge(&mut self, args: &[Value]) -> LispResult {
-    //     if args.len() != 2 {
-    //         panic!("Usage: (>= <a> <b>)");
-    //     } else {
-    //         Value::Bool(self.eval(&args[0]) >= self.eval(&args[1]))
-    //     }
-    // }
-
-    // pub fn builtin_le(&mut self, args: &[Value]) -> LispResult {
-    //     if args.len() != 2 {
-    //         panic!("Usage: (<= <a> <b>)");
-    //     } else {
-    //         Value::Bool(self.eval(&args[0]) <= self.eval(&args[1]))
-    //     }
-    // }
-
-    // pub fn builtin_gt(&mut self, args: &[Value]) -> LispResult {
-    //     if args.len() != 2 {
-    //         panic!("Usage: (> <a> <b>)");
-    //     } else {
-    //         Value::Bool(self.eval(&args[0]) > self.eval(&args[1]))
-    //     }
-    // }
-
-    // pub fn builtin_lt(&mut self, args: &[Value]) -> LispResult {
-    //     if args.len() != 2 {
-    //         panic!("Usage: (< <a> <b>)");
-    //     } else {
-    //         Value::Bool(self.eval(&args[0]) < self.eval(&args[1]))
-    //     }
-    // }
 
     pub fn builtin_if(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         if !(args.len() == 2 || args.len() == 3) {
@@ -278,41 +222,14 @@ impl Evaluator {
                     let start = time::now();
 
                     for i in 0..iterations {
-                        res = self.eval(&args[0], env_ref)?;
+                        res = self.eval(&args[1], env_ref)?;
                     }
 
-                    println!("{:?}", time::now() - start);
+                    println!("Benchmark Result: {}", time::now() - start);
                     Ok(res)
                 },
                 _ => Err(InvalidNumberOfArguments)
             }
-        }
-    }
-
-    pub fn builtin_is_pair(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
-        if args.len() != 1 {
-            Err(InvalidNumberOfArguments)
-        } else {
-            let value = self.eval(&args[0], env_ref)?;
-            Ok(Value::Bool(value.is_pair()))
-        }
-    }
-
-    pub fn builtin_is_list(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
-        if args.len() != 1 {
-            Err(InvalidNumberOfArguments)
-        } else {
-            let value = self.eval(&args[0], env_ref)?;
-            Ok(Value::Bool(value.is_list()))
-        }
-    }
-
-    pub fn builtin_is_nil(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
-        if args.len() != 1 {
-            Err(InvalidNumberOfArguments)
-        } else {
-            let value = self.eval(&args[0], env_ref)?;
-            Ok(Value::Bool(value.is_nil()))
         }
     }
 
@@ -373,63 +290,42 @@ impl Evaluator {
         result
     }
 
-    pub fn builtin_plus(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
-        let mut result = 0;
-
-        for a in args.iter() {
-            if let Value::Number(n) = self.eval(a, env_ref)? {
-                result += n;
-            } else {
-                return Err(InvalidTypeOfArguments);
-            }
-        }
-
-        Ok(Value::Number(result))
-    }
-
-    pub fn builtin_mult(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
-        let mut result = 1;
-
-        for a in args.iter() {
-            if let Value::Number(n) = self.eval(a, env_ref)? {
-                result *= n;
-            } else {
-                return Err(InvalidTypeOfArguments);
-            }
-        }
-
-        Ok(Value::Number(result))
-    }
-
-    pub fn builtin_minus(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn builtin_and(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         if args.len() == 0 {
             return Err(InvalidNumberOfArguments);
         }
 
-        let mut result;
-
-        // (- ...) is a bit weird,
-        // (- 1) => -1
-        // (- 1 2 3) = 1 - 2 - 3 = -4
-        if let Value::Number(n) = self.eval(&args[0], env_ref)? {
-            if args.len() == 1 {
-                result = -n;
-            } else {
-                result = n; 
-            }
-        } else {
-            return Err(InvalidTypeOfArguments);
-        }
-
-        for a in args.iter().skip(1) {
-            if let Value::Number(n) = self.eval(a, env_ref)? {
-                result -= n;
+        for a in args.iter() {
+            if let Value::Bool(b) = self.eval(a, env_ref)? {
+                if !b {
+                    return Ok(Value::Bool(false))
+                }
             } else {
                 return Err(InvalidTypeOfArguments);
             }
         }
 
-        Ok(Value::Number(result))
+        
+        return Ok(Value::Bool(true))
+    }
+
+    pub fn builtin_or(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+        if args.len() == 0 {
+            return Err(InvalidNumberOfArguments);
+        }
+
+        for a in args.iter() {
+            if let Value::Bool(b) = self.eval(a, env_ref)? {
+                if b {
+                    return Ok(Value::Bool(true))
+                }
+            } else {
+                return Err(InvalidTypeOfArguments);
+            }
+        }
+
+        
+        return Ok(Value::Bool(false))
     }
 
     fn builtin_read(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
@@ -543,27 +439,17 @@ impl Evaluator {
                                 "rst" => self.builtin_rest(&elems[1..], env_ref),
                                 "list"   => self.builtin_list(&elems[1..], env_ref),
                                 "quote"   => self.builtin_quote(&elems[1..], env_ref),
-                                "puts"   => self.builtin_puts(&elems[1..], env_ref),
-                                "inspect"   => self.builtin_inspect(&elems[1..], env_ref),
                                 "read"   => self.builtin_read(&elems[1..], env_ref),
                                 "eval"   => self.builtin_eval(&elems[1..], env_ref),
-                                "="    => self.builtin_eq(&elems[1..], env_ref),
-                                // "<"    => self.builtin_lt(&elems[1..]),
-                                "+"    => self.builtin_plus(&elems[1..], env_ref),
-                                "*"    => self.builtin_mult(&elems[1..], env_ref),
-                                "-"    => self.builtin_minus(&elems[1..], env_ref),
-                                // ">"    => self.builtin_gt(&elems[1..]),
-                                // "<="   => self.builtin_le(&elems[1..]),
-                                // ">="   => self.builtin_ge(&elems[1..]),
+                                "and"   => self.builtin_and(&elems[1..], env_ref),
+                                "or"   => self.builtin_or(&elems[1..], env_ref),
                                 "benchmark" => self.builtin_benchmark(&elems[1..], env_ref),
-                                "pair?"   => self.builtin_is_pair(&elems[1..], env_ref),
-                                "list?"   => self.builtin_is_list(&elems[1..], env_ref),
-                                "null?"   => self.builtin_is_nil(&elems[1..], env_ref),
                                 "debug-env" => {
                                     println!("{:?}", self.envs.get_env(env_ref));
                                     Ok(Value::Nil)
                                 },
                                 other    => {
+                                    // TODO: prevent redefiniton of builtins
                                     if self.builtin.is_builtin(other, elems.len() - 1) {
                                         let mut vals: Vec<Value> = Vec::new();
 
