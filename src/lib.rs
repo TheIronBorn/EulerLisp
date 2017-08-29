@@ -11,8 +11,6 @@ mod desugar;
 
 use std::fmt;
 
-use env::Environment;
-
 pub type LispResult = Result<Value, LispErr>;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -43,7 +41,7 @@ pub enum Value {
     Number(i64),
     Str(String),
     // TODO: Find a way to use just Value here
-    Lambda(Environment, Vec<String>, Box<Value>),
+    Lambda(env::EnvRef, Vec<String>, Box<Value>),
     Nil,
 }
 
