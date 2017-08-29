@@ -481,6 +481,10 @@ impl Evaluator {
                                 "pair?"   => self.builtin_is_pair(&elems[1..], env_ref),
                                 "list?"   => self.builtin_is_list(&elems[1..], env_ref),
                                 "null?"   => self.builtin_is_nil(&elems[1..], env_ref),
+                                "debug-env" => {
+                                    println!("{:?}", self.envs.get_env(env_ref));
+                                    Ok(Value::Nil)
+                                },
                                 other    => {
                                     let v = self.envs.get(env_ref, &other.to_string()).clone();
 

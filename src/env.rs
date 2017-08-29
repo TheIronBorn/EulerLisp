@@ -27,6 +27,10 @@ impl EnvArena {
         env_ref
     }
 
+    pub fn get_env(&self, env_ref: EnvRef) -> &Environment {
+        self.envs.get(env_ref).unwrap()
+    }
+
     pub fn get(&self, env_ref: EnvRef, key: &String) -> &Value {
         let e = self.envs.get(env_ref).unwrap();
         
@@ -50,7 +54,7 @@ impl EnvArena {
         let mut cur = env_ref;
 
         loop {
-            let mut e = self.envs.get_mut(env_ref).unwrap();
+            let mut e = self.envs.get_mut(cur).unwrap();
             match e.bindings.get_mut(key) {
                 Some(v) => {
                     *v = value;
@@ -60,9 +64,9 @@ impl EnvArena {
                     match e.parent {
                         Some(r) => { cur = r },
                         None => { return false; },
-                    }
+                    };
                 }
-            }
+            };
         }
     }
 }
