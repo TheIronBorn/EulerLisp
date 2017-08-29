@@ -1,6 +1,8 @@
 # Rust Lisp
 
-## Code Sample
+## Code Samples
+
+### Project Euler, 1
 
 ``` clojure
 (defn multiple (a b) (= (% a b) 0))
