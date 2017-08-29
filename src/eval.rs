@@ -105,7 +105,7 @@ impl Evaluator {
         } else {
             let mut vals: Vec<Value> = Vec::new();
 
-            for a in args.iter().skip(1) {
+            for a in args.iter() {
                 match self.eval(a, env_ref) {
                     Ok(v) => vals.push(v),
                     Err(msg) => return Err(msg),
@@ -155,6 +155,16 @@ impl Evaluator {
                 Value::Str(ref x) => print!("{}\n", x),
                 _ => println!("{}", value),
             };
+            Ok(Value::Nil)
+        }
+    }
+
+    pub fn builtin_inspect(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+        if args.len() != 1 {
+            Err(InvalidNumberOfArguments)
+        } else {
+            let value = self.eval(&args[0], env_ref)?;
+            println!("{:?}", value);
             Ok(Value::Nil)
         }
     }
@@ -507,6 +517,7 @@ impl Evaluator {
                                 "list"   => self.builtin_list(&elems[1..], env_ref),
                                 "quote"   => self.builtin_quote(&elems[1..], env_ref),
                                 "puts"   => self.builtin_puts(&elems[1..], env_ref),
+                                "inspect"   => self.builtin_inspect(&elems[1..], env_ref),
                                 "read"   => self.builtin_read(&elems[1..], env_ref),
                                 "eval"   => self.builtin_eval(&elems[1..], env_ref),
                                 "="    => self.builtin_eq(&elems[1..], env_ref),
@@ -525,32 +536,15 @@ impl Evaluator {
                                     Ok(Value::Nil)
                                 },
                                 other    => {
+                                    // TODO: Find a way to do this with less duplication
                                     let v = self.envs.get(env_ref, &other.to_string()).clone();
-
-                                    let mut vals: Vec<Value> = Vec::new();
-
-                                    for a in elems.iter().skip(1) {
-                                        match self.eval(a, env_ref) {
-                                            Ok(v) => vals.push(v),
-                                            Err(msg) => return Err(msg),
-                                        }
-                                    }
-                                    self.apply(v, &vals[..], env_ref)
+                                    self.apply(v, &elems[1..], env_ref)
                                 }
                             }
                         },
                         other => {
                             let v = self.eval(&other, env_ref)?;
-
-                            let mut vals: Vec<Value> = Vec::new();
-
-                            for a in elems.iter().skip(1) {
-                                match self.eval(a, env_ref) {
-                                    Ok(v) => vals.push(v),
-                                    Err(msg) => return Err(msg),
-                                }
-                            }
-                            self.apply(v, &vals[..], env_ref)
+                            self.apply(v, &elems[1..], env_ref)
                         },
                     }
                 } else {
@@ -560,7 +554,7 @@ impl Evaluator {
             Value::Atom(ref v) => {
                 let res = self.envs.get(env_ref, &v.to_string()).clone();
                 Ok(res)
-            }
+            },
             ref other => {
                 Ok(other.clone())
             }
