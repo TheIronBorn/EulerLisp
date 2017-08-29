@@ -1,22 +1,28 @@
 use ::Value;
 use ::LispResult;
 use ::LispErr::*;
-use std::rc::Rc;
-use std::cell::RefCell;
 use std::collections::HashMap;
 
 use std::fs::File;
 use std::io::Read;
 
+use time;
+
 use env::*;
 use parser;
 use desugar;
 
-pub struct Evaluator { envs: EnvArena }
+use builtin::Builtin;
+
+pub struct Evaluator {
+    envs: EnvArena,
+    builtin: Builtin
+
+}
 
 impl Evaluator {
     pub fn new() -> Self {
-        Evaluator { envs: EnvArena::new() }
+        Evaluator { envs: EnvArena::new(), builtin: Builtin::new() }
     }
 
     pub fn make_env(&mut self, parent: Option<EnvRef>) -> EnvRef {
@@ -260,6 +266,27 @@ impl Evaluator {
         }
 
         Ok(Value::Nil)
+    }
+
+    pub fn builtin_benchmark(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+        if args.len() != 2 {
+            Err(InvalidNumberOfArguments)
+        } else {
+            match self.eval(&args[0], env_ref)? {
+                Value::Number(iterations) => {
+                    let mut res = Value::Nil;
+                    let start = time::now();
+
+                    for i in 0..iterations {
+                        res = self.eval(&args[0], env_ref)?;
+                    }
+
+                    println!("{:?}", time::now() - start);
+                    Ok(res)
+                },
+                _ => Err(InvalidNumberOfArguments)
+            }
+        }
     }
 
     pub fn builtin_is_pair(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
@@ -528,6 +555,7 @@ impl Evaluator {
                                 // ">"    => self.builtin_gt(&elems[1..]),
                                 // "<="   => self.builtin_le(&elems[1..]),
                                 // ">="   => self.builtin_ge(&elems[1..]),
+                                "benchmark" => self.builtin_benchmark(&elems[1..], env_ref),
                                 "pair?"   => self.builtin_is_pair(&elems[1..], env_ref),
                                 "list?"   => self.builtin_is_list(&elems[1..], env_ref),
                                 "null?"   => self.builtin_is_nil(&elems[1..], env_ref),
@@ -536,9 +564,22 @@ impl Evaluator {
                                     Ok(Value::Nil)
                                 },
                                 other    => {
-                                    // TODO: Find a way to do this with less duplication
-                                    let v = self.envs.get(env_ref, &other.to_string()).clone();
-                                    self.apply(v, &elems[1..], env_ref)
+                                    if self.builtin.is_builtin(other, elems.len() - 1) {
+                                        let mut vals: Vec<Value> = Vec::new();
+
+                                        for a in elems.iter().skip(1) {
+                                            match self.eval(a, env_ref) {
+                                                Ok(v) => vals.push(v),
+                                                Err(msg) => return Err(msg),
+                                            }
+                                        }
+
+                                        self.builtin.apply(other, vals)
+                                    } else {
+                                        // TODO: Find a way to do this with less duplication
+                                        let v = self.envs.get(env_ref, &other.to_string()).clone();
+                                        self.apply(v, &elems[1..], env_ref)
+                                    }
                                 }
                             }
                         },

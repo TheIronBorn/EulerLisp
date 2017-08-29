@@ -1,10 +1,12 @@
 #[macro_use]
+extern crate time;
 extern crate nom;
 extern crate rustyline;
 
 pub mod repl;
 pub mod eval;
 
+mod builtin;
 mod parser;
 mod env;
 mod desugar;
