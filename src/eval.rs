@@ -5,6 +5,9 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+use std::fs::File;
+use std::io::Read;
+
 use env::*;
 use parser;
 use desugar;
@@ -400,7 +403,7 @@ impl Evaluator {
         let value = self.eval(&args[0], env_ref)?;
         match value {
             Value::Str(ref input) => {
-                let result = parser::parse(input);
+                let result = parser::parse_value(input);
                 Ok(result)
             },
             _ => Err(InvalidTypeOfArguments)
@@ -414,6 +417,19 @@ impl Evaluator {
 
         let value = self.eval(&args[0], env_ref)?;
         self.eval(&value, env_ref)
+    }
+
+    fn builtin_load(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+        if args.len() != 1 {
+            return Err(InvalidNumberOfArguments);
+        }
+
+        let value = self.eval(&args[0], env_ref)?;
+
+        match value {
+            Value::Str(ref path) => self.eval_file(path, env_ref),
+            _ => Err(InvalidTypeOfArguments),
+        }
     }
 
     pub fn apply(&mut self, f: Value, args: &[Value], env_ref: EnvRef) -> LispResult {
@@ -442,10 +458,32 @@ impl Evaluator {
         }
     } 
 
+    pub fn eval_file(&mut self, path: &str, env_ref: EnvRef) -> LispResult {
+        let mut f = File::open(path).expect("Could not open file");
+        let mut input = String::new();
+
+        f.read_to_string(&mut input);
+
+        self.eval_str(&input[..], env_ref)
+    }
+
     pub fn eval_str(&mut self, input: &str, env_ref: EnvRef) -> LispResult {
-        let result = parser::parse(input);
-        let desugared = desugar::desugar(&result);
-        self.eval(&desugared, env_ref)
+        let result = parser::parse_program(input);
+        let mut ret = Value::Nil;
+
+        for v in result.iter() {
+            let desugared = desugar::desugar(v);
+            match self.eval(&desugared, env_ref) {
+                Err(err) => {
+                    return Err(err)
+                },
+                Ok(value) => {
+                    ret = value;
+                },
+            }
+        }
+
+        Ok(ret)
     }
 
     pub fn eval(&mut self, v: &Value, env_ref: EnvRef) -> LispResult {
@@ -458,6 +496,7 @@ impl Evaluator {
                             match s.as_ref() {
                                 "def"  => self.builtin_def(&elems[1..], env_ref),
                                 "set!"  => self.builtin_set(&elems[1..], env_ref),
+                                "load"  => self.builtin_load(&elems[1..], env_ref),
                                 "fn"  => self.builtin_lambda(&elems[1..], env_ref),
                                 "if"   => self.builtin_if(&elems[1..], env_ref),
                                 "cond"   => self.builtin_cond(&elems[1..], env_ref),

@@ -212,7 +212,21 @@ named!(value<&[u8], Value>,
     )
 );
 
-pub fn parse(s: &str) -> Value {
+named!(program<&[u8], Vec<Value>>,
+    do_parse!(
+        elements: ws!(many0!(value)) >>
+        (elements)
+    )
+);
+
+pub fn parse_program(s: &str) -> Vec<Value> {
+    match program(s.as_bytes()) {
+      IResult::Done(_, v) => v,
+      _ => panic!("Failed to parse value")
+    }
+}
+
+pub fn parse_value(s: &str) -> Value {
     match value(s.as_bytes()) {
       IResult::Done(_, v) => v,
       _ => panic!("Failed to parse value")
