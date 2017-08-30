@@ -11,6 +11,12 @@ mod env;
 mod desugar;
 
 use std::fmt;
+use std::cmp::Ordering;
+
+use std::boxed::Box;
+use std::borrow::Borrow;
+
+use std::rc::Rc;
 
 pub type LispResult = Result<Value, LispErr>;
 
@@ -33,6 +39,36 @@ impl fmt::Display for LispErr {
     }
 }
 
+#[derive(Clone)]
+pub struct LispFn(Rc<Fn(Vec<Value>)->LispResult>);
+
+impl fmt::Debug for LispFn {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "builtin fn")
+    }
+}
+
+// TODO: This is a lie, eq is not reflexive
+impl Eq for LispFn {}
+
+impl PartialEq for LispFn {
+    fn eq(&self, other: &LispFn) -> bool {
+        false
+    }
+}
+
+impl PartialOrd for LispFn {
+    fn partial_cmp(&self, other: &LispFn) -> Option<Ordering> {
+        None
+    }
+}
+
+// impl core::cmp::PartialOrd for LispFn {
+//     fn partial_cmp(&self, other: &LispFn) -> Option<Ordering> {
+//         None
+//     }
+// }
+
 // Undefined is used as a response for methods
 // that don't return a value.
 // If a return value is undefined,
@@ -47,6 +83,7 @@ pub enum Value {
     Str(String),
     // TODO: Find a way to use just Value here
     Lambda(env::EnvRef, Vec<String>, Box<Value>),
+    Builtin(LispFn),
     Nil,
     Undefined,
 }
@@ -115,6 +152,7 @@ impl fmt::Display for Value {
             Nil => write!(f, "'()"),
             Undefined => write!(f, "undefined"),
             Lambda(_, _, _) => write!(f, "<lambda>"),
+            Builtin(_) => write!(f, "<builtin>"),
         }
     }
 }

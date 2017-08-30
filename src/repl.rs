@@ -7,7 +7,7 @@ use ::Value;
 pub fn run() {
     let mut rl = Editor::<()>::new();
     let mut eval = Evaluator::new();
-    let main_env = eval.make_env(None);
+    let main_env = eval.make_root_env();
 
     if let Err(_) = rl.load_history("history.txt") {
       println!("No previous history.");

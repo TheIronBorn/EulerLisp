@@ -33,6 +33,12 @@ impl EnvArena {
         env_ref
     }
 
+    pub fn add_env(&mut self, hm: HashMap<String, Value>) -> EnvRef {
+        let env_ref = self.envs.len();
+        self.envs.push(Environment{ bindings: hm, parent: None });
+        env_ref
+    }
+
     pub fn get_env(&self, env_ref: EnvRef) -> &Environment {
         self.envs.get(env_ref).unwrap()
     }

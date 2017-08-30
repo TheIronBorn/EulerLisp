@@ -1,18 +1,20 @@
 use ::Value;
+use ::LispFn;
 use ::LispResult;
 use ::LispErr::*;
 
 use std::fs::File;
 use std::io::Read;
+use std::collections::HashMap;
 
 use time;
 
 use env::*;
 use parser;
 use desugar;
-use builtin::Builtin;
+use builtin;
 
-pub struct Evaluator { envs: EnvArena, builtin: Builtin }
+pub struct Evaluator { envs: EnvArena }
 
 macro_rules! check_arity {
     ($args: ident, $number: expr) => {
@@ -24,7 +26,13 @@ macro_rules! check_arity {
 
 impl Evaluator {
     pub fn new() -> Self {
-        Evaluator { envs: EnvArena::new(), builtin: Builtin::new() }
+        Evaluator { envs: EnvArena::new() }
+    }
+
+    pub fn make_root_env(&mut self) -> EnvRef {
+        let mut hm: HashMap<String, Value> = HashMap::new(); 
+        builtin::load(&mut hm);
+        self.envs.add_env(hm)
     }
 
     pub fn make_env(&mut self, parent: Option<EnvRef>) -> EnvRef {
@@ -239,21 +247,27 @@ impl Evaluator {
 
     pub fn apply(&mut self, f: Value, args: &[Value], env_ref: EnvRef) -> LispResult {
         // println!("Applying {:?} to {:?}", args, f);
-        if let Value::Lambda(env, params, body) = f {
-            let child_env = self.make_env(Some(env));
-            if params.len() != args.len() {
-                return Err(InvalidNumberOfArguments);
-            } else {
-                for (p, a) in params.iter().zip(args.iter()) {
-                    let value = self.eval(&a, env_ref)?;
-                    self.envs.define_into(child_env, p, value);
+        match f {
+            Value::Lambda(env, params, body) => {
+                let child_env = self.make_env(Some(env));
+                if params.len() != args.len() {
+                    return Err(InvalidNumberOfArguments);
+                } else {
+                    for (p, a) in params.iter().zip(args.iter()) {
+                        let value = self.eval(&a, env_ref)?;
+                        self.envs.define_into(child_env, p, value);
+                    }
                 }
-            }
-            self.eval(&body, child_env)
-        } else {
-            Err(InvalidTypeOfArguments)
-        }
-    } 
+                self.eval(&body, child_env)
+            },
+            Value::Builtin(LispFn(fun)) => {
+                let vals: Result<Vec<Value>, _> =
+                    args.iter().map(|v| self.eval(v, env_ref)).collect();
+                fun(vals?)
+            },
+            _ => Err(InvalidTypeOfArguments),
+        } 
+    }
 
     pub fn eval_file(&mut self, path: &str, env_ref: EnvRef) -> LispResult {
         // TODO: Add IOError type
@@ -276,63 +290,60 @@ impl Evaluator {
         Ok(ret)
     }
 
-    pub fn eval(&mut self, v: &Value, env_ref: EnvRef) -> LispResult {
+    pub fn eval(&mut self, iv: &Value, env_ref: EnvRef) -> LispResult {
         // println!("Evaling {}", v);
-        match *v {
-            Value::List(ref elems) => {
-                if elems.len() == 0 {
-                    return Err(InvalidNumberOfArguments)
-                }
+        let mut ast = Some(iv);
+        while let Some(v) = ast {
+            return match *v {
+                Value::List(ref elems) => {
+                    if elems.len() == 0 {
+                        return Err(InvalidNumberOfArguments)
+                    }
 
-                let args = &elems[1..];
-                match elems[0].clone() {
-                    Value::Atom(s) => {
-                        match s.as_ref() {
-                            "def"       => self.sf_def(args, env_ref),
-                            "set!"      => self.sf_set(args, env_ref),
-                            "load"      => self.sf_load(args, env_ref),
-                            "fn"        => self.sf_lambda(args, env_ref),
-                            "if"        => self.sf_if(args, env_ref),
-                            "cond"      => self.sf_cond(args, env_ref),
-                            "do"        => self.sf_begin(args, env_ref),
-                            "list"      => self.sf_list(args, env_ref),
-                            "quote"     => self.sf_quote(args, env_ref),
-                            "read"      => self.sf_read(args, env_ref),
-                            "eval"      => self.sf_eval(args, env_ref),
-                            "and"       => self.sf_and(args, env_ref),
-                            "or"        => self.sf_or(args, env_ref),
-                            "benchmark" => self.sf_benchmark(args, env_ref),
-                            "debug-env" => {
-                                println!("{:?}", self.envs.get_env(env_ref));
-                                Ok(Value::Undefined)
-                            },
-                            "debug-envref" => {
-                                println!("{:?}", env_ref);
-                                Ok(Value::Undefined)
-                            },
-                            other    => {
-                                // TODO: prevent redefiniton of builtins
-                                if self.builtin.is_builtin(other, elems.len() - 1) {
-                                    let vals: Result<Vec<Value>, _> =
-                                        args.iter().map(|v| self.eval(v, env_ref)).collect();
-
-                                    self.builtin.apply(other, vals?)
-                                } else {
+                    let args = &elems[1..];
+                    match elems[0].clone() {
+                        Value::Atom(s) => {
+                            match s.as_ref() {
+                                "def"       => self.sf_def(args, env_ref),
+                                "set!"      => self.sf_set(args, env_ref),
+                                "load"      => self.sf_load(args, env_ref),
+                                "fn"        => self.sf_lambda(args, env_ref),
+                                "if"        => self.sf_if(args, env_ref),
+                                "cond"      => self.sf_cond(args, env_ref),
+                                "do"        => self.sf_begin(args, env_ref),
+                                "list"      => self.sf_list(args, env_ref),
+                                "quote"     => self.sf_quote(args, env_ref),
+                                "read"      => self.sf_read(args, env_ref),
+                                "eval"      => self.sf_eval(args, env_ref),
+                                "and"       => self.sf_and(args, env_ref),
+                                "or"        => self.sf_or(args, env_ref),
+                                "benchmark" => self.sf_benchmark(args, env_ref),
+                                "debug-env" => {
+                                    println!("{:?}", self.envs.get_env(env_ref));
+                                    Ok(Value::Undefined)
+                                },
+                                "debug-envref" => {
+                                    println!("{:?}", env_ref);
+                                    Ok(Value::Undefined)
+                                },
+                                other    => {
                                     // TODO: Find a way to do this with less duplication
                                     let v = self.envs.get(env_ref, &other.to_string()).clone();
                                     self.apply(v, args, env_ref)
                                 }
                             }
-                        }
-                    },
-                    other => {
-                        let v = self.eval(&other, env_ref)?;
-                        self.apply(v, args, env_ref)
-                    },
-                }
-            },
-            Value::Atom(ref v) => Ok(self.envs.get(env_ref, &v.to_string()).clone()),
-            ref other => Ok(other.clone())
+                        },
+                        other => {
+                            let v = self.eval(&other, env_ref)?;
+                            self.apply(v, args, env_ref)
+                        },
+                    }
+                },
+                Value::Atom(ref v) => Ok(self.envs.get(env_ref, &v.to_string()).clone()),
+                ref other => Ok(other.clone())
+            }
         }
+
+        Ok(Value::Undefined)
     }
 }
