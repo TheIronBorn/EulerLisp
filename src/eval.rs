@@ -240,18 +240,16 @@ impl Evaluator {
     pub fn apply(&mut self, f: Value, args: &[Value], env_ref: EnvRef) -> LispResult {
         // println!("Applying {:?} to {:?}", args, f);
         if let Value::Lambda(env, params, body) = f {
-            let mut e = Environment::new(Some(env));
+            let child_env = self.make_env(Some(env));
             if params.len() != args.len() {
                 return Err(InvalidNumberOfArguments);
             } else {
                 for (p, a) in params.iter().zip(args.iter()) {
                     let value = self.eval(&a, env_ref)?;
-                    e.define_into(p, value);
+                    self.envs.define_into(child_env, p, value);
                 }
             }
-
-            let child_env_ref = self.envs.add_env(e);
-            self.eval(&body, child_env_ref)
+            self.eval(&body, child_env)
         } else {
             Err(InvalidTypeOfArguments)
         }

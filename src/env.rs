@@ -2,26 +2,34 @@ use std::collections::HashMap;
 
 use ::Value;
 
+pub type EnvRef = usize;
+
+// TODO: Use LispResults instead of panics
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Environment {
+    pub bindings: HashMap<String, Value>,
+    pub parent: Option<EnvRef>
+}
+
+impl Environment {
+    pub fn new(parent: Option<EnvRef>) -> Self {
+        Environment { bindings: HashMap::new(), parent: parent }
+    }
+}
+
 pub struct EnvArena {
     envs: Vec<Environment>
 }
 
 impl EnvArena {
     pub fn new() -> Self {
-        Self {
-            envs: Vec::new()
-        }
+        Self { envs: Vec::new() }
     }
 
     pub fn make_env(&mut self, parent: Option<EnvRef>) -> EnvRef {
         let env_ref = self.envs.len();
         self.envs.push(Environment::new(parent));
-        env_ref
-    }
-
-    pub fn add_env(&mut self, env: Environment) -> EnvRef {
-        let env_ref = self.envs.len();
-        self.envs.push(env);
         env_ref
     }
 
@@ -32,7 +40,7 @@ impl EnvArena {
     pub fn get(&self, env_ref: EnvRef, key: &String) -> &Value {
         let e = self.envs.get(env_ref).unwrap();
         
-        match e.get(key) {
+        match e.bindings.get(key) {
             Some(v) => v,
             None => {
                 match e.parent {
@@ -45,7 +53,13 @@ impl EnvArena {
 
     pub fn define_into(&mut self, env_ref: EnvRef, key: &String, value: Value) -> bool {
         let mut e = self.envs.get_mut(env_ref).unwrap();
-        (*e).define_into(key, value)
+
+        if e.bindings.contains_key(key) {
+            false
+        } else {
+            e.bindings.insert(key.clone(), value);
+            true
+        }
     }
 
     pub fn set_into(&mut self, env_ref: EnvRef, key: &String, value: Value) -> bool {
@@ -66,35 +80,5 @@ impl EnvArena {
                 }
             };
         }
-    }
-}
-
-pub type EnvRef = usize;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Environment {
-    pub bindings: HashMap<String, Value>,
-    pub parent: Option<EnvRef>
-}
-
-impl Environment {
-    pub fn new(parent: Option<EnvRef>) -> Self {
-        Environment {
-          bindings: HashMap::new(),
-          parent: parent
-        }
-    }
-
-    pub fn define_into(&mut self, key: &String, value: Value) -> bool {
-        if self.bindings.contains_key(key) {
-            false
-        } else {
-            self.bindings.insert(key.clone(), value);
-            true
-        }
-    }
-
-    pub fn get(&self, key: &String) -> Option<&Value> {
-        self.bindings.get(key)
     }
 }
