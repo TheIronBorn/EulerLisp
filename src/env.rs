@@ -85,10 +85,6 @@ impl Environment {
         }
     }
 
-    pub fn define(&mut self, key: &String, value: &Value) -> bool {
-        self.define_into(key, value.clone())
-    }
-
     pub fn define_into(&mut self, key: &String, value: Value) -> bool {
         if self.bindings.contains_key(key) {
             false
@@ -96,14 +92,6 @@ impl Environment {
             self.bindings.insert(key.clone(), value);
             true
         }
-    }
-
-    pub fn set(&mut self, key: &String, value: &Value) {
-        self.set_into(key, value.clone());
-    }
-
-    pub fn set_into(&mut self, key: &String, value: Value) {
-        self.bindings.insert(key.clone(), value);
     }
 
     pub fn get(&self, key: &String) -> Option<&Value> {

@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate time;
 extern crate nom;
 extern crate rustyline;

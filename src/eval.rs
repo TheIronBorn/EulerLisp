@@ -1,7 +1,6 @@
 use ::Value;
 use ::LispResult;
 use ::LispErr::*;
-use std::collections::HashMap;
 
 use std::fs::File;
 use std::io::Read;
@@ -67,7 +66,7 @@ impl Evaluator {
         }
     }
 
-    pub fn sf_quote(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_quote(&mut self, args: &[Value], _: EnvRef) -> LispResult {
         check_arity!(args, 1);
 
         match args[0] {
@@ -90,7 +89,6 @@ impl Evaluator {
         check_arity!(args, 2);
 
         let mut params: Vec<String> = Vec::new();
-        let mut env = Environment::new(Some(env_ref));
 
         if let Value::List(ref elems) = args[0] {
             for a in elems {
@@ -104,9 +102,8 @@ impl Evaluator {
             return Err(InvalidTypeOfArguments)
         }
 
-        let child_env_ref = self.envs.add_env(env);
         let body = args[1].clone();
-        Ok(Value::Lambda(child_env_ref, params, Box::new(body)))
+        Ok(Value::Lambda(env_ref, params, Box::new(body)))
     }
 
     pub fn sf_if(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
@@ -161,7 +158,7 @@ impl Evaluator {
             let mut res = Value::Nil;
             let start = time::now();
 
-            for i in 0..iterations {
+            for _ in 0..iterations {
                 res = self.eval(&args[1], env_ref)?;
             }
 
@@ -243,7 +240,7 @@ impl Evaluator {
     pub fn apply(&mut self, f: Value, args: &[Value], env_ref: EnvRef) -> LispResult {
         // println!("Applying {:?} to {:?}", args, f);
         if let Value::Lambda(env, params, body) = f {
-            let mut e = Environment::new(Some(env_ref));
+            let mut e = Environment::new(Some(env));
             if params.len() != args.len() {
                 return Err(InvalidNumberOfArguments);
             } else {
@@ -265,7 +262,7 @@ impl Evaluator {
         let mut f = File::open(path).expect("Could not open file");
         let mut input = String::new();
 
-        f.read_to_string(&mut input);
+        f.read_to_string(&mut input).expect("Could not read file");
         self.eval_str(&input[..], env_ref)
     }
 
@@ -293,27 +290,27 @@ impl Evaluator {
                 match elems[0].clone() {
                     Value::Atom(s) => {
                         match s.as_ref() {
-                            "def"  => self.sf_def(args, env_ref),
-                            "set!"  => self.sf_set(args, env_ref),
-                            "load"  => self.sf_load(args, env_ref),
-                            "fn"  => self.sf_lambda(args, env_ref),
-                            "if"   => self.sf_if(args, env_ref),
-                            "cond"   => self.sf_cond(args, env_ref),
-                            "do"   => self.sf_begin(args, env_ref),
-                            "list"   => self.sf_list(args, env_ref),
-                            "quote"   => self.sf_quote(args, env_ref),
-                            "read"   => self.sf_read(args, env_ref),
-                            "eval"   => self.sf_eval(args, env_ref),
-                            "and"   => self.sf_and(args, env_ref),
-                            "or"   => self.sf_or(args, env_ref),
+                            "def"       => self.sf_def(args, env_ref),
+                            "set!"      => self.sf_set(args, env_ref),
+                            "load"      => self.sf_load(args, env_ref),
+                            "fn"        => self.sf_lambda(args, env_ref),
+                            "if"        => self.sf_if(args, env_ref),
+                            "cond"      => self.sf_cond(args, env_ref),
+                            "do"        => self.sf_begin(args, env_ref),
+                            "list"      => self.sf_list(args, env_ref),
+                            "quote"     => self.sf_quote(args, env_ref),
+                            "read"      => self.sf_read(args, env_ref),
+                            "eval"      => self.sf_eval(args, env_ref),
+                            "and"       => self.sf_and(args, env_ref),
+                            "or"        => self.sf_or(args, env_ref),
                             "benchmark" => self.sf_benchmark(args, env_ref),
                             "debug-env" => {
                                 println!("{:?}", self.envs.get_env(env_ref));
-                                Ok(Value::Nil)
+                                Ok(Value::Undefined)
                             },
                             "debug-envref" => {
                                 println!("{:?}", env_ref);
-                                Ok(Value::Nil)
+                                Ok(Value::Undefined)
                             },
                             other    => {
                                 // TODO: prevent redefiniton of builtins
