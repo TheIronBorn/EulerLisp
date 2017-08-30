@@ -2,6 +2,7 @@ use ::rustyline::error::ReadlineError;
 use ::rustyline::Editor;
 
 use eval::Evaluator;
+use ::Value;
 
 pub fn run() {
     let mut rl = Editor::<()>::new();
@@ -18,7 +19,11 @@ pub fn run() {
           Ok(line) => {
             rl.add_history_entry(&line);
             match eval.eval_str(&line, main_env) {
-                Ok(res) => println!("=> {}", res),
+                Ok(res) => {
+                    if res != Value::Undefined {
+                        println!("=> {}", res);
+                    }
+                }
                 Err(msg) => println!("!! {}", msg),
             };
           },

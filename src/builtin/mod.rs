@@ -47,13 +47,13 @@ impl Builtin {
                     Value::Str(ref x) => print!("{}\n", x),
                     ref other => println!("{}", other),
                 };
-                Ok(Value::Nil)
+                Ok(Value::Undefined)
             })
         );
         res.methods.insert(
             ("inspect", 1), Box::new(|vs| {
                 println!("{:?}", vs[0]);
-                Ok(Value::Nil)
+                Ok(Value::Undefined)
             })
         );
         res.methods.insert(

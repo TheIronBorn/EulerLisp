@@ -34,6 +34,10 @@ impl fmt::Display for LispErr {
     }
 }
 
+// Undefined is used as a response for methods
+// that don't return a value.
+// If a return value is undefined,
+// it will not be printed in the REPL
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub enum Value {
     Atom(String),
@@ -45,6 +49,7 @@ pub enum Value {
     // TODO: Find a way to use just Value here
     Lambda(env::EnvRef, Vec<String>, Box<Value>),
     Nil,
+    Undefined,
 }
 
 impl Value {
@@ -109,6 +114,7 @@ impl fmt::Display for Value {
             Number(x) => write!(f, "{}", x),
             Str(ref s) => write!(f, "\"{}\"", s),
             Nil => write!(f, "'()"),
+            Undefined => write!(f, "undefined"),
             Lambda(_, _, _) => write!(f, "<lambda>"),
         }
     }

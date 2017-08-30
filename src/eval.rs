@@ -11,14 +11,9 @@ use time;
 use env::*;
 use parser;
 use desugar;
-
 use builtin::Builtin;
 
-pub struct Evaluator {
-    envs: EnvArena,
-    builtin: Builtin
-
-}
+pub struct Evaluator { envs: EnvArena, builtin: Builtin }
 
 macro_rules! check_arity {
     ($args: ident, $number: expr) => {
@@ -40,13 +35,13 @@ impl Evaluator {
     // If the key is already set in the current env,
     // throw an error,
     // otherwise define it
-    pub fn builtin_def(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_def(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         check_arity!(args, 2);
 
         if let Value::Atom(ref a) = args[0] {
             let value = self.eval(&args[1], env_ref)?;
             if self.envs.define_into(env_ref, a, value) {
-                Ok(Value::Atom("ok".to_string()))
+                Ok(Value::Undefined)
             } else {
                 Err(DefinitionAlreadyDefined)
             }
@@ -57,13 +52,13 @@ impl Evaluator {
 
     // Walk up the env tree until key is set,
     // then change its value
-    pub fn builtin_set(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_set(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         check_arity!(args, 2);
 
         if let Value::Atom(ref a) = args[0] {
             let value = self.eval(&args[1], env_ref)?;
             if self.envs.set_into(env_ref, a, value) {
-                Ok(Value::Atom("ok".to_string()))
+                Ok(Value::Undefined)
             } else {
                 Err(DefinitionNotFound)
             }
@@ -72,16 +67,16 @@ impl Evaluator {
         }
     }
 
-    pub fn builtin_quote(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_quote(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         check_arity!(args, 1);
 
         match args[0] {
-            // Value::List(ref l) => self.builtin_list(&l[..]),
+            // Value::List(ref l) => self.sf_list(&l[..]),
             ref other => Ok(other.clone())
         }
     }
 
-    pub fn builtin_list(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_list(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         if args.len() == 0 {
             Ok(Value::Nil)
         } else {
@@ -91,7 +86,7 @@ impl Evaluator {
         }
     }
 
-    pub fn builtin_lambda(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_lambda(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         check_arity!(args, 2);
 
         let mut params: Vec<String> = Vec::new();
@@ -114,7 +109,7 @@ impl Evaluator {
         Ok(Value::Lambda(child_env_ref, params, Box::new(body)))
     }
 
-    pub fn builtin_if(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_if(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         check_arity!(args, 3);
 
         let cond = args.get(0).unwrap();
@@ -130,7 +125,7 @@ impl Evaluator {
         }
     }
 
-    pub fn builtin_cond(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_cond(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         for arg in args.iter() {
             if let Value::List(ref elems) = *arg {
                 if elems.len() != 2 {
@@ -159,7 +154,7 @@ impl Evaluator {
         Ok(Value::Nil)
     }
 
-    pub fn builtin_benchmark(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_benchmark(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         check_arity!(args, 2);
 
         if let Value::Number(iterations) = self.eval(&args[0], env_ref)? {
@@ -177,7 +172,7 @@ impl Evaluator {
         }
     }
 
-    pub fn builtin_begin(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_begin(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         let mut result = Ok(Value::Nil);
 
         // TODO: Fail all if one threw an error?
@@ -188,7 +183,8 @@ impl Evaluator {
         result
     }
 
-    pub fn builtin_and(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    // TODO: Allow `and` and `or` to operate on all types of values
+    pub fn sf_and(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         for a in args.iter() {
             if let Value::Bool(b) = self.eval(a, env_ref)? {
                 if !b {
@@ -199,11 +195,10 @@ impl Evaluator {
             }
         }
 
-
         return Ok(Value::Bool(true))
     }
 
-    pub fn builtin_or(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_or(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         for a in args.iter() {
             if let Value::Bool(b) = self.eval(a, env_ref)? {
                 if b {
@@ -218,7 +213,7 @@ impl Evaluator {
         return Ok(Value::Bool(false))
     }
 
-    fn builtin_read(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    fn sf_read(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         check_arity!(args, 1);
 
         if let Value::Str(ref input) = self.eval(&args[0], env_ref)? {
@@ -228,14 +223,14 @@ impl Evaluator {
         }
     }
 
-    fn builtin_eval(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    fn sf_eval(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         check_arity!(args, 1);
 
         let value = self.eval(&args[0], env_ref)?;
         self.eval(&value, env_ref)
     }
 
-    fn builtin_load(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    fn sf_load(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         check_arity!(args, 1);
 
         if let Value::Str(ref path) = self.eval(&args[0], env_ref)? {
@@ -271,7 +266,6 @@ impl Evaluator {
         let mut input = String::new();
 
         f.read_to_string(&mut input);
-
         self.eval_str(&input[..], env_ref)
     }
 
@@ -295,23 +289,24 @@ impl Evaluator {
                     return Err(InvalidNumberOfArguments)
                 }
 
+                let args = &elems[1..];
                 match elems[0].clone() {
                     Value::Atom(s) => {
                         match s.as_ref() {
-                            "def"  => self.builtin_def(&elems[1..], env_ref),
-                            "set!"  => self.builtin_set(&elems[1..], env_ref),
-                            "load"  => self.builtin_load(&elems[1..], env_ref),
-                            "fn"  => self.builtin_lambda(&elems[1..], env_ref),
-                            "if"   => self.builtin_if(&elems[1..], env_ref),
-                            "cond"   => self.builtin_cond(&elems[1..], env_ref),
-                            "do"   => self.builtin_begin(&elems[1..], env_ref),
-                            "list"   => self.builtin_list(&elems[1..], env_ref),
-                            "quote"   => self.builtin_quote(&elems[1..], env_ref),
-                            "read"   => self.builtin_read(&elems[1..], env_ref),
-                            "eval"   => self.builtin_eval(&elems[1..], env_ref),
-                            "and"   => self.builtin_and(&elems[1..], env_ref),
-                            "or"   => self.builtin_or(&elems[1..], env_ref),
-                            "benchmark" => self.builtin_benchmark(&elems[1..], env_ref),
+                            "def"  => self.sf_def(args, env_ref),
+                            "set!"  => self.sf_set(args, env_ref),
+                            "load"  => self.sf_load(args, env_ref),
+                            "fn"  => self.sf_lambda(args, env_ref),
+                            "if"   => self.sf_if(args, env_ref),
+                            "cond"   => self.sf_cond(args, env_ref),
+                            "do"   => self.sf_begin(args, env_ref),
+                            "list"   => self.sf_list(args, env_ref),
+                            "quote"   => self.sf_quote(args, env_ref),
+                            "read"   => self.sf_read(args, env_ref),
+                            "eval"   => self.sf_eval(args, env_ref),
+                            "and"   => self.sf_and(args, env_ref),
+                            "or"   => self.sf_or(args, env_ref),
+                            "benchmark" => self.sf_benchmark(args, env_ref),
                             "debug-env" => {
                                 println!("{:?}", self.envs.get_env(env_ref));
                                 Ok(Value::Nil)
@@ -324,20 +319,20 @@ impl Evaluator {
                                 // TODO: prevent redefiniton of builtins
                                 if self.builtin.is_builtin(other, elems.len() - 1) {
                                     let vals: Result<Vec<Value>, _> =
-                                        elems.iter().skip(1).map(|v| self.eval(v, env_ref)).collect();
+                                        args.iter().map(|v| self.eval(v, env_ref)).collect();
 
                                     self.builtin.apply(other, vals?)
                                 } else {
                                     // TODO: Find a way to do this with less duplication
                                     let v = self.envs.get(env_ref, &other.to_string()).clone();
-                                    self.apply(v, &elems[1..], env_ref)
+                                    self.apply(v, args, env_ref)
                                 }
                             }
                         }
                     },
                     other => {
                         let v = self.eval(&other, env_ref)?;
-                        self.apply(v, &elems[1..], env_ref)
+                        self.apply(v, args, env_ref)
                     },
                 }
             },
