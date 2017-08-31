@@ -1,6 +1,7 @@
 use ::Value;
 use ::LispFn;
 use ::LispResult;
+use ::Promise;
 use ::LispErr::*;
 
 use std::fs::File;
@@ -245,6 +246,39 @@ impl Evaluator {
         }
     }
 
+    fn sf_delay(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+        check_arity!(args, 1);
+        Ok(Value::Promise(Promise::Delayed(Box::new(args[0].clone()))))
+    }
+
+    fn sf_force(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+        check_arity!(args, 1);
+
+        match args[0] {
+            Value::Atom(ref name) => {
+                let val = self.envs.get(env_ref, name).clone();
+                match val {
+                    Value::Promise(ref p) => {
+                        let res = self.force_promise(p, env_ref)?;
+                        let new = Value::Promise(Promise::Result(Box::new(res.clone())));
+                        self.envs.set_into(env_ref, name, new);
+                        Ok(res)
+                    },
+                    ref other => self.eval(other, env_ref),
+                }
+            },
+            Value::Promise(ref p) => self.force_promise(p, env_ref),
+            ref other => self.eval(other, env_ref),
+        }
+    }
+
+    fn force_promise(&mut self, p: &Promise, env_ref: EnvRef) -> LispResult {
+        match *p {
+            Promise::Result(ref r) => Ok(*r.clone()),
+            Promise::Delayed(ref r) => self.eval(&(*r.clone()), env_ref),
+        }
+    }
+
     pub fn apply(&mut self, f: Value, args: &[Value], env_ref: EnvRef) -> LispResult {
         // println!("Applying {:?} to {:?}", args, f);
         match f {
@@ -318,6 +352,8 @@ impl Evaluator {
                                 "and"       => self.sf_and(args, env_ref),
                                 "or"        => self.sf_or(args, env_ref),
                                 "benchmark" => self.sf_benchmark(args, env_ref),
+                                "delay"     => self.sf_delay(args, env_ref),
+                                "force"     => self.sf_force(args, env_ref),
                                 "debug-env" => {
                                     println!("{:?}", self.envs.get_env(env_ref));
                                     Ok(Value::Undefined)
