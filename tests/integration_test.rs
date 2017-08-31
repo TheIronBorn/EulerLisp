@@ -48,12 +48,12 @@ fn builtin_eval() {
     let mut ev = Evaluator::new();
     let main_env = ev.make_root_env();
     assert_eq!(
-        ev.eval_str("(eval '(+ 1 2 3))", main_env),
-        Ok(Number(6))
+        ev.eval_str("(eval '(+ 1 2))", main_env),
+        Ok(Number(3))
     );
     assert_eq!(
-        ev.eval_str("(eval (read \"(+ 1 2 3)\"))", main_env),
-        Ok(Number(6))
+        ev.eval_str("(eval (read \"(+ 1 2)\"))", main_env),
+        Ok(Number(3))
     );
 }
 

@@ -76,7 +76,7 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         if let Value::Number(a) = vs[0] {
             if vs.len() == 2 {
                 if let Value::Number(b) = vs[1] {
-                    return Ok(Value::Number(a * b));
+                    return Ok(Value::Number(a - b));
                 } else {
                     return Ok(Value::Number(-a));
                 }
