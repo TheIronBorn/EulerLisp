@@ -9,12 +9,13 @@ pub fn desugar(v: &Value) -> Value {
                         match s.as_ref() {
                             "defn" => desugar_defn(&elems[1..]),
                             "fn" => desugar_fn(&elems[1..]),
-                            _ => v.clone()
-                            // TODO: desugar the whole list
+                            "stream-cons" => desugar_stream_cons(&elems[1..]),
+                            _ => {
+                                Value::List(elems.iter().map(|e| desugar(e)).collect())
+                            },
                         }
                     },
-                    // TODO: desugar the whole list
-                    _ => v.clone()
+                    _ => Value::List(elems.iter().map(|e| desugar(e)).collect()),
                 }
             } else {
                 v.clone()
@@ -48,5 +49,21 @@ fn desugar_fn(args: &[Value]) -> Value {
         Value::Atom("fn".to_string()),
         params.clone(),
         Value::List(new_body)
+    ])
+}
+
+// (cons-stream head tail) -> (fn args (do *body))
+fn desugar_stream_cons(args: &[Value]) -> Value {
+    let usage = "Usage: (stream-cons fst rst)";
+    let fst = args.get(0).expect(usage);
+    let rst = args.get(1).expect(usage);
+
+    Value::List(vec![
+        Value::Atom("cons".to_string()),
+        desugar(fst),
+        Value::List(vec![
+            Value::Atom("delay".to_string()),
+            desugar(rst)
+        ])
     ])
 }
