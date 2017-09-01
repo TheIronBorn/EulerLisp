@@ -15,7 +15,14 @@ use parser;
 use desugar;
 use builtin;
 
-pub struct Evaluator { envs: EnvArena }
+pub struct Evaluator { envs: EnvArena, level: i64 }
+
+pub enum EvalResult {
+    Return(LispResult),
+    TailCall(Value, EnvRef),
+}
+
+use self::EvalResult::*;
 
 macro_rules! check_arity {
     ($args: ident, $number: expr) => {
@@ -25,9 +32,17 @@ macro_rules! check_arity {
     }
 }
 
+macro_rules! check_arity2 {
+    ($args: ident, $number: expr) => {
+        if $args.len() != $number {
+            return Return(Err(InvalidNumberOfArguments));
+        }
+    }
+}
+
 impl Evaluator {
     pub fn new() -> Self {
-        Evaluator { envs: EnvArena::new() }
+        Evaluator { envs: EnvArena::new(), level: 0 }
     }
 
     pub fn make_root_env(&mut self) -> EnvRef {
@@ -115,8 +130,8 @@ impl Evaluator {
         Ok(Value::Lambda(env_ref, params, Box::new(body)))
     }
 
-    pub fn sf_if(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
-        check_arity!(args, 3);
+    pub fn sf_if(&mut self, args: &[Value], env_ref: EnvRef) -> EvalResult {
+        check_arity2!(args, 3);
 
         let cond = args.get(0).unwrap();
         let cons = args.get(1).unwrap();
@@ -124,10 +139,13 @@ impl Evaluator {
         let default_alt = Value::Nil;
         let alt = args.get(2).unwrap_or(&default_alt);
 
-        match self.eval(&cond, env_ref)? {
-            Value::Bool(true) => self.eval(cons, env_ref),
-            Value::Bool(false) => self.eval(alt, env_ref),
-            _ => Err(InvalidTypeOfArguments)
+        match self.eval(&cond, env_ref) {
+            Err(e) => Return(Err(e)),
+            Ok(v) => match v {
+                Value::Bool(true) => TailCall(cons.clone(), env_ref),
+                Value::Bool(false) => TailCall(alt.clone(), env_ref),
+                _ => Return(Err(InvalidTypeOfArguments))
+            }
         }
     }
 
@@ -178,15 +196,14 @@ impl Evaluator {
         }
     }
 
-    pub fn sf_begin(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
-        let mut result = Ok(Value::Nil);
+    pub fn sf_begin(&mut self, args: &[Value], env_ref: EnvRef) -> EvalResult {
 
-        // TODO: Fail all if one threw an error?
-        for a in args.iter() {
-            result = self.eval(a, env_ref);
+        // TODO: Fail if one of them threw an error
+        for i in (0..(args.len() - 1)) {
+            self.eval(&args[i], env_ref);
         }
 
-        result
+        TailCall(args[args.len() - 1].clone(), env_ref)
     }
 
     // TODO: Allow `and` and `or` to operate on all types of values
@@ -279,27 +296,32 @@ impl Evaluator {
         }
     }
 
-    pub fn apply(&mut self, f: Value, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn apply(&mut self, f: Value, args: &[Value], env_ref: EnvRef) -> EvalResult {
         // println!("Applying {:?} to {:?}", args, f);
         match f {
             Value::Lambda(env, params, body) => {
                 let child_env = self.make_env(Some(env));
                 if params.len() != args.len() {
-                    return Err(InvalidNumberOfArguments);
+                    return Return(Err(InvalidNumberOfArguments));
                 } else {
                     for (p, a) in params.iter().zip(args.iter()) {
-                        let value = self.eval(&a, env_ref)?;
+                        // TODO: Refactor temp unwrap
+                        // let value = self.eval(&a, env_ref)?;
+                        let value = self.eval(&a, env_ref).unwrap();
                         self.envs.define_into(child_env, p, value);
                     }
                 }
-                self.eval(&body, child_env)
+                // Return(self.eval(&body, child_env))
+                TailCall((*body).clone(), child_env)
             },
             Value::Builtin(LispFn(fun)) => {
                 let vals: Result<Vec<Value>, _> =
                     args.iter().map(|v| self.eval(v, env_ref)).collect();
-                fun(vals?)
+                // TODO: Refactor temp unwrap
+                // Return(fun(vals?))
+                Return(fun(vals.unwrap()))
             },
-            _ => Err(InvalidTypeOfArguments),
+            _ => Return(Err(InvalidTypeOfArguments)),
         } 
     }
 
@@ -324,11 +346,14 @@ impl Evaluator {
         Ok(ret)
     }
 
-    pub fn eval(&mut self, iv: &Value, env_ref: EnvRef) -> LispResult {
-        // println!("Evaling {}", v);
-        let mut ast = Some(iv);
+    pub fn eval(&mut self, iv: &Value, ienv_ref: EnvRef) -> LispResult {
+        self.level += 1;
+        // println!("Evaling {} on level {}", iv, self.level);
+        let mut ast = Some(iv.clone());
+        let mut env_ref = ienv_ref;
+
         while let Some(v) = ast {
-            return match *v {
+            let res = match v {
                 Value::List(ref elems) => {
                     if elems.len() == 0 {
                         return Err(InvalidNumberOfArguments)
@@ -342,9 +367,30 @@ impl Evaluator {
                                 "set!"      => self.sf_set(args, env_ref),
                                 "load"      => self.sf_load(args, env_ref),
                                 "fn"        => self.sf_lambda(args, env_ref),
-                                "if"        => self.sf_if(args, env_ref),
+                                "if"        => {
+                                    match self.sf_if(args, env_ref) {
+                                        Return(v) => v,
+                                        TailCall(a, e) => {
+                                            println!("If TCO");
+                                            ast = Some(a.clone());
+                                            env_ref = e;
+                                            continue;
+                                        }
+                                    }
+                                },
                                 "cond"      => self.sf_cond(args, env_ref),
-                                "do"        => self.sf_begin(args, env_ref),
+                                "do"        => {
+                                    match self.sf_begin(args, env_ref) {
+                                    // match self.sf_if(args, env_ref) {
+                                        Return(v) => v,
+                                        TailCall(a, e) => {
+                                            println!("Begin TCO");
+                                            ast = Some(a.clone());
+                                            env_ref = e;
+                                            continue;
+                                        }
+                                    }
+                                },
                                 "list"      => self.sf_list(args, env_ref),
                                 "quote"     => self.sf_quote(args, env_ref),
                                 "read"      => self.sf_read(args, env_ref),
@@ -365,19 +411,47 @@ impl Evaluator {
                                 other    => {
                                     // TODO: Find a way to do this with less duplication
                                     let v = self.envs.get(env_ref, &other.to_string()).clone();
-                                    self.apply(v, args, env_ref)
+                                    match self.apply(v, args, env_ref) {
+                                        Return(v) => v,
+                                        TailCall(a, e) => {
+                                            println!("Apply TCO");
+                                            ast = Some(a.clone());
+                                            env_ref = e;
+                                            continue;
+                                        }
+                                    }
                                 }
                             }
                         },
                         other => {
                             let v = self.eval(&other, env_ref)?;
-                            self.apply(v, args, env_ref)
+                            match self.apply(v, args, env_ref) {
+                                Return(v) => v,
+                                TailCall(a, e) => {
+                                    println!("Apply TCO");
+                                    ast = Some(a.clone());
+                                    env_ref = e;
+                                    continue;
+                                }
+                            }
                         },
                     }
                 },
                 Value::Atom(ref v) => Ok(self.envs.get(env_ref, &v.to_string()).clone()),
                 ref other => Ok(other.clone())
-            }
+            };
+
+            self.level -= 1;
+            return res;
+            // match res {
+            //     Return(v) => {
+            //         return v
+            //     }
+            //     TailCall(a) => {
+            //         println!("TCO");
+            //         ast = a
+            //     }
+            // }
         }
 
         Ok(Value::Undefined)
