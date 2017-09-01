@@ -14,8 +14,13 @@ use env::*;
 use parser;
 use desugar;
 use builtin;
+// use symbol_table::SymbolTable;
 
-pub struct Evaluator { envs: EnvArena, level: i64 }
+pub struct Evaluator {
+    // symbol_table: SymbolTable,
+    envs: EnvArena,
+    level: i64
+}
 
 pub enum EvalResult {
     Return(LispResult),
@@ -42,7 +47,11 @@ macro_rules! check_arity2 {
 
 impl Evaluator {
     pub fn new() -> Self {
-        Evaluator { envs: EnvArena::new(), level: 0 }
+        Evaluator {
+            // symbol_table: SymbolTable::new(),
+            envs: EnvArena::new(),
+            level: 0,
+        }
     }
 
     pub fn make_root_env(&mut self) -> EnvRef {
@@ -131,7 +140,9 @@ impl Evaluator {
     }
 
     pub fn sf_if(&mut self, args: &[Value], env_ref: EnvRef) -> EvalResult {
-        check_arity2!(args, 3);
+        if !(args.len() == 2 || args.len() == 3) {
+            return Return(Err(InvalidNumberOfArguments));
+        }
 
         let cond = args.get(0).unwrap();
         let cons = args.get(1).unwrap();
@@ -199,7 +210,7 @@ impl Evaluator {
     pub fn sf_begin(&mut self, args: &[Value], env_ref: EnvRef) -> EvalResult {
 
         // TODO: Fail if one of them threw an error
-        for i in (0..(args.len() - 1)) {
+        for i in 0..(args.len() - 1) {
             self.eval(&args[i], env_ref);
         }
 
@@ -265,7 +276,7 @@ impl Evaluator {
 
     fn sf_delay(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
         check_arity!(args, 1);
-        Ok(Value::Promise(Promise::Delayed(Box::new(args[0].clone()))))
+        Ok(Value::Promise(Promise::Delayed(env_ref, Box::new(args[0].clone()))))
     }
 
     fn sf_force(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
@@ -284,15 +295,19 @@ impl Evaluator {
                     ref other => self.eval(other, env_ref),
                 }
             },
-            Value::Promise(ref p) => self.force_promise(p, env_ref),
-            ref other => self.eval(other, env_ref),
+            ref other => {
+                match self.eval(other, env_ref)? {
+                    Value::Promise(ref p) => self.force_promise(p, env_ref),
+                    ref other_ => Ok(other_.clone()),
+                }
+            }
         }
     }
 
     fn force_promise(&mut self, p: &Promise, env_ref: EnvRef) -> LispResult {
         match *p {
             Promise::Result(ref r) => Ok(*r.clone()),
-            Promise::Delayed(ref r) => self.eval(&(*r.clone()), env_ref),
+            Promise::Delayed(env_ref_, ref r) => self.eval(&(*r.clone()), env_ref_),
         }
     }
 

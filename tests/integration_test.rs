@@ -93,3 +93,14 @@ fn test_delay_force() {
     assert_eq!(ev.eval_str("(force p)", main_env), Ok(Number(2)));
 }
 
+#[test]
+fn test_delay_force_env() {
+    let mut ev = Evaluator::new();
+    let main_env = ev.make_root_env();
+
+    ev.eval_str("(defn wrap (x) (delay x))", main_env);
+    assert_eq!(
+        ev.eval_str("(force (wrap 1))", main_env),
+        Ok(Number(1))
+    );
+}

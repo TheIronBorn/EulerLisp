@@ -9,6 +9,7 @@ mod builtin;
 mod parser;
 mod env;
 mod desugar;
+mod symbol_table;
 
 use std::fmt;
 use std::cmp::Ordering;
@@ -71,7 +72,7 @@ impl PartialOrd for LispFn {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub enum Promise {
-    Delayed(Box<Value>),
+    Delayed(env::EnvRef, Box<Value>),
     Result(Box<Value>),
 }
 
@@ -160,7 +161,7 @@ impl fmt::Display for Value {
             Undefined => write!(f, "undefined"),
             Lambda(_, _, _) => write!(f, "<lambda>"),
             Builtin(_) => write!(f, "<builtin>"),
-            Promise(Promise::Delayed(_)) => write!(f, "promise(?)"),
+            Promise(Promise::Delayed(_, _)) => write!(f, "promise(?)"),
             Promise(Promise::Result(ref r)) => write!(f, "promise({})", r),
         }
     }
