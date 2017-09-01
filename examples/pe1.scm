@@ -11,3 +11,5 @@
                    (multiple n 3)))
         (solve_ limit (+ n 1) (+ acc n))
         (solve_ limit (+ n 1) acc))))
+
+(puts (solve 1000))

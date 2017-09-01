@@ -371,7 +371,6 @@ impl Evaluator {
                                     match self.sf_if(args, env_ref) {
                                         Return(v) => v,
                                         TailCall(a, e) => {
-                                            println!("If TCO");
                                             ast = Some(a.clone());
                                             env_ref = e;
                                             continue;
@@ -384,7 +383,6 @@ impl Evaluator {
                                     // match self.sf_if(args, env_ref) {
                                         Return(v) => v,
                                         TailCall(a, e) => {
-                                            println!("Begin TCO");
                                             ast = Some(a.clone());
                                             env_ref = e;
                                             continue;
@@ -414,7 +412,6 @@ impl Evaluator {
                                     match self.apply(v, args, env_ref) {
                                         Return(v) => v,
                                         TailCall(a, e) => {
-                                            println!("Apply TCO");
                                             ast = Some(a.clone());
                                             env_ref = e;
                                             continue;
@@ -428,7 +425,6 @@ impl Evaluator {
                             match self.apply(v, args, env_ref) {
                                 Return(v) => v,
                                 TailCall(a, e) => {
-                                    println!("Apply TCO");
                                     ast = Some(a.clone());
                                     env_ref = e;
                                     continue;
@@ -448,7 +444,6 @@ impl Evaluator {
             //         return v
             //     }
             //     TailCall(a) => {
-            //         println!("TCO");
             //         ast = a
             //     }
             // }
