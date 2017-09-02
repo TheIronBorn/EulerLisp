@@ -73,13 +73,13 @@ impl Evaluator {
     // If the key is already set in the current env,
     // throw an error,
     // otherwise define it
-    pub fn sf_def(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_def(&mut self, args: &[Value], env_ref: EnvRef) -> TCOResult {
         check_arity!(args, 2);
 
         if let Value::Atom(ref a) = args[0] {
             let value = self.eval(&args[1], env_ref)?;
             if self.envs.define_into(env_ref, a, value) {
-                Ok(Value::Undefined)
+                Ok(TCOWrapper::Return(Value::Undefined))
             } else {
                 Err(DefinitionAlreadyDefined)
             }
@@ -90,13 +90,13 @@ impl Evaluator {
 
     // Walk up the env tree until key is set,
     // then change its value
-    pub fn sf_set(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_set(&mut self, args: &[Value], env_ref: EnvRef) -> TCOResult {
         check_arity!(args, 2);
 
         if let Value::Atom(ref a) = args[0] {
             let value = self.eval(&args[1], env_ref)?;
             if self.envs.set_into(env_ref, a, value) {
-                Ok(Value::Undefined)
+                Ok(TCOWrapper::Return(Value::Undefined))
             } else {
                 Err(DefinitionNotFound)
             }
@@ -105,26 +105,26 @@ impl Evaluator {
         }
     }
 
-    pub fn sf_quote(&mut self, args: &[Value], _: EnvRef) -> LispResult {
+    pub fn sf_quote(&mut self, args: &[Value], _: EnvRef) -> TCOResult {
         check_arity!(args, 1);
 
         match args[0] {
             // Value::List(ref l) => self.sf_list(&l[..]),
-            ref other => Ok(other.clone())
+            ref other => Ok(TCOWrapper::Return(other.clone()))
         }
     }
 
-    pub fn sf_list(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_list(&mut self, args: &[Value], env_ref: EnvRef) -> TCOResult {
         if args.len() == 0 {
-            Ok(Value::Nil)
+            Ok(TCOWrapper::Return(Value::Nil))
         } else {
             let vals: Result<Vec<Value>, _> =
                 args.iter().map(|v| self.eval(v, env_ref)).collect();
-            Ok(Value::List(vals?))
+            Ok(TCOWrapper::Return(Value::List(vals?)))
         }
     }
 
-    pub fn sf_lambda(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_lambda(&mut self, args: &[Value], env_ref: EnvRef) -> TCOResult {
         check_arity!(args, 2);
 
         let mut params: Vec<String> = Vec::new();
@@ -142,7 +142,7 @@ impl Evaluator {
         }
 
         let body = args[1].clone();
-        Ok(Value::Lambda(env_ref, params, Box::new(body)))
+        Ok(TCOWrapper::Return(Value::Lambda(env_ref, params, Box::new(body))))
     }
 
     pub fn sf_if(&mut self, args: &[Value], env_ref: EnvRef) -> TCOResult {
@@ -163,7 +163,8 @@ impl Evaluator {
         }
     }
 
-    pub fn sf_cond(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    // TODO: Make else expr a tail call
+    pub fn sf_cond(&mut self, args: &[Value], env_ref: EnvRef) -> TCOResult {
         for arg in args.iter() {
             if let Value::List(ref elems) = *arg {
                 if elems.len() != 2 {
@@ -175,11 +176,11 @@ impl Evaluator {
 
                 // TODO this does not check if "else" comes last
                 if *cond == Value::Atom("else".to_string()) {
-                    return self.eval(cons, env_ref);
+                    return Ok(TCOWrapper::Return(self.eval(cons, env_ref)?));
                 } else {
                     let res = self.eval(cond, env_ref)?;
                     if res == Value::Bool(true) {
-                        return self.eval(cons, env_ref);
+                        return Ok(TCOWrapper::Return(self.eval(cons, env_ref)?));
                     } else {
                         continue
                     }
@@ -189,10 +190,10 @@ impl Evaluator {
             }
         }
 
-        Ok(Value::Nil)
+        Ok(TCOWrapper::Return(Value::Nil))
     }
 
-    pub fn sf_benchmark(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    pub fn sf_benchmark(&mut self, args: &[Value], env_ref: EnvRef) -> TCOResult {
         check_arity!(args, 2);
 
         if let Value::Number(iterations) = self.eval(&args[0], env_ref)? {
@@ -204,7 +205,7 @@ impl Evaluator {
             }
 
             println!("Benchmark Result: {}", time::now() - start);
-            Ok(res)
+            Ok(TCOWrapper::Return(res))
         } else {
             Err(InvalidNumberOfArguments)
         }
@@ -250,39 +251,39 @@ impl Evaluator {
         return Ok(TCOWrapper::TailCall(args[args.len()-1].clone(), env_ref))
     }
 
-    fn sf_read(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    fn sf_read(&mut self, args: &[Value], env_ref: EnvRef) -> TCOResult {
         check_arity!(args, 1);
 
         if let Value::Str(ref input) = self.eval(&args[0], env_ref)? {
-            Ok(parser::parse_value(input))
+            Ok(TCOWrapper::Return(parser::parse_value(input)))
         } else {
             Err(InvalidTypeOfArguments)
         }
     }
 
-    fn sf_eval(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    fn sf_eval(&mut self, args: &[Value], env_ref: EnvRef) -> TCOResult {
         check_arity!(args, 1);
 
         let value = self.eval(&args[0], env_ref)?;
-        self.eval(&value, env_ref)
+        Ok(TCOWrapper::Return(self.eval(&value, env_ref)?))
     }
 
-    fn sf_load(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    fn sf_load(&mut self, args: &[Value], env_ref: EnvRef) -> TCOResult {
         check_arity!(args, 1);
 
         if let Value::Str(ref path) = self.eval(&args[0], env_ref)? {
-            self.eval_file(path, env_ref)
+            Ok(TCOWrapper::Return(self.eval_file(path, env_ref)?))
         } else {
             Err(InvalidTypeOfArguments)
         }
     }
 
-    fn sf_delay(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    fn sf_delay(&mut self, args: &[Value], env_ref: EnvRef) -> TCOResult {
         check_arity!(args, 1);
-        Ok(Value::Promise(Promise::Delayed(env_ref, Box::new(args[0].clone()))))
+        Ok(TCOWrapper::Return(Value::Promise(Promise::Delayed(env_ref, Box::new(args[0].clone())))))
     }
 
-    fn sf_force(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
+    fn sf_force(&mut self, args: &[Value], env_ref: EnvRef) -> TCOResult {
         check_arity!(args, 1);
 
         match args[0] {
@@ -293,15 +294,15 @@ impl Evaluator {
                         let res = self.force_promise(p, env_ref)?;
                         let new = Value::Promise(Promise::Result(Box::new(res.clone())));
                         self.envs.set_into(env_ref, name, new);
-                        Ok(res)
+                        Ok(TCOWrapper::Return(res))
                     },
-                    ref other => self.eval(other, env_ref),
+                    ref other => Ok(TCOWrapper::Return(self.eval(other, env_ref)?)),
                 }
             },
             ref other => {
                 match self.eval(other, env_ref)? {
-                    Value::Promise(ref p) => self.force_promise(p, env_ref),
-                    ref other_ => Ok(other_.clone()),
+                    Value::Promise(ref p) => Ok(TCOWrapper::Return(self.force_promise(p, env_ref)?)),
+                    ref other_ => Ok(TCOWrapper::Return(other_.clone())),
                 }
             }
         }
@@ -383,47 +384,11 @@ impl Evaluator {
                                 "set!"      => self.sf_set(args, env_ref),
                                 "load"      => self.sf_load(args, env_ref),
                                 "fn"        => self.sf_lambda(args, env_ref),
-                                "if"        => {
-                                    match self.sf_if(args, env_ref)? {
-                                        TCOWrapper::Return(v) => Ok(v),
-                                        TCOWrapper::TailCall(a, e) => {
-                                            ast = Some(a.clone());
-                                            env_ref = e;
-                                            continue;
-                                        }
-                                    }
-                                },
+                                "if"        => self.sf_if(args, env_ref),
                                 "cond"      => self.sf_cond(args, env_ref),
-                                "do"        => {
-                                    match self.sf_begin(args, env_ref)? {
-                                        TCOWrapper::Return(v) => Ok(v),
-                                        TCOWrapper::TailCall(a, e) => {
-                                            ast = Some(a.clone());
-                                            env_ref = e;
-                                            continue;
-                                        }
-                                    }
-                                },
-                                "or"        => {
-                                    match self.sf_or(args, env_ref)? {
-                                        TCOWrapper::Return(v) => Ok(v),
-                                        TCOWrapper::TailCall(a, e) => {
-                                            ast = Some(a.clone());
-                                            env_ref = e;
-                                            continue;
-                                        }
-                                    }
-                                },
-                                "and"        => {
-                                    match self.sf_and(args, env_ref)? {
-                                        TCOWrapper::Return(v) => Ok(v),
-                                        TCOWrapper::TailCall(a, e) => {
-                                            ast = Some(a.clone());
-                                            env_ref = e;
-                                            continue;
-                                        }
-                                    }
-                                },
+                                "do"        => self.sf_begin(args, env_ref),
+                                "or"        => self.sf_or(args, env_ref),
+                                "and"       => self.sf_and(args, env_ref),
                                 "list"      => self.sf_list(args, env_ref),
                                 "quote"     => self.sf_quote(args, env_ref),
                                 "read"      => self.sf_read(args, env_ref),
@@ -433,55 +398,42 @@ impl Evaluator {
                                 "force"     => self.sf_force(args, env_ref),
                                 "debug-env" => {
                                     println!("{:?}", self.envs.get_env(env_ref));
-                                    Ok(Value::Undefined)
+                                    Ok(TCOWrapper::Return(Value::Undefined))
                                 },
                                 "debug-envref" => {
                                     println!("{:?}", env_ref);
-                                    Ok(Value::Undefined)
+                                    Ok(TCOWrapper::Return(Value::Undefined))
                                 },
                                 other    => {
                                     // TODO: Find a way to do this with less duplication
                                     let v = self.envs.get(env_ref, &other.to_string()).clone();
-                                    match self.apply(v, args, env_ref)? {
-                                        TCOWrapper::Return(v) => Ok(v),
-                                        TCOWrapper::TailCall(a, e) => {
-                                            ast = Some(a.clone());
-                                            env_ref = e;
-                                            continue;
-                                        }
-                                    }
+                                    self.apply(v, args, env_ref)
                                 }
                             }
                         },
                         other => {
                             let v = self.eval(&other, env_ref)?;
-                            match self.apply(v, args, env_ref)? {
-                                TCOWrapper::Return(v) => Ok(v),
-                                TCOWrapper::TailCall(a, e) => {
-                                    ast = Some(a.clone());
-                                    env_ref = e;
-                                    continue;
-                                }
-                            }
+                            self.apply(v, args, env_ref)
                         },
                     }
                 },
-                Value::Atom(ref v) => Ok(self.envs.get(env_ref, &v.to_string()).clone()),
-                ref other => Ok(other.clone())
+                Value::Atom(ref v) => Ok(TCOWrapper::Return(self.envs.get(env_ref, &v.to_string()).clone())),
+                ref other => Ok(TCOWrapper::Return(other.clone()))
             };
 
-            self.level -= 1;
-            return res;
-            // match res {
-            //     Return(v) => {
-            //         return v
-            //     }
-            //     TCOWrapper::TailCall(a) => {
-            //         ast = a
-            //     }
-            // }
+            match res? {
+                TCOWrapper::Return(v) => {
+                    self.level -= 1;
+                    return Ok(v)
+                },
+                TCOWrapper::TailCall(a, e) => {
+                    ast = Some(a.clone());
+                    env_ref = e;
+                    continue;
+                }
+            }
         }
-
+        self.level -= 1;
         Ok(Value::Undefined)
     }
 }
