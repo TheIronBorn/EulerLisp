@@ -16,8 +16,8 @@ use env::*;
 use parser;
 use desugar;
 use builtin;
-// use symbol_table::SymbolTable;
 
+use macros;
 
 pub struct Evaluator {
     // symbol_table: SymbolTable,
@@ -29,14 +29,6 @@ pub type TCOResult = Result<TCOWrapper, LispErr>;
 pub enum TCOWrapper {
     Return(Value),
     TailCall(Value, EnvRef),
-}
-
-macro_rules! check_arity {
-    ($args: ident, $number: expr) => {
-        if $args.len() != $number {
-            return Err(InvalidNumberOfArguments);
-        }
-    }
 }
 
 impl Evaluator {

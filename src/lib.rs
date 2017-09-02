@@ -2,6 +2,9 @@ extern crate time;
 extern crate nom;
 extern crate rustyline;
 
+#[macro_use]
+mod macros;
+
 pub mod repl;
 pub mod eval;
 

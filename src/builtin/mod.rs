@@ -6,6 +6,8 @@ use ::LispFn;
 use ::LispResult;
 use ::LispErr::*;
 
+use macros;
+
 use std::rc::Rc;
 
 // The difference between builtins and special forms is,
@@ -19,17 +21,45 @@ fn register(hm: &mut HashMap<String, Value>, name: &str,
 }
 
 pub fn load(hm: &mut HashMap<String, Value>) {
-    register(hm, "pair?", Rc::new(|vs| Ok(Value::Bool(vs[0].is_pair()))));
-    register(hm, "list?", Rc::new(|vs| Ok(Value::Bool(vs[0].is_list()))));
-    register(hm, "nil?", Rc::new(|vs| Ok(Value::Bool(vs[0].is_nil()))));
-    register(hm, "=", Rc::new(|vs| Ok(Value::Bool(vs[0] == vs[1]))));
-    register(hm, "!=", Rc::new(|vs| Ok(Value::Bool(vs[0] != vs[1]))));
+    register(hm, "pair?", Rc::new(|vs| {
+        check_arity!(vs, 1);
+        Ok(Value::Bool(vs[0].is_pair()))
+    }));
+    register(hm, "list?", Rc::new(|vs| {
+        check_arity!(vs, 1);
+        Ok(Value::Bool(vs[0].is_list()))
+    }));
+    register(hm, "nil?", Rc::new(|vs| {
+        check_arity!(vs, 1);
+        Ok(Value::Bool(vs[0].is_nil()))
+    }));
+    register(hm, "=", Rc::new(|vs| {
+        check_arity!(vs, 2);
+        Ok(Value::Bool(vs[0] == vs[1]))
+    }));
+    register(hm, "!=", Rc::new(|vs| {
+        check_arity!(vs, 2);
+        Ok(Value::Bool(vs[0] != vs[1]))
+    }));
     // TODO: What should happen when compairing two different types?
-    register(hm, ">", Rc::new(|vs| Ok(Value::Bool(vs[0] > vs[1]))));
-    register(hm, "<", Rc::new(|vs| Ok(Value::Bool(vs[0] < vs[1]))));
-    register(hm, ">=", Rc::new(|vs| Ok(Value::Bool(vs[0] >= vs[1]))));
-    register(hm, "<=", Rc::new(|vs| Ok(Value::Bool(vs[0] <= vs[1]))));
+    register(hm, ">", Rc::new(|vs| {
+        check_arity!(vs, 2);
+        Ok(Value::Bool(vs[0] > vs[1]))
+    }));
+    register(hm, "<", Rc::new(|vs| {
+        check_arity!(vs, 2);
+        Ok(Value::Bool(vs[0] < vs[1]))
+    }));
+    register(hm, ">=", Rc::new(|vs| {
+        check_arity!(vs, 2);
+        Ok(Value::Bool(vs[0] >= vs[1]))
+    }));
+    register(hm, "<=", Rc::new(|vs| {
+        check_arity!(vs, 2);
+        Ok(Value::Bool(vs[0] <= vs[1]))
+    }));
     register(hm, "puts", Rc::new(|vs| {
+        check_arity!(vs, 1);
         match vs[0] {
             // Print string without " around them
             Value::Str(ref x) => print!("{}\n", x),
@@ -38,6 +68,7 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         Ok(Value::Undefined)
     }));
     register(hm, "print", Rc::new(|vs| {
+        check_arity!(vs, 1);
         match vs[0] {
             // Print string without " around them
             Value::Str(ref x) => print!("{}", x),
@@ -46,10 +77,12 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         Ok(Value::Undefined)
     }));
     register(hm, "inspect", Rc::new(|vs| {
+        check_arity!(vs, 1);
         println!("{:?}", vs[0]);
         Ok(Value::Undefined)
     }));
     register(hm, "+", Rc::new(|vs| {
+        check_arity!(vs, 2);
         if let Value::Number(a) = vs[0] {
             if let Value::Number(b) = vs[1] {
                 return Ok(Value::Number(a + b));
@@ -58,6 +91,7 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         Err(InvalidTypeOfArguments)
     }));
     register(hm, "*", Rc::new(|vs| {
+        check_arity!(vs, 2);
         if let Value::Number(a) = vs[0] {
             if let Value::Number(b) = vs[1] {
                 return Ok(Value::Number(a * b));
@@ -66,6 +100,7 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         Err(InvalidTypeOfArguments)
     }));
     register(hm, "/", Rc::new(|vs| {
+        check_arity!(vs, 2);
         if let Value::Number(a) = vs[0] {
             if let Value::Number(b) = vs[1] {
                 return Ok(Value::Number(a / b));
@@ -74,6 +109,7 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         Err(InvalidTypeOfArguments)
     }));
     register(hm, "%", Rc::new(|vs| {
+        check_arity!(vs, 2);
         if let Value::Number(a) = vs[0] {
             if let Value::Number(b) = vs[1] {
                 return Ok(Value::Number(a % b));
@@ -82,6 +118,7 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         Err(InvalidTypeOfArguments)
     }));
     register(hm, "-", Rc::new(|vs| {
+        // TODO: Check arity
         if let Value::Number(a) = vs[0] {
             if vs.len() == 2 {
                 if let Value::Number(b) = vs[1] {
@@ -94,12 +131,14 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         Err(InvalidTypeOfArguments)
     }));
     register(hm, "not", Rc::new(|vs| {
+        check_arity!(vs, 1);
         if let Value::Bool(b) = vs[0] {
             return Ok(Value::Bool(!b));
         }
         Err(InvalidTypeOfArguments)
     }));
     register(hm, "cons", Rc::new(|vs| {
+        check_arity!(vs, 2);
         // TODO: Can this be done without clone?
         let fst = vs[0].clone();
         let rst = vs[1].clone();
@@ -120,6 +159,7 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         }
     }));
     register(hm, "fst", Rc::new(|vs| {
+        check_arity!(vs, 1);
         match vs[0] {
             // TODO: find some way to ensure dotted list size >= 2
             Value::DottedList(ref elems) => {
@@ -132,6 +172,7 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         }
     }));
     register(hm, "rst", Rc::new(|vs| {
+        check_arity!(vs, 1);
         match vs[0] {
             // TODO: find some way to ensure dotted list size >= 2
             Value::DottedList(ref elems) => {
@@ -149,6 +190,16 @@ pub fn load(hm: &mut HashMap<String, Value>) {
                     let rest: Vec<Value> = elems[1..].iter().map(|v| v.clone()).collect();
                     Ok(Value::List(rest))
                 }
+            },
+            _ => Err(InvalidTypeOfArguments)
+        }
+    }));
+    register(hm, "length", Rc::new(|vs| {
+        check_arity!(vs, 1);
+        match vs[0] {
+            Value::Nil => Ok(Value::Number(0)),
+            Value::List(ref elems) => {
+                Ok(Value::Number(elems.len() as i64))
             },
             _ => Err(InvalidTypeOfArguments)
         }
