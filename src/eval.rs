@@ -4,6 +4,7 @@ use ::LispResult;
 use ::Promise;
 use ::LispErr::*;
 
+use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::collections::HashMap;
@@ -15,6 +16,7 @@ use parser;
 use desugar;
 use builtin;
 // use symbol_table::SymbolTable;
+
 
 pub struct Evaluator {
     // symbol_table: SymbolTable,
@@ -47,11 +49,23 @@ macro_rules! check_arity2 {
 
 impl Evaluator {
     pub fn new() -> Self {
-        Evaluator {
+        let mut ev = Evaluator {
             // symbol_table: SymbolTable::new(),
             envs: EnvArena::new(),
             level: 0,
+        };
+
+        ev.make_root_env();
+
+        let paths = fs::read_dir("./stdlib").unwrap();
+
+        for path in paths {
+            let path_str = path.unwrap().path().display().to_string();
+            println!("Loading {}", path_str);
+            ev.eval_file(&path_str[..], 0);
         }
+
+        ev
     }
 
     pub fn make_root_env(&mut self) -> EnvRef {
@@ -217,34 +231,44 @@ impl Evaluator {
         TailCall(args[args.len() - 1].clone(), env_ref)
     }
 
-    // TODO: Allow `and` and `or` to operate on all types of values
-    pub fn sf_and(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
-        for a in args.iter() {
-            if let Value::Bool(b) = self.eval(a, env_ref)? {
-                if !b {
-                    return Ok(Value::Bool(false))
+    pub fn sf_and(&mut self, args: &[Value], env_ref: EnvRef) -> EvalResult {
+        for a in args[0..(args.len() - 1)].iter() {
+            match self.eval(a, env_ref) {
+                Ok(Value::Bool(b)) => {
+                    if b == false {
+                        return Return(Ok(Value::Bool(false)))
+                    }
+                },
+                Ok(_) => (),
+                Err(err) => {
+                    return Return(Err(err))
                 }
-            } else {
-                return Err(InvalidTypeOfArguments);
             }
         }
 
-        return Ok(Value::Bool(true))
+        return TailCall(args[args.len()-1].clone(), env_ref)
     }
 
-    pub fn sf_or(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
-        for a in args.iter() {
-            if let Value::Bool(b) = self.eval(a, env_ref)? {
-                if b {
-                    return Ok(Value::Bool(true))
+    pub fn sf_or(&mut self, args: &[Value], env_ref: EnvRef) -> EvalResult {
+        for a in args[0..(args.len() - 1)].iter() {
+            match self.eval(a, env_ref) {
+                Ok(Value::Bool(b)) => {
+                    if b == false {
+                        continue;
+                    } else {
+                        return Return(Ok(Value::Bool(true)));
+                    }
+                },
+                Ok(ref v) => {
+                    return Return(Ok(v.clone()));
+                },
+                Err(err) => {
+                    return Return(Err(err))
                 }
-            } else {
-                return Err(InvalidTypeOfArguments);
             }
         }
 
-
-        return Ok(Value::Bool(false))
+        return TailCall(args[args.len()-1].clone(), env_ref)
     }
 
     fn sf_read(&mut self, args: &[Value], env_ref: EnvRef) -> LispResult {
@@ -395,7 +419,26 @@ impl Evaluator {
                                 "cond"      => self.sf_cond(args, env_ref),
                                 "do"        => {
                                     match self.sf_begin(args, env_ref) {
-                                    // match self.sf_if(args, env_ref) {
+                                        Return(v) => v,
+                                        TailCall(a, e) => {
+                                            ast = Some(a.clone());
+                                            env_ref = e;
+                                            continue;
+                                        }
+                                    }
+                                },
+                                "or"        => {
+                                    match self.sf_or(args, env_ref) {
+                                        Return(v) => v,
+                                        TailCall(a, e) => {
+                                            ast = Some(a.clone());
+                                            env_ref = e;
+                                            continue;
+                                        }
+                                    }
+                                },
+                                "and"        => {
+                                    match self.sf_and(args, env_ref) {
                                         Return(v) => v,
                                         TailCall(a, e) => {
                                             ast = Some(a.clone());
@@ -408,8 +451,6 @@ impl Evaluator {
                                 "quote"     => self.sf_quote(args, env_ref),
                                 "read"      => self.sf_read(args, env_ref),
                                 "eval"      => self.sf_eval(args, env_ref),
-                                "and"       => self.sf_and(args, env_ref),
-                                "or"        => self.sf_or(args, env_ref),
                                 "benchmark" => self.sf_benchmark(args, env_ref),
                                 "delay"     => self.sf_delay(args, env_ref),
                                 "force"     => self.sf_force(args, env_ref),

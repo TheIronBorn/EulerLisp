@@ -19,8 +19,10 @@ fn main() {
             "run" => {
                 let filename = args.get(2).expect("No filename provided");
                 let mut eval = Evaluator::new();
-                let main_env = eval.make_root_env();
-                eval.eval_file(filename, main_env);
+                match eval.eval_file(filename, 0) {
+                    Err(e) => println!("Error: {}", e),
+                    _ => (),
+                }
             },
             _ => {
                 println!("Unknown command");

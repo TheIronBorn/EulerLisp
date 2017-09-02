@@ -23,6 +23,7 @@ pub fn load(hm: &mut HashMap<String, Value>) {
     register(hm, "list?", Rc::new(|vs| Ok(Value::Bool(vs[0].is_list()))));
     register(hm, "nil?", Rc::new(|vs| Ok(Value::Bool(vs[0].is_nil()))));
     register(hm, "=", Rc::new(|vs| Ok(Value::Bool(vs[0] == vs[1]))));
+    register(hm, "!=", Rc::new(|vs| Ok(Value::Bool(vs[0] != vs[1]))));
     // TODO: What should happen when compairing two different types?
     register(hm, ">", Rc::new(|vs| Ok(Value::Bool(vs[0] > vs[1]))));
     register(hm, "<", Rc::new(|vs| Ok(Value::Bool(vs[0] < vs[1]))));
@@ -33,6 +34,14 @@ pub fn load(hm: &mut HashMap<String, Value>) {
             // Print string without " around them
             Value::Str(ref x) => print!("{}\n", x),
             ref other => println!("{}", other),
+        };
+        Ok(Value::Undefined)
+    }));
+    register(hm, "print", Rc::new(|vs| {
+        match vs[0] {
+            // Print string without " around them
+            Value::Str(ref x) => print!("{}", x),
+            ref other => print!("{}", other),
         };
         Ok(Value::Undefined)
     }));
