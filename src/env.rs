@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ::Value;
+use ::Datum;
 
 pub type EnvRef = usize;
 
@@ -8,7 +8,7 @@ pub type EnvRef = usize;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Environment {
-    pub bindings: HashMap<String, Value>,
+    pub bindings: HashMap<String, Datum>,
     pub parent: Option<EnvRef>
 }
 
@@ -33,7 +33,7 @@ impl EnvArena {
         env_ref
     }
 
-    pub fn add_env(&mut self, hm: HashMap<String, Value>) -> EnvRef {
+    pub fn add_env(&mut self, hm: HashMap<String, Datum>) -> EnvRef {
         let env_ref = self.envs.len();
         self.envs.push(Environment{ bindings: hm, parent: None });
         env_ref
@@ -43,7 +43,7 @@ impl EnvArena {
         self.envs.get(env_ref).unwrap()
     }
 
-    pub fn get(&self, env_ref: EnvRef, key: &String) -> &Value {
+    pub fn get(&self, env_ref: EnvRef, key: &String) -> &Datum {
         let e = self.envs.get(env_ref).unwrap();
         
         match e.bindings.get(key) {
@@ -57,7 +57,7 @@ impl EnvArena {
         }
     }
 
-    pub fn define_into(&mut self, env_ref: EnvRef, key: &String, value: Value) -> bool {
+    pub fn define_into(&mut self, env_ref: EnvRef, key: &String, value: Datum) -> bool {
         let mut e = self.envs.get_mut(env_ref).unwrap();
 
         if e.bindings.contains_key(key) {
@@ -68,7 +68,7 @@ impl EnvArena {
         }
     }
 
-    pub fn set_into(&mut self, env_ref: EnvRef, key: &String, value: Value) -> bool {
+    pub fn set_into(&mut self, env_ref: EnvRef, key: &String, value: Datum) -> bool {
         let mut cur = env_ref;
 
         loop {

@@ -1,39 +1,39 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use ::Value;
+use ::Datum;
 use ::LispErr::*;
 
 use ::builtin::register;
 
-pub fn load(hm: &mut HashMap<String, Value>) {
+pub fn load(hm: &mut HashMap<String, Datum>) {
     register(hm, "puts", Rc::new(|vs| {
         check_arity!(vs, 1);
         match vs[0] {
             // Print string without " around them
-            Value::Str(ref x) => print!("{}\n", x),
+            Datum::Str(ref x) => print!("{}\n", x),
             ref other => println!("{}", other),
         };
-        Ok(Value::Undefined)
+        Ok(Datum::Undefined)
     }));
     register(hm, "print", Rc::new(|vs| {
         check_arity!(vs, 1);
         match vs[0] {
             // Print string without " around them
-            Value::Str(ref x) => print!("{}", x),
+            Datum::Str(ref x) => print!("{}", x),
             ref other => print!("{}", other),
         };
-        Ok(Value::Undefined)
+        Ok(Datum::Undefined)
     }));
     register(hm, "inspect", Rc::new(|vs| {
         check_arity!(vs, 1);
         println!("{:?}", vs[0]);
-        Ok(Value::Undefined)
+        Ok(Datum::Undefined)
     }));
     register(hm, "not", Rc::new(|vs| {
         check_arity!(vs, 1);
-        if let Value::Bool(b) = vs[0] {
-            return Ok(Value::Bool(!b));
+        if let Datum::Bool(b) = vs[0] {
+            return Ok(Datum::Bool(!b));
         }
         Err(InvalidTypeOfArguments)
     }));

@@ -1,24 +1,24 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use ::Value;
+use ::Datum;
 use ::LispErr::*;
 
 use ::builtin::register;
 
-pub fn load(hm: &mut HashMap<String, Value>) {
+pub fn load(hm: &mut HashMap<String, Datum>) {
     register(hm, "pair?", Rc::new(|vs| {
         check_arity!(vs, 1);
-        Ok(Value::Bool(vs[0].is_pair()))
+        Ok(Datum::Bool(vs[0].is_pair()))
     }));
 
     register(hm, "list?", Rc::new(|vs| {
         check_arity!(vs, 1);
-        Ok(Value::Bool(vs[0].is_list()))
+        Ok(Datum::Bool(vs[0].is_list()))
     }));
 
     register(hm, "nil?", Rc::new(|vs| {
         check_arity!(vs, 1);
-        Ok(Value::Bool(vs[0].is_nil()))
+        Ok(Datum::Bool(vs[0].is_nil()))
     }));
 }

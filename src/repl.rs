@@ -2,7 +2,7 @@ use ::rustyline::error::ReadlineError;
 use ::rustyline::Editor;
 
 use eval::Evaluator;
-use ::Value;
+use ::Datum;
 
 pub fn run() {
     let mut rl = Editor::<()>::new();
@@ -19,7 +19,7 @@ pub fn run() {
             rl.add_history_entry(&line);
             match eval.eval_str(&line, 0) {
                 Ok(res) => {
-                    if res != Value::Undefined {
+                    if res != Datum::Undefined {
                         println!("=> {}", res);
                     }
                 }

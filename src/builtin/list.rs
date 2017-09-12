@@ -1,18 +1,18 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use ::Value;
+use ::Datum;
 use ::LispErr::*;
 
 use ::builtin::register;
 
-pub fn load(hm: &mut HashMap<String, Value>) {
+pub fn load(hm: &mut HashMap<String, Datum>) {
     register(hm, "length", Rc::new(|vs| {
         check_arity!(vs, 1);
         match vs[0] {
-            Value::Nil => Ok(Value::Number(0)),
-            Value::List(ref elems) => {
-                Ok(Value::Number(elems.len() as i64))
+            Datum::Nil => Ok(Datum::Number(0)),
+            Datum::List(ref elems) => {
+                Ok(Datum::Number(elems.len() as i64))
             },
             _ => Err(InvalidTypeOfArguments)
         }
@@ -21,25 +21,23 @@ pub fn load(hm: &mut HashMap<String, Value>) {
     register(hm, "append", Rc::new(|vs| {
         check_arity!(vs, 2);
         match vs[0] {
-            Value::Nil => {
+            Datum::Nil => {
                 Ok(vs[1].clone())
             },
-            Value::List(ref elems) => {
+            Datum::List(ref elems) => {
                 match vs[1] {
-                    Value::List(ref elems2) => {
+                    Datum::List(ref elems2) => {
                         let mut new_elems = elems.clone();
                         new_elems.extend(elems2.iter().cloned());
-                        Ok(Value::List(new_elems))
+                        Ok(Datum::List(new_elems))
                     },
-                    Value::DottedList(ref elems2) => {
+                    Datum::DottedList(ref elems2, ref tail) => {
                         let mut new_elems = elems.clone();
                         new_elems.extend(elems2.iter().cloned());
-                        Ok(Value::DottedList(new_elems))
+                        Ok(Datum::DottedList(new_elems, tail.clone()))
                     },
                     ref other => {
-                        let mut new_elems = elems.clone();
-                        new_elems.push(other.clone());
-                        Ok(Value::DottedList(new_elems))
+                        Ok(Datum::DottedList(elems.clone(), Box::new(other.clone())))
                     }
                 }
             },
@@ -51,9 +49,9 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         check_arity!(vs, 1);
 
         match vs[0] {
-            Value::List(ref elems) => {
+            Datum::List(ref elems) => {
                 let mut new_elems = elems.iter().rev().cloned().collect();
-                Ok(Value::List(new_elems))
+                Ok(Datum::List(new_elems))
             },
             _ => Err(InvalidTypeOfArguments),
         }

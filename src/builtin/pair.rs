@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use ::Value;
+use ::Datum;
 use ::LispErr::*;
 
 use ::builtin::register;
 
-pub fn load(hm: &mut HashMap<String, Value>) {
+pub fn load(hm: &mut HashMap<String, Datum>) {
     register(hm, "cons", Rc::new(|vs| {
         check_arity!(vs, 2);
         // TODO: Can this be done without clone?
@@ -14,18 +14,18 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         let rst = vs[1].clone();
 
         match rst {
-            Value::Nil => Ok(Value::List(vec![fst])),
-            Value::DottedList(ref elems) => {
+            Datum::Nil => Ok(Datum::List(vec![fst])),
+            Datum::DottedList(ref elems, ref tail) => {
                 let mut new = elems.clone();
                 new.insert(0, fst);
-                Ok(Value::DottedList(new))
+                Ok(Datum::DottedList(new, tail.clone()))
             },
-            Value::List(ref elems) => {
+            Datum::List(ref elems) => {
                 let mut new = elems.clone();
                 new.insert(0, fst);
-                Ok(Value::List(new))
+                Ok(Datum::List(new))
             },
-            other => Ok(Value::DottedList(vec![fst, other])),
+            other => Ok(Datum::DottedList(vec!(fst), Box::new(other))),
         }
     }));
 
@@ -33,10 +33,10 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         check_arity!(vs, 1);
         match vs[0] {
             // TODO: find some way to ensure dotted list size >= 2
-            Value::DottedList(ref elems) => {
+            Datum::DottedList(ref elems, _) => {
                 Ok(elems.first().unwrap().clone())
             },
-            Value::List(ref elems) => {
+            Datum::List(ref elems) => {
                 Ok(elems.first().unwrap().clone())
             },
             _ => Err(InvalidTypeOfArguments)
@@ -47,20 +47,22 @@ pub fn load(hm: &mut HashMap<String, Value>) {
         check_arity!(vs, 1);
         match vs[0] {
             // TODO: find some way to ensure dotted list size >= 2
-            Value::DottedList(ref elems) => {
-                if elems.len() == 2 {
-                    Ok(elems.get(1).unwrap().clone())
+            Datum::DottedList(ref elems, ref tail) => {
+                if elems.len() == 1 {
+                    // What is this strange creature?
+                    // ** unboxes a ref to a box
+                    Ok((**tail).clone())
                 } else {
-                    let rest: Vec<Value> = elems[1..].iter().map(|v| v.clone()).collect();
-                    Ok(Value::DottedList(rest))
+                    let rest: Vec<Datum> = elems[1..].iter().map(|v| v.clone()).collect();
+                    Ok(Datum::DottedList(rest, tail.clone()))
                 }
             },
-            Value::List(ref elems) => {
+            Datum::List(ref elems) => {
                 if elems.len() == 1 {
-                    Ok(Value::Nil)
+                    Ok(Datum::Nil)
                 } else {
-                    let rest: Vec<Value> = elems[1..].iter().map(|v| v.clone()).collect();
-                    Ok(Value::List(rest))
+                    let rest: Vec<Datum> = elems[1..].iter().map(|v| v.clone()).collect();
+                    Ok(Datum::List(rest))
                 }
             },
             _ => Err(InvalidTypeOfArguments)

@@ -1,234 +1,377 @@
-use std::str::FromStr;
 use std::str::from_utf8;
-use std::str;
-use std::iter;
+
+use rustyline::error::ReadlineError;
+use rustyline::Editor;
 
 use nom::*;
+use nom::{digit, oct_digit, hex_digit};
+use nom::{anychar, multispace};
+use nom::{not_line_ending, eol};
 
-use ::Value;
+use ::Datum;
 
-static IDENTIFIER_START: &'static str = "abcdefghijklmnopqrstuvwxyz!$%&*+-./:<=>?@^_~";
-static IDENTIFIER_MAIN: &'static str = "abcdefghijklmnopqrstuvwxyz0123456789!$%&*+-./:<=>?@^_~";
+fn is_bin_digit(byte: u8) -> bool {
+    byte == b'0' || byte == b'1'
+}
+
+named!(bin_digit, take_while1!(is_bin_digit));
+
+named!(sign, recognize!(opt!(one_of!("+-"))));
 
 named!(
-    identifier<&[u8], String>,
-    do_parse!(
-        word: recognize!(
-            do_parse!(
-                one_of!(IDENTIFIER_START) >>
-                many0!(one_of!(IDENTIFIER_MAIN)) >>
-                ()
-            )
-        ) >>
-        (String::from_utf8(word.to_vec()).unwrap())
-    )
+    integer_literal2,
+    recognize!(do_parse!(sign >> bin_digit >> ()))
 );
 
 named!(
-    number<&[u8], i64>,
+    integer_literal8,
+    recognize!(do_parse!(sign >> oct_digit >> ()))
+);
+
+named!(
+    integer_literal10,
+    recognize!(do_parse!(sign >> digit >> ()))
+);
+
+named!(
+    integer_literal16,
+    recognize!(do_parse!(sign >> hex_digit >> ()))
+);
+
+named!(
+    integer2<i64>,
     map_res!(
-        map_res!(
-            digit,
-            ::std::str::from_utf8
+        map_res!(integer_literal2, from_utf8),
+        |s| i64::from_str_radix(s, 2)
+    )
+);
+
+named!(
+    integer8<i64>,
+    map_res!(
+        map_res!(integer_literal8, from_utf8),
+        |s| i64::from_str_radix(s, 8)
+    )
+);
+
+named!(
+    integer10<i64>,
+    map_res!(
+        map_res!(integer_literal10, from_utf8),
+        |s| i64::from_str_radix(s, 10)
+    )
+);
+
+named!(
+    integer16<i64>,
+    map_res!(
+        map_res!(integer_literal16, from_utf8),
+        |s| i64::from_str_radix(s, 16)
+    )
+);
+
+named!(
+    integer<i64>,
+    alt!(
+        preceded!(tag!("#b"), integer2) |
+        preceded!(tag!("#o"), integer8) |
+        preceded!(opt!(tag!("#d")), integer10) |
+        preceded!(tag!("#x"), integer16)
+    )
+);
+
+named!(
+    boolean<bool>,
+    alt!(
+        tag!("#t") => { |_| true } |
+        tag!("#f") => { |_| false }
+    )
+);
+
+named!(
+    character<char>,
+    preceded!(
+        tag!("#\\"),
+        alt_complete!(
+            tag!("space") => { |_| ' ' } |
+            tag!("newline") => { |_| '\n' } |
+            anychar
+        )
+    )
+);
+
+named!(string<String>,
+    delimited!(tag!("\""), string_content, tag!("\""))
+);
+
+fn to_s(i: Vec<u8>) -> String {
+  String::from_utf8_lossy(&i).into_owned()
+}
+
+named!(comment,
+    // preceded!(tag!(";"), nom::not_line_ending)
+    do_parse!(
+        tag!(";") >>
+        not_line_ending >>
+        alt!(eof!() | eol) >>
+        (&b""[..])
+    )
+);
+
+// TODO: BLOG: We need to use whitespace before this
+// named!(atmosphere, alt!(comment | tag!(" \n") | eof!()));
+// named!(intertoken_space, recognize!(many0!(atmosphere)));
+
+named!(
+    intertoken_space,
+    recognize!(
+        do_parse!(
+            many0!(multispace) >>
+            many0!(comment) >>
+            ()
+        )
+    )
+);
+
+
+named!(
+    string_content<String>,
+    map!(
+        escaped_transform!(
+            take_until_either!("\"\\"),
+            '\\',
+            alt!(
+                tag!("\\") => { |_| &b"\\"[..] } |
+                tag!("\"") => { |_| &b"\""[..] } |
+                tag!("n") => { |_| &b"\n"[..] } |
+                tag!("r") => { |_| &b"\r"[..] } |
+                tag!("t") => { |_| &b"\t"[..] }
+            )
         ),
-        (FromStr::from_str)
+        to_s
     )
 );
 
-named!(list<&[u8], Vec<Value>>,
+named!(letter<char>, one_of!("abcdefghijklmnopqrstuvwxyz"));
+named!(single_digit<char>, one_of!("0123456789"));
+named!(special_initial<char>, one_of!("!$%&*/:<=>?^_~"));
+named!(special_subsequent<char>, one_of!("+-.@"));
+
+named!(initial<char>, alt!(letter | special_initial));
+named!(subsequent<char>, alt!(initial | single_digit | special_subsequent));
+
+named!(
+    common_identifier,
+    recognize!(
+        do_parse!(initial >> many0!(subsequent) >> ())
+    )
+);
+
+named!(peculiar_identifier, alt!(tag!("+") | tag!("-") | tag!("...")));
+
+named!(
+    identifier<String>,
+    map!(
+        alt!(peculiar_identifier | common_identifier),
+        |s| String::from_utf8_lossy(s).into_owned()
+    )
+);
+
+named!(
+    lbracket,
+    delimited!(intertoken_space, tag!("("), intertoken_space)
+);
+
+named!(
+    hashlbracket,
+    delimited!(intertoken_space, tag!("#("), intertoken_space)
+);
+
+named!(
+    rbracket,
+    delimited!(intertoken_space, tag!(")"), intertoken_space)
+);
+
+named!(
+    dot,
+    delimited!(intertoken_space, tag!("."), intertoken_space)
+);
+
+named!(
+    quote<Datum>,
+    preceded!(
+        delimited!(intertoken_space, tag!("'"), intertoken_space),
+        datum
+    )
+);
+named!(
+    quasiquote<Datum>,
+    preceded!(
+        delimited!(intertoken_space, tag!("`"), intertoken_space),
+        datum
+    )
+);
+named!(
+    unquote<Datum>,
+    preceded!(
+        delimited!(intertoken_space, tag!(","), intertoken_space),
+        datum
+    )
+);
+named!(
+    unquote_splicing<Datum>,
+    preceded!(
+        delimited!(intertoken_space, tag!(",@"), intertoken_space),
+        datum
+    )
+);
+
+named!(
+    list<Vec<Datum>>,
     do_parse!(
-        tag!("(") >>
-        elements: ws!(many0!(value)) >>
-        tag!(")") >>
-        (elements)
+        lbracket >>
+        datums: many0!(datum) >>
+        rbracket >>
+        (datums)
     )
 );
 
-named!(boolean<&[u8], bool>,
-    alt!(
-        map!(tag!("true"), |_| true) |
-        map!(tag!("false"), |_| false)
+named!(
+    dotted_list<(Vec<Datum>, Datum)>,
+    do_parse!(
+        lbracket >>
+        datums: many1!(datum) >>
+        dot >>
+        datum: datum >>
+        rbracket >>
+        (datums, datum)
     )
 );
 
-// named!(string<&[u8], String>,
-//     do_parse!(
-//         tag!("\"") >>
-//         body: alphanumeric >>
-//         tag!("\"") >>
-//         (String::from_utf8(body.to_vec()).unwrap())
-//     )
-// );
+named!(
+    vector<Vec<Datum>>,
+    do_parse!(
+        hashlbracket >>
+        datums: many0!(datum) >>
+        rbracket >>
+        (datums)
+    )
+);
 
-named!(not_escaped_seq<&[u8], &[u8]>, take_until_either!(&b"\\\""[..]));
-named!(escaped_seq, alt!(tag!("\\r") | tag!("\\n") | tag!("\\t") | tag!("\\\"") | tag!("\\\\")));
-named!(string<&[u8], String>,
-       do_parse!(
-           tag!("\"") >>
-           s: many0!(map_res!(alt!(escaped_seq | not_escaped_seq), from_utf8)) >>
-           tag!("\"") >>
-           ({
-               str_lit(&s.into_iter().fold(String::new(),
-               |mut accum, slice| {
-                   accum.push_str(slice);
-                   accum
-               })[..])
-           })
-       )
-  );
+fn make_symbol(sym: &str) -> Datum {
+    Datum::Symbol(String::from(sym))
+}
 
-// TODO: `char_lit` and `str_lit` were taken from
-// https://github.com/rust-lang/rust/blob/master/src/libsyntax/parse/mod.rs,
-//
-// In one of the next versions, they might be accessible publicly
+named!(
+    datum<Datum>,
+    delimited!(
+        intertoken_space,
+        alt!(
+            boolean     => { |b| Datum::Bool(b) } |
+            integer     => { |n| Datum::Number(n) } |
+            character   => { |c| Datum::Character(c) } |
+            string      => { |s| Datum::Str(s) } |
+            identifier  => { |s| Datum::Symbol(s) } |
+            list        => { |ds| Datum::List(ds) } |
+            dotted_list => { |(ds, d)| Datum::DottedList(ds, Box::new(d)) } |
+            vector      => { |ds| Datum::Vector(ds) } |
+            quote       => { |q| Datum::List(vec!(make_symbol("quote"), q)) } |
+            quasiquote  => { |q| Datum::List(vec!(make_symbol("quasiquote"), q)) } |
+            unquote     => { |q| Datum::List(vec!(make_symbol("unquote"), q)) } |
+            unquote_splicing => { |q| Datum::List(vec!(make_symbol("unquote-splicing"), q)) }
+        ),
+        intertoken_space
+    )
+);
 
-/// Parse a string representing a character literal into its final form.
-/// Rather than just accepting/rejecting a given literal, unescapes it as
-/// well. Can take any slice prefixed by a character escape. Returns the
-/// character and the number of characters consumed.
-pub fn char_lit(lit: &str) -> (char, isize) {
-    use std::char;
+named!(datums<Vec<Datum>>, many0!(datum));
 
-    // Handle non-escaped chars first.
-    if lit.as_bytes()[0] != b'\\' {
-        // If the first byte isn't '\\' it might part of a multi-byte char, so
-        // get the char with chars().
-        let c = lit.chars().next().unwrap();
-        return (c, 1);
-    }
-
-    // Handle escaped chars.
-    match lit.as_bytes()[1] as char {
-        '"' => ('"', 2),
-        'n' => ('\n', 2),
-        'r' => ('\r', 2),
-        't' => ('\t', 2),
-        '\\' => ('\\', 2),
-        '\'' => ('\'', 2),
-        '0' => ('\0', 2),
-        'x' => {
-            let v = u32::from_str_radix(&lit[2..4], 16).unwrap();
-            let c = char::from_u32(v).unwrap();
-            (c, 4)
-        }
-        'u' => {
-            assert_eq!(lit.as_bytes()[2], b'{');
-            let idx = lit.find('}').unwrap();
-            let v = u32::from_str_radix(&lit[3..idx], 16).unwrap();
-            let c = char::from_u32(v).unwrap();
-            (c, (idx + 1) as isize)
-        }
-        _ => panic!("lexer should have rejected a bad character escape {}", lit)
+pub fn parse_program(s: &str) -> Vec<Datum> {
+    match datums(s.as_bytes()) {
+      IResult::Done(_, v) => v,
+      _ => panic!("Failed to parse datum")
     }
 }
 
-/// Parse a string representing a string literal into its final form. Does
-/// unescaping.
-pub fn str_lit(lit: &str) -> String {
-    // debug!("parse_str_lit: given {}", escape_default(lit));
-    let mut res = String::with_capacity(lit.len());
-
-    // FIXME #8372: This could be a for-loop if it didn't borrow the iterator
-    let error = |i| format!("lexer should have rejected {} at {}", lit, i);
-
-    /// Eat everything up to a non-whitespace
-    fn eat<'a>(it: &mut iter::Peekable<str::CharIndices<'a>>) {
-        loop {
-            match it.peek().map(|x| x.1) {
-                Some(' ') | Some('\n') | Some('\r') | Some('\t') => {
-                    it.next();
-                },
-                _ => { break; }
-            }
-        }
+pub fn parse_datum(s: &str) -> Datum {
+    match datum(s.as_bytes()) {
+      IResult::Done(_, v) => v,
+      _ => panic!("Failed to parse datum")
     }
+}
 
-    let mut chars = lit.char_indices().peekable();
-    while let Some((i, c)) = chars.next() {
-        match c {
-            '\\' => {
-                let ch = chars.peek().unwrap_or_else(|| {
-                    panic!("{}", error(i))
-                }).1;
+fn parse(line: &str) {
+    let res = datum(line.as_bytes());
+    println!("Parsed {:#?}", res);
+}
 
-                if ch == '\n' {
-                    eat(&mut chars);
-                } else if ch == '\r' {
-                    chars.next();
-                    let ch = chars.peek().unwrap_or_else(|| {
-                        panic!("{}", error(i))
-                    }).1;
-
-                    if ch != '\n' {
-                        panic!("lexer accepted bare CR");
-                    }
-                    eat(&mut chars);
-                } else {
-                    // otherwise, a normal escape
-                    let (c, n) = char_lit(&lit[i..]);
-                    for _ in 0..n - 1 { // we don't need to move past the first \
-                        chars.next();
-                    }
-                    res.push(c);
-                }
+fn main() {
+    let mut rl = Editor::<()>::new();
+    if let Err(_) = rl.load_history("history.txt") {
+        println!("No previous history.");
+    }
+    loop {
+        let readline = rl.readline(">> ");
+        match readline {
+            Ok(line) => {
+                rl.add_history_entry(&line);
+                parse(&line);
             },
-            '\r' => {
-                let ch = chars.peek().unwrap_or_else(|| {
-                    panic!("{}", error(i))
-                }).1;
-
-                if ch != '\n' {
-                    panic!("lexer accepted bare CR");
-                }
-                chars.next();
-                res.push('\n');
+            Err(ReadlineError::Interrupted) => {
+                println!("CTRL-C");
+                break
+            },
+            Err(ReadlineError::Eof) => {
+                println!("CTRL-D");
+                break
+            },
+            Err(err) => {
+                println!("Error: {:?}", err);
+                break
             }
-            c => res.push(c),
         }
     }
-
-    res.shrink_to_fit(); // probably not going to do anything, unless there was an escape.
-    // debug!("parse_str_lit: returning {}", res);
-    res
+    rl.save_history("history.txt").unwrap();
 }
 
-named!(quote<&[u8], Vec<Value>>,
-    do_parse!(
-        tag!("'") >>
-        value: value >>
-        (vec![Value::Atom(String::from("quote")), value])
-    )
-);
-
-named!(value<&[u8], Value>,
-    alt!(
-      map!(ws!(boolean), |x| Value::Bool(x)) |
-      map!(ws!(list), |x| Value::List(x)) |
-      map!(ws!(number), |x| Value::Number(x)) |
-      map!(ws!(tag!("'()")), |x| Value::Nil) |
-      map!(ws!(string), |x| Value::Str(x)) |
-      map!(ws!(identifier), |x| Value::Atom(x)) |
-      map!(ws!(quote), |x| Value::List(x))
-    )
-);
-
-named!(program<&[u8], Vec<Value>>,
-    do_parse!(
-        elements: ws!(many0!(value)) >>
-        (elements)
-    )
-);
-
-pub fn parse_program(s: &str) -> Vec<Value> {
-    match program(s.as_bytes()) {
-      IResult::Done(_, v) => v,
-      _ => panic!("Failed to parse value")
-    }
+macro_rules! assert_parsed_fully {
+    ($parser:expr, $input:expr, $result:expr) => {
+        assert_eq!($parser($input.as_bytes()), nom::IResult::Done(&b""[..], $result));
+    } 
 }
 
-pub fn parse_value(s: &str) -> Value {
-    match value(s.as_bytes()) {
-      IResult::Done(_, v) => v,
-      _ => panic!("Failed to parse value")
-    }
+#[test]
+fn test_boolean() {
+    assert_parsed_fully!(boolean, "#t", true);
+    assert_parsed_fully!(boolean, "#f", false);
+}
+
+#[test]
+fn test_character() {
+    assert_parsed_fully!(character, "#\\space", ' ');
+    assert_parsed_fully!(character, "#\\newline", '\n');
+    assert_parsed_fully!(character, "#\\ ", ' ');
+    assert_parsed_fully!(character, "#\\X", 'X');
+}
+
+#[test]
+fn test_integer() {
+    assert_parsed_fully!(integer, "1", 1);
+    assert_parsed_fully!(integer, "#d+1", 1);
+    assert_parsed_fully!(integer, "-1", -1);
+    assert_parsed_fully!(integer, "#b010101", 21);
+    assert_parsed_fully!(integer, "#o77", 63);
+    assert_parsed_fully!(integer, "#xFF", 255);
+    assert_parsed_fully!(integer, "#x-ff", -255);
+}
+
+#[test]
+fn test_token() {
+    assert_parsed_fully!(token, "1", Token::Number(1));
+    assert_parsed_fully!(token, "else", Token::Keyword(SyntacticKeyword::Else));
+    assert_parsed_fully!(token, "lambda", Token::Keyword(
+        SyntacticKeyword::Expression(ExpressionKeyword::Lambda))
+    );
+    assert_parsed_fully!(token, "#\\space", Token::Character(' '));
+    // ...
 }

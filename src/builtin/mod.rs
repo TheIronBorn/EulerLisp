@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use ::Value;
+use ::Datum;
 use ::LispFn;
 use ::LispResult;
 
@@ -17,13 +17,13 @@ mod types;
 // that special forms choose if they want to eval their arguments themselves,
 // builtins are called with evaluated arguments
 
-pub fn register(hm: &mut HashMap<String, Value>, name: &str,
-            f: Rc<Fn(Vec<Value>)->LispResult>) {
-    hm.insert(name.to_string(), Value::Builtin(LispFn(f)));
+pub fn register(hm: &mut HashMap<String, Datum>, name: &str,
+            f: Rc<Fn(Vec<Datum>)->LispResult>) {
+    hm.insert(name.to_string(), Datum::Builtin(LispFn(f)));
 }
 
 
-pub fn load(hm: &mut HashMap<String, Value>) {
+pub fn load(hm: &mut HashMap<String, Datum>) {
     list::load(hm);
     math::load(hm);
     misc::load(hm);

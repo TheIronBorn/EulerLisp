@@ -22,7 +22,7 @@ use std::borrow::Borrow;
 
 use std::rc::Rc;
 
-pub type LispResult = Result<Value, LispErr>;
+pub type LispResult = Result<Datum, LispErr>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LispErr {
@@ -44,7 +44,7 @@ impl fmt::Display for LispErr {
 }
 
 #[derive(Clone)]
-pub struct LispFn(Rc<Fn(Vec<Value>)->LispResult>);
+pub struct LispFn(Rc<Fn(Vec<Datum>)->LispResult>);
 
 impl fmt::Debug for LispFn {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -75,34 +75,50 @@ impl PartialOrd for LispFn {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub enum Promise {
-    Delayed(env::EnvRef, Box<Value>),
-    Result(Box<Value>),
+    Delayed(env::EnvRef, Box<Datum>),
+    Result(Box<Datum>),
 }
 
 // Undefined is used as a response for methods
 // that don't return a value.
 // If a return value is undefined,
 // it will not be printed in the REPL
+// #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
+// pub enum Datum {
+//     Symbol(String),
+//     Bool(bool),
+//     List(Vec<Datum>),
+//     DottedList(Vec<Datum>),
+//     Number(i64),
+//     Str(String),
+//     Lambda(env::EnvRef, Vec<String>, Box<Datum>),
+//     Builtin(LispFn),
+//     Promise(Promise),
+//     Nil,
+//     Undefined,
+// }
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
-pub enum Value {
-    Atom(String),
+pub enum Datum {
     Bool(bool),
-    List(Vec<Value>),
-    DottedList(Vec<Value>),
     Number(i64),
+    Character(char),
     Str(String),
-    // TODO: Find a way to use just Value here
-    Lambda(env::EnvRef, Vec<String>, Box<Value>),
+    Symbol(String),
+    List(Vec<Datum>),
+    DottedList(Vec<Datum>, Box<Datum>),
+    Vector(Vec<Datum>),
+    Lambda(env::EnvRef, Vec<String>, Box<Datum>),
     Builtin(LispFn),
     Promise(Promise),
-    Nil,
     Undefined,
+    Nil, // TODO: Remove this in favor of empty lists
 }
 
-impl Value {
+impl Datum {
     pub fn is_pair(&self) -> bool {
         match *self {
-          DottedList(_) => true,
+          DottedList(_, _) => true,
           List(_) => true,
           _ => false,
         }
@@ -123,13 +139,14 @@ impl Value {
     }
 }
 
-use Value::*;
+use Datum::*;
 
-impl fmt::Display for Value {
+impl fmt::Display for Datum {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Atom(ref x) => write!(f, "{}", x),
+            Symbol(ref x) => write!(f, "{}", x),
             Bool(x) => write!(f, "{}", x),
+            Character(c) => write!(f, "#\\{}", c),
             List(ref elems) => {
                 let mut result = String::new();
                 result.push_str("(");
@@ -142,16 +159,24 @@ impl fmt::Display for Value {
                 result.push_str(")");
                 write!(f, "{}", result)
             },
-            DottedList(ref elems) => {
+            DottedList(ref elems, ref tail) => {
                 let mut result = String::new();
                 result.push_str("(");
+                for e in elems.iter() {
+                    result.push_str(" ");
+                    result.push_str(&e.to_string());
+                }
+                result.push_str(" . ");
+                result.push_str(&tail.to_string());
+                result.push_str(")");
+                write!(f, "{}", result)
+            },
+            Vector(ref elems) => {
+                let mut result = String::new();
+                result.push_str("#(");
                 for (i, e) in elems.iter().enumerate() {
                     if i != 0 {
-                        if i < (elems.len() - 1) {
-                            result.push_str(" ");
-                        } else {
-                            result.push_str(" . ");
-                        }
+                        result.push_str(" ");
                     }
                     result.push_str(&e.to_string());
                 }
