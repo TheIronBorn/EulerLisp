@@ -3,12 +3,14 @@ use ::LispFn;
 use ::LispResult;
 use ::LispErr;
 use ::Promise;
+use ::LambdaType;
 use ::LispErr::*;
 
 use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::collections::HashMap;
+
 
 use time;
 
@@ -120,21 +122,41 @@ impl Evaluator {
         check_arity!(args, 2);
 
         let mut params: Vec<String> = Vec::new();
+        let mut lambda_type: LambdaType;
 
-        if let Datum::List(ref elems) = args[0] {
-            for a in elems {
-                if let Datum::Symbol(ref v) = *a {
-                    params.push(v.clone())
-                } else {
-                    return Err(InvalidTypeOfArguments);
+        match args[0] {
+            Datum::Symbol(ref name) => {
+                params.push(name.clone());
+                lambda_type = LambdaType::Var;
+            },
+            Datum::List(ref elems) => {
+                for a in elems {
+                    if let Datum::Symbol(ref v) = *a {
+                        params.push(v.clone());
+                    } else {
+                        return Err(InvalidTypeOfArguments);
+                    }
+                };
+                lambda_type = LambdaType::List;
+            },
+            Datum::DottedList(ref elems, ref tail) => {
+                for a in elems {
+                    if let Datum::Symbol(ref v) = *a {
+                        params.push(v.clone());
+                    } else {
+                        return Err(InvalidTypeOfArguments);
+                    }
                 }
-            }
-        } else {
-            return Err(InvalidTypeOfArguments)
+                if let Datum::Symbol(ref v) = **tail {
+                    params.push(v.clone());
+                }
+                lambda_type = LambdaType::DottedList;
+            },
+            _ => return Err(InvalidTypeOfArguments),
         }
 
         let body = args[1].clone();
-        Ok(TCOWrapper::Return(Datum::Lambda(env_ref, params, Box::new(body))))
+        Ok(TCOWrapper::Return(Datum::Lambda(env_ref, params, Box::new(body), lambda_type)))
     }
 
     pub fn sf_if(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
@@ -307,22 +329,42 @@ impl Evaluator {
         }
     }
 
+    // TODO: Refactor out usage of unwrap()
     pub fn apply(&mut self, f: Datum, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        // println!("Applying {:?} to {:?}", args, f);
         match f {
-            Datum::Lambda(env, params, body) => {
+            Datum::Lambda(env, params, body, lambda_type) => {
                 let child_env = self.make_env(Some(env));
-                if params.len() != args.len() {
-                    return Err(InvalidNumberOfArguments);
-                } else {
-                    for (p, a) in params.iter().zip(args.iter()) {
-                        // TODO: Refactor temp unwrap
-                        // let value = self.eval(&a, env_ref)?;
-                        let value = self.eval(&a, env_ref).unwrap();
-                        self.envs.define_into(child_env, p, value);
+
+                match lambda_type {
+                    LambdaType::Var => {
+                        let evaled_args = args.iter().map(|a| self.eval(&a, env_ref).unwrap()).collect();
+                        self.envs.define_into(child_env, &params[0], Datum::List(evaled_args));
+                    },
+                    LambdaType::List => {
+                        if args.len() != params.len() {
+                            return Err(InvalidNumberOfArguments);
+                        } else {
+                            for (p, a) in params.iter().zip(args.iter()) {
+                                let value = self.eval(&a, env_ref).unwrap();
+                                self.envs.define_into(child_env, p, value);
+                            }
+                        }
+                    },
+                    LambdaType::DottedList => {
+                        // The last param can be a list of 0... args
+                        if args.len() < (params.len() - 1) {
+                            return Err(InvalidNumberOfArguments);
+                        } else {
+                            for (p, a) in params[0..(params.len() - 1)].iter().zip(args.iter()) {
+                                let value = self.eval(&a, env_ref).unwrap();
+                                self.envs.define_into(child_env, p, value);
+                            }
+                            let evaled_args = args[(params.len() - 1)..].iter().map(|a| self.eval(&a, env_ref).unwrap()).collect();
+                            self.envs.define_into(child_env, &params[params.len() - 1], Datum::List(evaled_args));
+                        }
                     }
                 }
-                // Return(self.eval(&body, child_env))
+
                 Ok(TCOWrapper::TailCall((*body).clone(), child_env))
             },
             Datum::Builtin(LispFn(fun)) => {

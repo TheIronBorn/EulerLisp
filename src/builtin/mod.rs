@@ -12,6 +12,7 @@ mod math;
 mod misc;
 mod pair;
 mod types;
+mod comparison;
 
 // The difference between builtins and special forms is
 // that special forms choose if they want to eval their arguments themselves,
@@ -29,4 +30,5 @@ pub fn load(hm: &mut HashMap<String, Datum>) {
     misc::load(hm);
     pair::load(hm);
     types::load(hm);
+    comparison::load(hm);
 }

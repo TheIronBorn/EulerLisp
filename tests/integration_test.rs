@@ -1,7 +1,7 @@
 extern crate lisp;
 
 use lisp::eval::Evaluator;
-use lisp::Value::*;
+use lisp::Datum::*;
 
 #[test]
 fn definitions() {
@@ -67,11 +67,11 @@ fn recursion_test() {
 fn test_set_in_parent_env() {
     let mut ev = Evaluator::new();
     ev.eval_str("(def a 1)", 0);
-    ev.eval_str("(defn inc () (set! a (+ a 1)))", 0);
+    ev.eval_str("(defn inc_a () (set! a (inc a)))", 0);
     assert_eq!(ev.eval_str("a", 0), Ok(Number(1)));
-    ev.eval_str("(inc)", 0);
+    ev.eval_str("(inc_a)", 0);
     assert_eq!(ev.eval_str("a", 0), Ok(Number(2)));
-    ev.eval_str("(inc)", 0);
+    ev.eval_str("(inc_a)", 0);
     assert_eq!(ev.eval_str("a", 0), Ok(Number(3)));
 }
 
@@ -94,5 +94,28 @@ fn test_delay_force_env() {
     assert_eq!(
         ev.eval_str("(force (wrap 1))", 0),
         Ok(Number(1))
+    );
+}
+
+#[test]
+fn test_variadic_fn() {
+    let mut ev = Evaluator::new();
+
+    ev.eval_str("(defn arg-len args (length args))", 0);
+    assert_eq!(
+        ev.eval_str("(arg-len 1 2 3)", 0),
+        Ok(Number(3))
+    );
+
+    ev.eval_str("(defn arg-fst (a . as) a)", 0);
+    assert_eq!(
+        ev.eval_str("(arg-fst 1 2 3)", 0),
+        Ok(Number(1))
+    );
+
+    ev.eval_str("(defn arg-rst (a . as) as)", 0);
+    assert_eq!(
+        ev.eval_str("(arg-rst 1 2 3)", 0),
+        Ok(List(vec!(Number(2), Number(3))))
     );
 }

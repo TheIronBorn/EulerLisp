@@ -99,6 +99,13 @@ pub enum Promise {
 // }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
+pub enum LambdaType {
+    Var,
+    List,
+    DottedList,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub enum Datum {
     Bool(bool),
     Number(i64),
@@ -108,7 +115,7 @@ pub enum Datum {
     List(Vec<Datum>),
     DottedList(Vec<Datum>, Box<Datum>),
     Vector(Vec<Datum>),
-    Lambda(env::EnvRef, Vec<String>, Box<Datum>),
+    Lambda(env::EnvRef, Vec<String>, Box<Datum>, LambdaType),
     Builtin(LispFn),
     Promise(Promise),
     Undefined,
@@ -187,7 +194,7 @@ impl fmt::Display for Datum {
             Str(ref s) => write!(f, "\"{}\"", s),
             Nil => write!(f, "'()"),
             Undefined => write!(f, "undefined"),
-            Lambda(_, _, _) => write!(f, "<lambda>"),
+            Lambda(_, _, _, _) => write!(f, "<lambda>"),
             Builtin(_) => write!(f, "<builtin>"),
             Promise(Promise::Delayed(_, _)) => write!(f, "promise(?)"),
             Promise(Promise::Result(ref r)) => write!(f, "promise({})", r),
