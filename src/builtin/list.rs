@@ -7,6 +7,14 @@ use ::LispErr::*;
 use ::builtin::register;
 
 pub fn load(hm: &mut HashMap<String, Datum>) {
+    register(hm, "list", Rc::new(|vs| {
+        if vs.len() == 0 {
+            Ok(Datum::Nil)
+        } else {
+            Ok(Datum::List(vs))
+        }
+    }));
+
     register(hm, "length", Rc::new(|vs| {
         check_arity!(vs, 1);
         match vs[0] {

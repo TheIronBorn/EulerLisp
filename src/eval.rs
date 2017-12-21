@@ -4,7 +4,10 @@ use ::LispResult;
 use ::LispErr;
 use ::Promise;
 use ::LambdaType;
+use ::Expression;
+use ::Condition;
 use ::LispErr::*;
+use symbol_table::SymbolTable;
 
 use std::fs;
 use std::fs::File;
@@ -17,32 +20,32 @@ use env::*;
 use parser;
 use desugar;
 use builtin;
+use preprocess;
 
 use macros;
 
 pub struct Evaluator {
     envs: EnvArena,
-    level: i64
+    level: i64,
+    symbol_table: SymbolTable
 }
 
 pub type TCOResult = Result<TCOWrapper, LispErr>;
 pub enum TCOWrapper {
     Return(Datum),
-    TailCall(Datum, EnvRef),
+    TailCall(Expression, EnvRef),
 }
 
 impl Evaluator {
     pub fn new() -> Self {
         let mut ev = Evaluator {
-            // symbol_table: SymbolTable::new(),
+            symbol_table: SymbolTable::new(),
             envs: EnvArena::new(),
             level: 0,
         };
-
         ev.make_root_env();
 
         let paths = fs::read_dir("./stdlib").unwrap();
-
         for path in paths {
             let path_str = path.unwrap().path().display().to_string();
             println!("Loading {}", path_str);
@@ -55,210 +58,75 @@ impl Evaluator {
     pub fn make_root_env(&mut self) -> EnvRef {
         let mut hm: HashMap<String, Datum> = HashMap::new(); 
         builtin::load(&mut hm);
-        self.envs.add_env(hm)
+        self.envs.add_env(hm, &mut self.symbol_table)
     }
 
     pub fn make_env(&mut self, parent: Option<EnvRef>) -> EnvRef {
         self.envs.make_env(parent)
     }
 
-    // If the key is already set in the current env,
-    // throw an error,
-    // otherwise define it
-    pub fn sf_def(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        check_arity!(args, 2);
-
-        if let Datum::Symbol(ref a) = args[0] {
-            let value = self.eval(&args[1], env_ref)?;
-            if self.envs.define_into(env_ref, a, value) {
-                Ok(TCOWrapper::Return(Datum::Undefined))
+    pub fn sf_cond(&mut self, conditions: Vec<Condition>, else_case: Expression, env_ref: EnvRef) -> TCOResult {
+        for condition in conditions.into_iter() {
+            let Condition(cond, cons) = condition;
+            let res = self.eval(*cond, env_ref)?;
+            if res == Datum::Bool(true) {
+                return Ok(TCOWrapper::TailCall(*cons, env_ref));
             } else {
-                Err(DefinitionAlreadyDefined)
-            }
-        } else {
-            Err(InvalidTypeOfArguments)
-        }
-    }
-
-    // Walk up the env tree until key is set,
-    // then change its value
-    pub fn sf_set(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        check_arity!(args, 2);
-
-        if let Datum::Symbol(ref a) = args[0] {
-            let value = self.eval(&args[1], env_ref)?;
-            if self.envs.set_into(env_ref, a, value) {
-                Ok(TCOWrapper::Return(Datum::Undefined))
-            } else {
-                Err(DefinitionNotFound)
-            }
-        } else {
-            Err(InvalidTypeOfArguments)
-        }
-    }
-
-    pub fn sf_quote(&mut self, args: &[Datum], _: EnvRef) -> TCOResult {
-        check_arity!(args, 1);
-
-        match args[0] {
-            ref other => Ok(TCOWrapper::Return(other.clone()))
-        }
-    }
-
-    pub fn sf_list(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        if args.len() == 0 {
-            Ok(TCOWrapper::Return(Datum::Nil))
-        } else {
-            let vals: Result<Vec<Datum>, _> =
-                args.iter().map(|v| self.eval(v, env_ref)).collect();
-            Ok(TCOWrapper::Return(Datum::List(vals?)))
-        }
-    }
-
-    pub fn sf_lambda(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        check_arity!(args, 2);
-
-        let mut params: Vec<String> = Vec::new();
-        let mut lambda_type: LambdaType;
-
-        match args[0] {
-            Datum::Symbol(ref name) => {
-                params.push(name.clone());
-                lambda_type = LambdaType::Var;
-            },
-            Datum::List(ref elems) => {
-                for a in elems {
-                    if let Datum::Symbol(ref v) = *a {
-                        params.push(v.clone());
-                    } else {
-                        return Err(InvalidTypeOfArguments);
-                    }
-                };
-                lambda_type = LambdaType::List;
-            },
-            Datum::DottedList(ref elems, ref tail) => {
-                for a in elems {
-                    if let Datum::Symbol(ref v) = *a {
-                        params.push(v.clone());
-                    } else {
-                        return Err(InvalidTypeOfArguments);
-                    }
-                }
-                if let Datum::Symbol(ref v) = **tail {
-                    params.push(v.clone());
-                }
-                lambda_type = LambdaType::DottedList;
-            },
-            _ => return Err(InvalidTypeOfArguments),
-        }
-
-        let body = args[1].clone();
-        Ok(TCOWrapper::Return(Datum::Lambda(env_ref, params, Box::new(body), lambda_type)))
-    }
-
-    pub fn sf_if(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        if !(args.len() == 2 || args.len() == 3) {
-            return Err(InvalidNumberOfArguments);
-        }
-
-        let cond = args.get(0).unwrap();
-        let cons = args.get(1).unwrap();
-
-        let default_alt = Datum::Nil;
-        let alt = args.get(2).unwrap_or(&default_alt);
-
-        match self.eval(&cond, env_ref)? {
-            Datum::Bool(true) => Ok(TCOWrapper::TailCall(cons.clone(), env_ref)),
-            Datum::Bool(false) => Ok(TCOWrapper::TailCall(alt.clone(), env_ref)),
-            _ => Err(InvalidTypeOfArguments)
-        }
-    }
-
-    pub fn sf_cond(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        for arg in args.iter() {
-            if let Datum::List(ref elems) = *arg {
-                if elems.len() != 2 {
-                    return Err(InvalidTypeOfArguments);
-                }
-
-                let cond = elems.get(0).unwrap();
-                let cons = elems.get(1).unwrap();
-
-                // TODO this does not check if "else" comes last
-                if *cond == Datum::Symbol("else".to_string()) {
-                    return Ok(TCOWrapper::TailCall(cons.clone(), env_ref));
-                } else {
-                    let res = self.eval(cond, env_ref)?;
-                    if res == Datum::Bool(true) {
-                        return Ok(TCOWrapper::TailCall(cons.clone(), env_ref));
-                    } else {
-                        continue
-                    }
-                }
-            } else {
-                return Err(InvalidTypeOfArguments);
+                continue
             }
         }
 
-        Ok(TCOWrapper::Return(Datum::Nil))
+        Ok(TCOWrapper::Return(self.eval(else_case, env_ref)?))
     }
 
-    pub fn sf_benchmark(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        check_arity!(args, 2);
+    // pub fn sf_benchmark(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+    //     check_arity!(args, 2);
 
-        if let Datum::Number(iterations) = self.eval(&args[0], env_ref)? {
-            let mut res = Datum::Nil;
-            let start = time::now();
+    //     if let Datum::Number(iterations) = self.eval(&args[0], env_ref)? {
+    //         let mut res = Datum::Nil;
+    //         let start = time::now();
 
-            for _ in 0..iterations {
-                res = self.eval(&args[1], env_ref)?;
-            }
+    //         for _ in 0..iterations {
+    //             res = self.eval(&args[1], env_ref)?;
+    //         }
 
-            println!("Benchmark Result: {}", time::now() - start);
-            Ok(TCOWrapper::Return(res))
-        } else {
-            Err(InvalidNumberOfArguments)
-        }
-    }
+    //         println!("Benchmark Result: {}", time::now() - start);
+    //         Ok(TCOWrapper::Return(res))
+    //     } else {
+    //         Err(InvalidNumberOfArguments)
+    //     }
+    // }
 
-    pub fn sf_info(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        check_arity!(args, 0);
+    // pub fn sf_info(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+    //     check_arity!(args, 0);
 
 
-        println!("Environments: {}", self.envs.size());
-        println!("Symbols: {}", self.envs.symbol_table.index);
-        println!("Level: {}", self.level);
-        Ok(TCOWrapper::Return(Datum::Nil))
-    }
+    //     println!("Environments: {}", self.envs.size());
+    //     println!("Symbols: {}", self.envs.symbol_table.index);
+    //     println!("Level: {}", self.level);
+    //     Ok(TCOWrapper::Return(Datum::Nil))
+    // }
 
-    pub fn sf_begin(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        for i in 0..(args.len() - 1) {
-            self.eval(&args[i], env_ref)?;
-        }
 
-        Ok(TCOWrapper::TailCall(args[args.len() - 1].clone(), env_ref))
-    }
-
-    pub fn sf_and(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        for a in args[0..(args.len() - 1)].iter() {
+    pub fn sf_and(&mut self, es: Vec<Expression>, last: Expression, env_ref: EnvRef) -> TCOResult {
+        for a in es.into_iter() {
             match self.eval(a, env_ref)? {
-                Datum::Bool(b) => {
-                    if b == false {
+                Datum::Bool(v) => {
+                    if v == false {
                         return Ok(TCOWrapper::Return(Datum::Bool(false)))
                     }
                 },
                 _ => (),
             }
         }
-
-        return Ok(TCOWrapper::TailCall(args[args.len()-1].clone(), env_ref))
+        return Ok(TCOWrapper::TailCall(last, env_ref))
     }
 
-    pub fn sf_or(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        for a in args[0..(args.len() - 1)].iter() {
+    pub fn sf_or(&mut self, es: Vec<Expression>, last: Expression, env_ref: EnvRef) -> TCOResult {
+        for a in es.into_iter() {
             match self.eval(a, env_ref)? {
-                Datum::Bool(b) => {
-                    if b == true {
+                Datum::Bool(v) => {
+                    if v == true {
                         return Ok(TCOWrapper::Return(Datum::Bool(true)));
                     }
                 },
@@ -268,105 +136,102 @@ impl Evaluator {
             }
         }
 
-        return Ok(TCOWrapper::TailCall(args[args.len()-1].clone(), env_ref))
+        return Ok(TCOWrapper::TailCall(last, env_ref))
     }
 
-    fn sf_read(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        check_arity!(args, 1);
+    // fn sf_read(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+    //     check_arity!(args, 1);
 
-        if let Datum::Str(ref input) = self.eval(&args[0], env_ref)? {
-            Ok(TCOWrapper::Return(parser::parse_datum(input)))
-        } else {
-            Err(InvalidTypeOfArguments)
-        }
-    }
+    //     if let Datum::Str(ref input) = self.eval(&args[0], env_ref)? {
+    //         Ok(TCOWrapper::Return(parser::parse_datum(input)))
+    //     } else {
+    //         Err(InvalidTypeOfArguments)
+    //     }
+    // }
 
-    fn sf_eval(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        check_arity!(args, 1);
+    // fn sf_eval(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+    //     check_arity!(args, 1);
 
-        let value = self.eval(&args[0], env_ref)?;
-        Ok(TCOWrapper::Return(self.eval(&value, env_ref)?))
-    }
+    //     let value = self.eval(&args[0], env_ref)?;
+    //     Ok(TCOWrapper::Return(self.eval(&value, env_ref)?))
+    // }
 
-    fn sf_load(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        check_arity!(args, 1);
+    // fn sf_load(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+    //     check_arity!(args, 1);
 
-        if let Datum::Str(ref path) = self.eval(&args[0], env_ref)? {
-            Ok(TCOWrapper::Return(self.eval_file(path, env_ref)?))
-        } else {
-            Err(InvalidTypeOfArguments)
-        }
-    }
+    //     if let Datum::Str(ref path) = self.eval(&args[0], env_ref)? {
+    //         Ok(TCOWrapper::Return(self.eval_file(path, env_ref)?))
+    //     } else {
+    //         Err(InvalidTypeOfArguments)
+    //     }
+    // }
 
-    fn sf_delay(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        check_arity!(args, 1);
-        Ok(TCOWrapper::Return(Datum::Promise(Promise::Delayed(env_ref, Box::new(args[0].clone())))))
-    }
+    // fn sf_delay(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+    //     check_arity!(args, 1);
+    //     Ok(TCOWrapper::Return(Datum::Promise(Promise::Delayed(env_ref, Box::new(args[0].clone())))))
+    // }
 
-    fn sf_force(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-        check_arity!(args, 1);
+    // fn sf_force(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+    //     check_arity!(args, 1);
 
-        match args[0] {
-            Datum::Symbol(ref name) => {
-                let val = self.envs.get(env_ref, name).clone();
-                match val {
-                    Datum::Promise(ref p) => {
-                        let res = self.force_promise(p, env_ref)?;
-                        let new = Datum::Promise(Promise::Result(Box::new(res.clone())));
-                        self.envs.set_into(env_ref, name, new);
-                        Ok(TCOWrapper::Return(res))
-                    },
-                    ref other => Ok(TCOWrapper::Return(self.eval(other, env_ref)?)),
-                }
-            },
-            ref other => {
-                match self.eval(other, env_ref)? {
-                    Datum::Promise(ref p) => Ok(TCOWrapper::Return(self.force_promise(p, env_ref)?)),
-                    ref other_ => Ok(TCOWrapper::Return(other_.clone())),
-                }
-            }
-        }
-    }
+    //     match args[0] {
+    //         Datum::Symbol(ref name) => {
+    //             let val = self.envs.get(env_ref, name).clone();
+    //             match val {
+    //                 Datum::Promise(ref p) => {
+    //                     let res = self.force_promise(p, env_ref)?;
+    //                     let new = Datum::Promise(Promise::Result(Box::new(res.clone())));
+    //                     self.envs.set_into(env_ref, name, new);
+    //                     Ok(TCOWrapper::Return(res))
+    //                 },
+    //                 ref other => Ok(TCOWrapper::Return(self.eval(other, env_ref)?)),
+    //             }
+    //         },
+    //         ref other => {
+    //             match self.eval(other, env_ref)? {
+    //                 Datum::Promise(ref p) => Ok(TCOWrapper::Return(self.force_promise(p, env_ref)?)),
+    //                 ref other_ => Ok(TCOWrapper::Return(other_.clone())),
+    //             }
+    //         }
+    //     }
+    // }
 
-    fn force_promise(&mut self, p: &Promise, env_ref: EnvRef) -> LispResult {
-        match *p {
-            Promise::Result(ref r) => Ok(*r.clone()),
-            Promise::Delayed(env_ref_, ref r) => self.eval(&(*r.clone()), env_ref_),
-        }
-    }
+    // fn force_promise(&mut self, p: &Promise, env_ref: EnvRef) -> LispResult {
+    //     match *p {
+    //         Promise::Result(ref r) => Ok(*r.clone()),
+    //         Promise::Delayed(env_ref_, ref r) => self.eval(&(*r.clone()), env_ref_),
+    //     }
+    // }
 
     // TODO: Refactor out usage of unwrap()
-    pub fn apply(&mut self, f: Datum, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+    pub fn apply(&mut self, f: Datum, evaled_args: Vec<Datum>) -> TCOResult {
         match f {
             Datum::Lambda(env, params, body, lambda_type) => {
                 let child_env = self.make_env(Some(env));
 
                 match lambda_type {
                     LambdaType::Var => {
-                        let evaled_args = args.iter().map(|a| self.eval(&a, env_ref).unwrap()).collect();
-                        self.envs.define_into(child_env, &params[0], Datum::List(evaled_args));
+                        self.envs.define_into_sym(child_env, params[0].clone(), Datum::List(evaled_args));
                     },
                     LambdaType::List => {
-                        if args.len() != params.len() {
+                        if evaled_args.len() != params.len() {
                             return Err(InvalidNumberOfArguments);
                         } else {
-                            for (p, a) in params.iter().zip(args.iter()) {
-                                let value = self.eval(&a, env_ref).unwrap();
-                                self.envs.define_into(child_env, p, value);
+                            for (p, a) in params.iter().zip(evaled_args.iter()) {
+                                self.envs.define_into_sym(child_env, p.clone(), a.clone());
                             }
                         }
                     },
                     LambdaType::DottedList => {
                         // The last param can be a list of 0... args
-                        if args.len() < (params.len() - 1) {
+                        if evaled_args.len() < (params.len() - 1) {
                             return Err(InvalidNumberOfArguments);
                         } else {
-                            for (p, a) in params[0..(params.len() - 1)].iter().zip(args.iter()) {
-                                let value = self.eval(&a, env_ref).unwrap();
-                                self.envs.define_into(child_env, p, value);
+                            for (p, value) in params[0..(params.len() - 1)].iter().zip(evaled_args.clone()) {
+                                self.envs.define_into_sym(child_env, p.clone(), value);
                             }
-                            let evaled_args = args[(params.len() - 1)..].iter().map(|a| self.eval(&a, env_ref).unwrap()).collect();
-                            self.envs.define_into(child_env, &params[params.len() - 1], Datum::List(evaled_args));
+                            let rest: Vec<Datum> = evaled_args.iter().skip(params.len() - 1).cloned().collect();
+                            self.envs.define_into_sym(child_env, params[params.len() - 1].clone(), Datum::List(evaled_args));
                         }
                     }
                 }
@@ -374,9 +239,7 @@ impl Evaluator {
                 Ok(TCOWrapper::TailCall((*body).clone(), child_env))
             },
             Datum::Builtin(LispFn(fun)) => {
-                let vals: Result<Vec<Datum>, _> =
-                    args.iter().map(|v| self.eval(v, env_ref)).collect();
-                Ok(TCOWrapper::Return(fun(vals?)?))
+                Ok(TCOWrapper::Return(fun(evaled_args)?))
             },
             _ => Err(InvalidTypeOfArguments),
         } 
@@ -397,7 +260,9 @@ impl Evaluator {
 
         for v in result.iter() {
             let desugared = desugar::desugar(v);
-            match self.eval(&desugared, env_ref) {
+            let preprocessed = preprocess::preprocess(desugared, &mut self.symbol_table)?;
+            println!("Preprocessed: {:?}", &preprocessed);
+            match self.eval(preprocessed, env_ref) {
                 Ok(res) => ret = res,
                 Err(msg) => println!("!! {}", msg)
             }
@@ -406,63 +271,71 @@ impl Evaluator {
         Ok(ret)
     }
 
-    pub fn eval(&mut self, iv: &Datum, ienv_ref: EnvRef) -> LispResult {
+    pub fn eval(&mut self, expr: Expression, ienv_ref: EnvRef) -> LispResult {
         self.level += 1;
-        // println!("Evaling {} on level {}", iv, self.level);
-        let mut ast = Some(iv.clone());
+        // println!("Evaling {:?} on level {}", expr, self.level);
+        let mut maybe_expr = Some(expr);
         let mut env_ref = ienv_ref;
 
-        while let Some(v) = ast {
-            let res = match v {
-                Datum::List(ref elems) => {
-                    if elems.len() == 0 {
-                        return Err(InvalidNumberOfArguments)
-                    }
-
-                    let args = &elems[1..];
-                    match elems[0].clone() {
-                        Datum::Symbol(s) => {
-                            match s.as_ref() {
-                                "def"       => self.sf_def(args, env_ref),
-                                "set!"      => self.sf_set(args, env_ref),
-                                "load"      => self.sf_load(args, env_ref),
-                                "fn"        => self.sf_lambda(args, env_ref),
-                                "if"        => self.sf_if(args, env_ref),
-                                "cond"      => self.sf_cond(args, env_ref),
-                                "do"        => self.sf_begin(args, env_ref),
-                                "or"        => self.sf_or(args, env_ref),
-                                "and"       => self.sf_and(args, env_ref),
-                                "list"      => self.sf_list(args, env_ref),
-                                "quote"     => self.sf_quote(args, env_ref),
-                                "read"      => self.sf_read(args, env_ref),
-                                "eval"      => self.sf_eval(args, env_ref),
-                                "benchmark" => self.sf_benchmark(args, env_ref),
-                                "info"      => self.sf_info(args, env_ref),
-                                "delay"     => self.sf_delay(args, env_ref),
-                                "force"     => self.sf_force(args, env_ref),
-                                "debug-env" => {
-                                    println!("{:?}", self.envs.get_env(env_ref));
-                                    Ok(TCOWrapper::Return(Datum::Undefined))
-                                },
-                                "debug-envref" => {
-                                    println!("{:?}", env_ref);
-                                    Ok(TCOWrapper::Return(Datum::Undefined))
-                                },
-                                other    => {
-                                    // TODO: Find a way to do this with less duplication
-                                    let v = self.envs.get(env_ref, &other.to_string()).clone();
-                                    self.apply(v, args, env_ref)
-                                }
-                            }
-                        },
-                        other => {
-                            let v = self.eval(&other, env_ref)?;
-                            self.apply(v, args, env_ref)
-                        },
+        while let Some(e) = maybe_expr {
+            let res = match e {
+                Expression::If(cond, cons, alt) => {
+                    match self.eval(*cond, env_ref)? {
+                        Datum::Bool(false) => Ok(TCOWrapper::TailCall(*alt, env_ref)),
+                        _ => Ok(TCOWrapper::TailCall(*cons, env_ref)),
                     }
                 },
-                Datum::Symbol(ref v) => Ok(TCOWrapper::Return(self.envs.get(env_ref, &v.to_string()).clone())),
-                ref other => Ok(TCOWrapper::Return(other.clone()))
+                Expression::Do(es, last) => {
+                    for e in es.into_iter() {
+                        self.eval(e, env_ref)?;
+                    }
+                    Ok(TCOWrapper::TailCall(*last, env_ref))
+                },
+                Expression::And(es, last) => self.sf_and(es, *last, env_ref),
+                Expression::Or(es, last) => self.sf_or(es, *last, env_ref),
+                Expression::Conditional(conditions, else_case) => self.sf_cond(conditions, *else_case, env_ref),
+                Expression::Quote(datum) => Ok(TCOWrapper::Return(*datum)),
+                Expression::Definition(name, value) => {
+                    let value = self.eval(*value, env_ref)?;
+                    if self.envs.define_into_sym(env_ref, name, value) {
+                        Ok(TCOWrapper::Return(Datum::Undefined))
+                    } else {
+                        Err(DefinitionAlreadyDefined)
+                    }
+                },
+                Expression::Assignment(name, value) => {
+                    let value = self.eval(*value, env_ref)?;
+                    if self.envs.set_into_sym(env_ref, name, value) {
+                        Ok(TCOWrapper::Return(Datum::Undefined))
+                    } else {
+                        Err(DefinitionNotFound)
+                    }
+                },
+                Expression::Symbol(name) => {
+                    let value = self.envs.get_sym(env_ref, name);
+                    Ok(TCOWrapper::Return(value.clone()))
+                },
+                Expression::Bool(v) => Ok(TCOWrapper::Return(Datum::Bool(v))),
+                Expression::Number(v) => Ok(TCOWrapper::Return(Datum::Number(v))),
+                Expression::Character(v) => Ok(TCOWrapper::Return(Datum::Character(v))),
+                Expression::Str(v) => Ok(TCOWrapper::Return(Datum::Str(v))),
+                Expression::FunctionCall(fun, args) => {
+                    let f = self.eval(*fun, env_ref)?;
+                    let evaled_args = args.into_iter().map(|a| self.eval(a, env_ref).unwrap()).collect();
+                    self.apply(f, evaled_args)
+                },
+                Expression::LambdaDef(args, body, lambda_type) => {
+                    Ok(TCOWrapper::Return(Datum::Lambda(env_ref.clone(), args, body, lambda_type)))
+                }
+                Expression::Lambda(env, args, body, lambda_type) =>
+                    Ok(TCOWrapper::Return(Datum::Lambda(env, args, body, lambda_type))),
+                Expression::Builtin(v) => Ok(TCOWrapper::Return(Datum::Builtin(v))),
+                Expression::Promise(v) => Ok(TCOWrapper::Return(Datum::Promise(v))),
+                Expression::Undefined => Ok(TCOWrapper::Return(Datum::Undefined)),
+                Expression::Nil => Ok(TCOWrapper::Return(Datum::Nil)),
+                // List(Vec<Datum>),
+                // DottedList(Vec<Datum>, Box<Datum>),
+                _ => panic!("Expression not valid in this context")
             };
 
             match res? {
@@ -471,14 +344,23 @@ impl Evaluator {
                     return Ok(v)
                 },
                 TCOWrapper::TailCall(a, e) => {
-                    ast = Some(a.clone());
+                    maybe_expr = Some(a);
                     env_ref = e;
                     continue;
                 }
             }
         }
+
         self.envs.free(env_ref);
         self.level -= 1;
         Ok(Datum::Undefined)
     }
 }
+//                         "debug-env" => {
+//                             println!("{:?}", self.envs.get_env(env_ref));
+//                             Ok(TCOWrapper::Return(Datum::Undefined))
+//                         },
+//                         "debug-envref" => {
+//                             println!("{:?}", env_ref);
+//                             Ok(TCOWrapper::Return(Datum::Undefined))
+//                         },

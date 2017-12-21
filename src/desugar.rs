@@ -12,6 +12,8 @@ pub fn desugar(v: &Datum) -> Datum {
                             "stream-cons" => desugar_stream_cons(&elems[1..]),
                             "let" => desugar_let(&elems[1..]),
                             "let*" => desugar_let_star(&elems[1..]),
+                            // "and" => desugar_and(&elems[1..]),
+                            // "or" => desugar_or(&elems[1..]),
                             _ => {
                                 Datum::List(elems.iter().map(|e| desugar(e)).collect())
                             },

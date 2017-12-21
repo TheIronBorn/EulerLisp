@@ -14,6 +14,7 @@ mod parser;
 mod env;
 mod desugar;
 mod symbol_table;
+mod preprocess;
 
 use std::fmt;
 use std::cmp::Ordering;
@@ -72,25 +73,6 @@ pub enum Promise {
     Result(Box<Datum>),
 }
 
-// Undefined is used as a response for methods
-// that don't return a value.
-// If a return value is undefined,
-// it will not be printed in the REPL
-// #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
-// pub enum Datum {
-//     Symbol(String),
-//     Bool(bool),
-//     List(Vec<Datum>),
-//     DottedList(Vec<Datum>),
-//     Number(i64),
-//     Str(String),
-//     Lambda(env::EnvRef, Vec<String>, Box<Datum>),
-//     Builtin(LispFn),
-//     Promise(Promise),
-//     Nil,
-//     Undefined,
-// }
-
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub enum LambdaType {
     Var,
@@ -107,8 +89,7 @@ pub enum Datum {
     Symbol(String),
     List(Vec<Datum>),
     DottedList(Vec<Datum>, Box<Datum>),
-    Vector(Vec<Datum>),
-    Lambda(env::EnvRef, Vec<String>, Box<Datum>, LambdaType),
+    Lambda(env::EnvRef, Vec<Symbol>, Box<Expression>, LambdaType),
     Builtin(LispFn),
     Promise(Promise),
     Undefined,
@@ -144,7 +125,8 @@ use Datum::*;
 impl fmt::Display for Datum {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Symbol(ref x) => write!(f, "{}", x),
+            // TODO: remove ambiguity
+            Datum::Symbol(ref x) => write!(f, "{}", x),
             Bool(x) => {
                 if x {
                     write!(f, "#t")
@@ -177,18 +159,6 @@ impl fmt::Display for Datum {
                 result.push_str(")");
                 write!(f, "{}", result)
             },
-            Vector(ref elems) => {
-                let mut result = String::new();
-                result.push_str("#(");
-                for (i, e) in elems.iter().enumerate() {
-                    if i != 0 {
-                        result.push_str(" ");
-                    }
-                    result.push_str(&e.to_string());
-                }
-                result.push_str(")");
-                write!(f, "{}", result)
-            },
             Number(x) => write!(f, "{}", x),
             Str(ref s) => write!(f, "\"{}\"", s),
             Nil => write!(f, "'()"),
@@ -199,4 +169,36 @@ impl fmt::Display for Datum {
             Promise(Promise::Result(ref r)) => write!(f, "promise({})", r),
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
+pub struct Condition(Box<Expression>, Box<Expression>);
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
+pub struct Symbol(usize);
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
+pub enum Expression {
+    If(Box<Expression>, Box<Expression>, Box<Expression>),
+    LambdaDef(Vec<Symbol>, Box<Expression>, LambdaType),
+    Do(Vec<Expression>, Box<Expression>),
+    And(Vec<Expression>, Box<Expression>),
+    Or(Vec<Expression>, Box<Expression>),
+    Quote(Box<Datum>),
+    Conditional(Vec<Condition>, Box<Expression>),
+    Definition(Symbol, Box<Expression>),
+    Assignment(Symbol, Box<Expression>),
+    DirectFunctionCall(Symbol, Vec<Expression>),
+    FunctionCall(Box<Expression>, Vec<Expression>),
+    Symbol(Symbol),
+    Bool(bool),
+    Number(i64),
+    Character(char),
+    Str(String),
+    List(Vec<Datum>),
+    DottedList(Vec<Datum>, Box<Datum>),
+    Lambda(env::EnvRef, Vec<Symbol>, Box<Expression>, LambdaType),
+    Builtin(LispFn),
+    Promise(Promise),
+    Undefined,
+    Nil,
 }

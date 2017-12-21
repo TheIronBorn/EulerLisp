@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use ::Datum;
+use ::Symbol;
 use symbol_table::SymbolTable;
 
 pub type EnvRef = usize;
@@ -25,12 +26,11 @@ impl Environment {
 
 pub struct EnvArena {
     envs: Vec<Environment>,
-    pub symbol_table: SymbolTable
 }
 
 impl EnvArena {
     pub fn new() -> Self {
-        Self { envs: Vec::new(), symbol_table: SymbolTable::new() }
+        Self { envs: Vec::new() }
     }
 
     pub fn size(&self) -> usize {
@@ -45,18 +45,17 @@ impl EnvArena {
         }
     }
 
-
     pub fn make_env(&mut self, parent: Option<EnvRef>) -> EnvRef {
         let env_ref = self.envs.len();
         self.envs.push(Environment::new(parent));
         env_ref
     }
 
-    pub fn add_env(&mut self, hm: HashMap<String, Datum>) -> EnvRef {
+    pub fn add_env(&mut self, hm: HashMap<String, Datum>, symbol_table: &mut SymbolTable) -> EnvRef {
         let env_ref = self.envs.len();
 
         let bindings: HashMap<usize, Datum> = hm.into_iter().map( |(k, v)|
-          (self.symbol_table.insert(&k), v)
+          (symbol_table.insert(&k), v)
         ).collect();
         self.envs.push(Environment{ bindings: bindings, parent: None });
         env_ref
@@ -66,27 +65,25 @@ impl EnvArena {
         self.envs.get(env_ref).unwrap()
     }
 
-    pub fn get(&self, env_ref: EnvRef, key: &String) -> &Datum {
-        let index = self.symbol_table.lookup(key).unwrap_or_else(
-            || panic!("Key not found {}", key)
-        );
+    pub fn get_sym(&self, env_ref: EnvRef, key: Symbol) -> &Datum {
+        let Symbol(index) = key;
         let e = self.envs.get(env_ref).unwrap();
         
-        match e.bindings.get(index) {
+        match e.bindings.get(&index) {
             Some(v) => v,
             None => {
                 match e.parent {
-                    Some(r) => self.get(r, key),
-                    None => panic!("Key not found {}", key)
+                    Some(r) => self.get_sym(r, key),
+                    // TODO: Better error messages w/ real name
+                    None => panic!("Key not found {}", &index)
                 }
             }
         }
     }
 
-    pub fn define_into(&mut self, env_ref: EnvRef, key: &String, value: Datum) -> bool {
-        let index = self.symbol_table.insert(key);
+    pub fn define_into_sym(&mut self, env_ref: EnvRef, key: Symbol, value: Datum) -> bool {
+        let Symbol(index) = key;
         let mut e = self.envs.get_mut(env_ref).unwrap();
-
         if e.bindings.contains_key(&index) {
             false
         } else {
@@ -95,9 +92,9 @@ impl EnvArena {
         }
     }
 
-    pub fn set_into(&mut self, env_ref: EnvRef, key: &String, value: Datum) -> bool {
+    pub fn set_into_sym(&mut self, env_ref: EnvRef, key: Symbol, value: Datum) -> bool {
         let mut cur = env_ref;
-        let index = self.symbol_table.insert(key);
+        let Symbol(index) = key;
 
         loop {
             let mut e = self.envs.get_mut(cur).unwrap();
