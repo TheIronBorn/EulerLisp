@@ -11,7 +11,6 @@ use std::fs::File;
 use std::io::Read;
 use std::collections::HashMap;
 
-
 use time;
 
 use env::*;
@@ -22,7 +21,6 @@ use builtin;
 use macros;
 
 pub struct Evaluator {
-    // symbol_table: SymbolTable,
     envs: EnvArena,
     level: i64
 }
@@ -103,7 +101,6 @@ impl Evaluator {
         check_arity!(args, 1);
 
         match args[0] {
-            // Datum::List(ref l) => self.sf_list(&l[..]),
             ref other => Ok(TCOWrapper::Return(other.clone()))
         }
     }
@@ -177,7 +174,6 @@ impl Evaluator {
         }
     }
 
-    // TODO: Make else expr a tail call
     pub fn sf_cond(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
         for arg in args.iter() {
             if let Datum::List(ref elems) = *arg {
@@ -190,11 +186,11 @@ impl Evaluator {
 
                 // TODO this does not check if "else" comes last
                 if *cond == Datum::Symbol("else".to_string()) {
-                    return Ok(TCOWrapper::Return(self.eval(cons, env_ref)?));
+                    return Ok(TCOWrapper::TailCall(cons.clone(), env_ref));
                 } else {
                     let res = self.eval(cond, env_ref)?;
                     if res == Datum::Bool(true) {
-                        return Ok(TCOWrapper::Return(self.eval(cons, env_ref)?));
+                        return Ok(TCOWrapper::TailCall(cons.clone(), env_ref));
                     } else {
                         continue
                     }
@@ -223,6 +219,16 @@ impl Evaluator {
         } else {
             Err(InvalidNumberOfArguments)
         }
+    }
+
+    pub fn sf_info(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+        check_arity!(args, 0);
+
+
+        println!("Environments: {}", self.envs.size());
+        println!("Symbols: {}", self.envs.symbol_table.index);
+        println!("Level: {}", self.level);
+        Ok(TCOWrapper::Return(Datum::Nil))
     }
 
     pub fn sf_begin(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
@@ -391,7 +397,10 @@ impl Evaluator {
 
         for v in result.iter() {
             let desugared = desugar::desugar(v);
-            ret = self.eval(&desugared, env_ref)?;
+            match self.eval(&desugared, env_ref) {
+                Ok(res) => ret = res,
+                Err(msg) => println!("!! {}", msg)
+            }
         }
 
         Ok(ret)
@@ -428,6 +437,7 @@ impl Evaluator {
                                 "read"      => self.sf_read(args, env_ref),
                                 "eval"      => self.sf_eval(args, env_ref),
                                 "benchmark" => self.sf_benchmark(args, env_ref),
+                                "info"      => self.sf_info(args, env_ref),
                                 "delay"     => self.sf_delay(args, env_ref),
                                 "force"     => self.sf_force(args, env_ref),
                                 "debug-env" => {
@@ -467,6 +477,7 @@ impl Evaluator {
                 }
             }
         }
+        self.envs.free(env_ref);
         self.level -= 1;
         Ok(Datum::Undefined)
     }

@@ -1,6 +1,7 @@
 extern crate time;
 extern crate nom;
 extern crate rustyline;
+extern crate rand;
 
 #[macro_use]
 mod macros;
@@ -18,8 +19,6 @@ use std::fmt;
 use std::cmp::Ordering;
 
 use std::boxed::Box;
-use std::borrow::Borrow;
-
 use std::rc::Rc;
 
 pub type LispResult = Result<Datum, LispErr>;
@@ -56,22 +55,16 @@ impl fmt::Debug for LispFn {
 impl Eq for LispFn {}
 
 impl PartialEq for LispFn {
-    fn eq(&self, other: &LispFn) -> bool {
+    fn eq(&self, _: &LispFn) -> bool {
         false
     }
 }
 
 impl PartialOrd for LispFn {
-    fn partial_cmp(&self, other: &LispFn) -> Option<Ordering> {
+    fn partial_cmp(&self, _: &LispFn) -> Option<Ordering> {
         None
     }
 }
-
-// impl core::cmp::PartialOrd for LispFn {
-//     fn partial_cmp(&self, other: &LispFn) -> Option<Ordering> {
-//         None
-//     }
-// }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub enum Promise {
@@ -152,7 +145,13 @@ impl fmt::Display for Datum {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Symbol(ref x) => write!(f, "{}", x),
-            Bool(x) => write!(f, "{}", x),
+            Bool(x) => {
+                if x {
+                    write!(f, "#t")
+                } else {
+                    write!(f, "#f")
+                }
+            },
             Character(c) => write!(f, "#\\{}", c),
             List(ref elems) => {
                 let mut result = String::new();
@@ -170,10 +169,10 @@ impl fmt::Display for Datum {
                 let mut result = String::new();
                 result.push_str("(");
                 for e in elems.iter() {
-                    result.push_str(" ");
                     result.push_str(&e.to_string());
+                    result.push_str(" ");
                 }
-                result.push_str(" . ");
+                result.push_str(". ");
                 result.push_str(&tail.to_string());
                 result.push_str(")");
                 write!(f, "{}", result)

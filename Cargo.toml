@@ -7,3 +7,4 @@ authors = ["Leon Rische <leon.rische@me.com>"]
 time = "0.1"
 nom = "3.2.0"
 rustyline = "1.0.0"
+rand = "0.3"

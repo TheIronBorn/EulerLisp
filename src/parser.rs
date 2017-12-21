@@ -118,16 +118,13 @@ named!(comment,
     )
 );
 
-// TODO: BLOG: We need to use whitespace before this
-// named!(atmosphere, alt!(comment | tag!(" \n") | eof!()));
-// named!(intertoken_space, recognize!(many0!(atmosphere)));
-
 named!(
     intertoken_space,
     recognize!(
         do_parse!(
             many0!(multispace) >>
             many0!(comment) >>
+            many0!(multispace) >>
             ()
         )
     )
@@ -162,9 +159,7 @@ named!(subsequent<char>, alt!(initial | single_digit | special_subsequent));
 
 named!(
     common_identifier,
-    recognize!(
-        do_parse!(initial >> many0!(subsequent) >> ())
-    )
+    recognize!(do_parse!(initial >> many0!(subsequent) >> ()))
 );
 
 named!(peculiar_identifier, alt!(tag!("+") | tag!("-") | tag!("...")));
@@ -262,11 +257,13 @@ fn make_symbol(sym: &str) -> Datum {
     Datum::Symbol(String::from(sym))
 }
 
+// TODO: Find a better way to handle '() = nil
 named!(
     datum<Datum>,
     delimited!(
         intertoken_space,
         alt!(
+            tag!("'()") => { |_| Datum::Nil } |
             boolean     => { |b| Datum::Bool(b) } |
             integer     => { |n| Datum::Number(n) } |
             character   => { |c| Datum::Character(c) } |
@@ -284,11 +281,20 @@ named!(
     )
 );
 
-named!(datums<Vec<Datum>>, many0!(datum));
+named!(datums<Vec<Datum>>,
+       do_parse!(
+           datums: many0!(datum) >>
+           eof!() >>
+           (datums)));
 
 pub fn parse_program(s: &str) -> Vec<Datum> {
     match datums(s.as_bytes()) {
-      IResult::Done(_, v) => v,
+      IResult::Done(rest, v) => {
+          if rest.len() > 0 {
+              panic!("Failed to parse the full input");
+          }
+          v
+      },
       _ => panic!("Failed to parse datum")
     }
 }
@@ -298,40 +304,6 @@ pub fn parse_datum(s: &str) -> Datum {
       IResult::Done(_, v) => v,
       _ => panic!("Failed to parse datum")
     }
-}
-
-fn parse(line: &str) {
-    let res = datum(line.as_bytes());
-    println!("Parsed {:#?}", res);
-}
-
-fn main() {
-    let mut rl = Editor::<()>::new();
-    if let Err(_) = rl.load_history("history.txt") {
-        println!("No previous history.");
-    }
-    loop {
-        let readline = rl.readline(">> ");
-        match readline {
-            Ok(line) => {
-                rl.add_history_entry(&line);
-                parse(&line);
-            },
-            Err(ReadlineError::Interrupted) => {
-                println!("CTRL-C");
-                break
-            },
-            Err(ReadlineError::Eof) => {
-                println!("CTRL-D");
-                break
-            },
-            Err(err) => {
-                println!("Error: {:?}", err);
-                break
-            }
-        }
-    }
-    rl.save_history("history.txt").unwrap();
 }
 
 macro_rules! assert_parsed_fully {

@@ -7,7 +7,7 @@ use ::LispErr::*;
 use ::builtin::register;
 
 pub fn load(hm: &mut HashMap<String, Datum>) {
-    register(hm, "puts", Rc::new(|vs| {
+    register(hm, "println", Rc::new(|vs| {
         check_arity!(vs, 1);
         match vs[0] {
             // Print string without " around them

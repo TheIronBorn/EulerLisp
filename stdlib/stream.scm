@@ -3,7 +3,7 @@
 (defn stream-print (limit stream)
   (if (> limit 0)
       (do
-        (puts (fst stream))
+        (println (fst stream))
         (stream-print (dec limit) (stream-rst stream)))))
 
 (defn stream-nth (n s)
@@ -31,7 +31,6 @@
       (stream-cons
         n
         (stream-constant n)))
-
 
 (defn stream-combine (fun s1 s2)
   (stream-cons

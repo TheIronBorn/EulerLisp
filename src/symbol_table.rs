@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SymbolTable {
-    index: usize,
+    pub index: usize,
     mapping: HashMap<String, usize>,
     names: Vec<String>,
 }
@@ -11,18 +12,21 @@ impl SymbolTable {
         SymbolTable { index: 0, mapping: HashMap::new(), names: Vec::new() }
     }
 
-    pub fn insert(&mut self, key: &str) -> usize {
-        let key = key.to_string();
-        if self.mapping.contains_key(&key) {
-            *self.mapping.get(&key).unwrap()
+    pub fn insert(&mut self, key: &String) -> usize {
+        if self.mapping.contains_key(key) {
+            *self.mapping.get(key).unwrap()
         } else {
             let i = self.index;
             self.mapping.insert(key.clone(), i);
-            self.names.push(key);
+            self.names.push(key.clone());
             self.index += 1;
 
             i
         }
+    }
+
+    pub fn lookup(&self, key: &String) -> Option<&usize> {
+        self.mapping.get(key)
     }
 
     pub fn name(&mut self, key: usize) -> String {

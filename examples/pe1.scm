@@ -12,4 +12,6 @@
         (solve_ limit (+ n 1) (+ acc n))
         (solve_ limit (+ n 1) acc))))
 
-(puts (solve 1000))
+(puts (solve 100000))
+
+; BEFORE: ./target/release/lisp run examples/pe1.scm  2.99s user 0.17s system 99% cpu 3.162 total

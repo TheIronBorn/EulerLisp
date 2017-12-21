@@ -22,8 +22,8 @@ pub fn run() {
                     if res != Datum::Undefined {
                         println!("=> {}", res);
                     }
-                }
-                Err(msg) => println!("!! {}", msg),
+                },
+                Err(msg) => println!("!! {}", msg)
             };
           },
           Err(ReadlineError::Interrupted) => {

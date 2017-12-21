@@ -28,3 +28,26 @@
 (defn rrfrst (lst) (rst (rst (fst (rst lst)))))
 (defn rrrfst (lst) (rst (rst (rst (fst lst)))))
 (defn rrrrst (lst) (rst (rst (rst (rst lst)))))
+
+(defn range (from to)
+      (range_ from to '()))
+(defn range_ (from to acc)
+      (if (> from to) acc
+          (range_ from (dec to) (cons to acc))))
+
+(defn map (f arr)
+      (if (nil? arr)
+          '()
+          (cons (f (fst arr))
+                (map f (rst arr)))))
+
+(defn filter (pred arr)
+  (cond
+    ((nil? arr) '())
+    ((pred (fst arr)) (cons (fst arr) (filter pred (rst arr))))
+    (else (filter pred (rst arr)))))
+
+(defn reduce (f acc arr)
+  (if (nil? arr)
+      acc
+      (reduce f (f (fst arr) acc) (rst arr))))
