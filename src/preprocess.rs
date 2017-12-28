@@ -30,6 +30,17 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                                 Err(InvalidTypeOfArguments)
                             }
                         },
+                        "defmacro" => {
+                            check_arity!(args, 2);
+                            if let Datum::Symbol(ref a) = args[0] {
+                                let body = args.get(1).unwrap().clone();
+                                Ok(Expression::MacroDefinition(
+                                    Symbol(symbol_table.insert(a)),
+                                    Box::new(preprocess(body, symbol_table)?)))
+                            } else {
+                                Err(InvalidTypeOfArguments)
+                            }
+                        },
                         "set!"       => {
                             check_arity!(args, 2);
                             if let Datum::Symbol(ref a) = args[0] {
@@ -191,11 +202,18 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                         }
                         // "delay"     => self.sf_delay(args, env_ref),
                         // "force"     => self.sf_force(args, env_ref),
+                        // TODO: Not sure how to handle these,
+                        // they can't go into `builtin` because the need access to the evaluator
+                        v @ "read" | v @ "apply" | v @ "eval" => {
+                            let exprs: Result<Vec<Expression>, LispErr> = args.into_iter()
+                                .map( |arg| preprocess(arg.clone(), symbol_table) ).collect();
+                            Ok(Expression::SpecialFunctionCall(v.to_string(), exprs?))
+                        }
                         other => {
                             let fun = Symbol(symbol_table.insert(&other.to_string()));
                             let exprs: Result<Vec<Expression>, LispErr> = args.into_iter()
                                 .map( |arg| preprocess(arg.clone(), symbol_table) ).collect();
-                            Ok(Expression::FunctionCall(Box::new(Expression::Symbol(fun)), exprs?))
+                            Ok(Expression::SymbolFunctionCall(fun, exprs?))
                         }
                     }
                 },

@@ -7,6 +7,9 @@ use symbol_table::SymbolTable;
 pub type EnvRef = usize;
 
 // TODO: Use LispResults instead of panics
+// TODO: use a hashmap of envs instead of a vector,
+// so that freeing envs over and over again
+// doesn't use up memory
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Environment {
@@ -61,23 +64,26 @@ impl EnvArena {
         env_ref
     }
 
-    pub fn get_env(&self, env_ref: EnvRef) -> &Environment {
-        self.envs.get(env_ref).unwrap()
-    }
-
-    pub fn get_sym(&self, env_ref: EnvRef, key: Symbol) -> &Datum {
+    pub fn get_sym(&self, env_ref: EnvRef, key: Symbol) -> Option<&Datum> {
         let Symbol(index) = key;
         let e = self.envs.get(env_ref).unwrap();
         
         match e.bindings.get(&index) {
-            Some(v) => v,
+            Some(v) => Some(v),
             None => {
                 match e.parent {
                     Some(r) => self.get_sym(r, key),
-                    // TODO: Better error messages w/ real name
-                    None => panic!("Key not found {}", &index)
+                    None => None
                 }
             }
+        }
+    }
+    
+    pub fn extend(&mut self, env_ref: EnvRef, keys: Vec<Symbol>, values: Vec<Datum>) {
+        let mut e = self.envs.get_mut(env_ref).unwrap();
+        for (k, v) in keys.iter().zip(values.iter()) {
+            let Symbol(index) = *k;
+            e.bindings.insert(index, v.clone());
         }
     }
 

@@ -15,6 +15,17 @@ pub fn load(hm: &mut HashMap<String, Datum>) {
         }
     }));
 
+    register(hm, "nth", Rc::new(|vs| {
+        check_arity!(vs, 2);
+        // TODO: Handle index out of bounds error
+        if let Datum::Number(n) = vs[0] {
+            if let Datum::List(ref elems) = vs[1] {
+                return Ok(elems.get(n as usize).unwrap().clone());
+            }
+        }
+        Err(InvalidTypeOfArguments)
+    }));
+
     register(hm, "length", Rc::new(|vs| {
         check_arity!(vs, 1);
         match vs[0] {
@@ -44,10 +55,28 @@ pub fn load(hm: &mut HashMap<String, Datum>) {
                         new_elems.extend(elems2.iter().cloned());
                         Ok(Datum::DottedList(new_elems, tail.clone()))
                     },
+                    Datum::Nil => {
+                        Ok(Datum::List(elems.clone()))
+                    },
                     ref other => {
                         Ok(Datum::DottedList(elems.clone(), Box::new(other.clone())))
                     }
                 }
+            },
+            _ => Err(InvalidTypeOfArguments)
+        }
+    }));
+
+    register(hm, "push", Rc::new(|vs| {
+        check_arity!(vs, 2);
+        match vs[0] {
+            Datum::Nil => {
+                Ok(Datum::List(vec!(vs[1].clone())))
+            },
+            Datum::List(ref elems) => {
+                let mut new_elems = elems.clone();
+                new_elems.push(vs[1].clone());
+                Ok(Datum::List(new_elems))
             },
             _ => Err(InvalidTypeOfArguments)
         }

@@ -1,17 +1,11 @@
-; Solved: 20.12.17
-; Changes:
+; Solved: 22.12.17
 
-(defn is-not-multiple-of (div)
-  (fn (n) (!= 0 (% n div))))
+(defn prime-sum (limit) (prime-sum_ limit 3 2))
+(defn prime-sum_ (limit cur acc)
+      (if (> cur limit)
+          acc
+          (if (prime? cur)
+              (prime-sum_ limit (+ cur 2) (+ acc cur))
+              (prime-sum_ limit (+ cur 2) acc))))
 
-(defn remove-multiples-of-first (stream)
-  (stream-cons
-    (fst stream)
-    (remove-multiples-of-first
-      (stream-filter
-        (is-not-multiple-of (fst stream))
-        (stream-rst stream)))))
-        
-(def primes (remove-multiples-of-first (natural-numbers-from 2)))
-
-(println (stream-nth 10000 primes))
+(println (prime-sum 2000000))

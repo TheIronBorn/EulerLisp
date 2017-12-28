@@ -36,20 +36,20 @@
                  ((= x (dec n)) #t)
                  (else (subloop (dec times) x n))))))
 
-(defn prime? (n)
-      (if (or (divides? 3 n) (divides? 5 n) (divides? 7 n))
-          #f
-          (let ((rd (factor2 (dec n))))
-               (witness-loop n (fst rd) (rst rd) 10))))
+; (defn prime? (n) (miller-rabin n 10))
 
 (defn nth-prime (n) (nth-prime_ (- n 3) 5))
 (defn nth-prime_ (n cur)
       (println n)
       (if (prime? cur)
-          (if (zero? n)
-              cur
-              (nth-prime_ (dec n) (+ cur 2)))
+          (do
+            ; (set! known_primes (cons cur known_primes))
+            (if (zero? n)
+                cur
+                (nth-prime_ (dec n) (+ cur 2)))
+          )
           (nth-prime_ n (+ cur 2))))
 
+
 (println (nth-prime 10001))
-; (println (nth-prime 2000))
+; (println (nth-prime 50000))

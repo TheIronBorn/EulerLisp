@@ -41,6 +41,12 @@
           (cons (f (fst arr))
                 (map f (rst arr)))))
 
+(defn flatmap (f arr)
+      (if (nil? arr)
+          '()
+          (append (f (fst arr))
+                (flatmap f (rst arr)))))
+
 (defn filter (pred arr)
   (cond
     ((nil? arr) '())

@@ -93,7 +93,7 @@ pub enum Datum {
     Builtin(LispFn),
     Promise(Promise),
     Undefined,
-    Nil, // TODO: Remove this in favor of empty lists
+    Nil,
 }
 
 impl Datum {
@@ -173,7 +173,7 @@ impl fmt::Display for Datum {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
 pub struct Condition(Box<Expression>, Box<Expression>);
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
 pub struct Symbol(usize);
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
@@ -186,8 +186,11 @@ pub enum Expression {
     Quote(Box<Datum>),
     Conditional(Vec<Condition>, Box<Expression>),
     Definition(Symbol, Box<Expression>),
+    MacroDefinition(Symbol, Box<Expression>),
     Assignment(Symbol, Box<Expression>),
     DirectFunctionCall(Symbol, Vec<Expression>),
+    SpecialFunctionCall(String, Vec<Expression>),
+    SymbolFunctionCall(Symbol, Vec<Expression>),
     FunctionCall(Box<Expression>, Vec<Expression>),
     Symbol(Symbol),
     Bool(bool),
