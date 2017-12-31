@@ -16,6 +16,7 @@
 (def max-len 1)
 
 (defn solve (from to)
+      (println from)
       (if (= from to)
           (println max-n)
           (let ((cur-len (collatz-length from)))
@@ -26,4 +27,4 @@
                   (set! max-len cur-len)))
             (solve (inc from) to))))
 
-(solve 1 10000)
+(solve 1 100000)

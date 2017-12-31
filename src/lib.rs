@@ -16,11 +16,12 @@ mod desugar;
 mod symbol_table;
 mod preprocess;
 
+use env::EnvRef;
+
 use std::fmt;
 use std::cmp::Ordering;
-
-use std::boxed::Box;
 use std::rc::Rc;
+use std::boxed::Box;
 
 pub type LispResult = Result<Datum, LispErr>;
 
@@ -67,10 +68,16 @@ impl PartialOrd for LispFn {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Promise {
-    Delayed(env::EnvRef, Box<Datum>),
+    Delayed(EnvRef, Box<Datum>),
     Result(Box<Datum>),
+}
+
+impl PartialOrd for Promise {
+    fn partial_cmp(&self, _: &Promise) -> Option<Ordering> {
+        None
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
@@ -90,13 +97,14 @@ pub enum Datum {
     List(Vec<Datum>),
     Vector(Vec<Datum>),
     DottedList(Vec<Datum>, Box<Datum>),
-    Lambda(env::EnvRef, Vec<Symbol>, Box<Expression>, LambdaType),
+    Lambda(EnvRef, Vec<Symbol>, Box<Expression>, LambdaType),
     Builtin(LispFn),
     Promise(Promise),
     Undefined,
     Nil,
 }
 
+// TODO: Fix this
 impl Datum {
     pub fn is_pair(&self) -> bool {
         match *self {
@@ -186,8 +194,7 @@ impl fmt::Display for Datum {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
 pub struct Condition(Box<Expression>, Box<Expression>);
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
-pub struct Symbol(usize);
+pub type Symbol = usize;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
 pub enum Expression {
@@ -215,7 +222,7 @@ pub enum Expression {
     List(Vec<Datum>),
     DottedList(Vec<Datum>, Box<Datum>),
     Vector(Vec<Datum>),
-    Lambda(env::EnvRef, Vec<Symbol>, Box<Expression>, LambdaType),
+    Lambda(EnvRef, Vec<Symbol>, Box<Expression>, LambdaType),
     Builtin(LispFn),
     Promise(Promise),
     Undefined,

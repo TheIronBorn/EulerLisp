@@ -23,8 +23,7 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                             check_arity!(args, 2);
                             if let Datum::Symbol(ref a) = args[0] {
                                 let body = args.get(1).unwrap().clone();
-                                Ok(Expression::Definition(
-                                    Symbol(symbol_table.insert(a)),
+                                Ok(Expression::Definition(symbol_table.insert(a),
                                     Box::new(preprocess(body, symbol_table)?)))
                             } else {
                                 Err(InvalidTypeOfArguments)
@@ -35,7 +34,7 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                             if let Datum::Symbol(ref a) = args[0] {
                                 let body = args.get(1).unwrap().clone();
                                 Ok(Expression::MacroDefinition(
-                                    Symbol(symbol_table.insert(a)),
+                                    symbol_table.insert(a),
                                     Box::new(preprocess(body, symbol_table)?)))
                             } else {
                                 Err(InvalidTypeOfArguments)
@@ -46,7 +45,7 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                             if let Datum::Symbol(ref a) = args[0] {
                                 let body = args.get(1).unwrap().clone();
                                 Ok(Expression::Assignment(
-                                    Symbol(symbol_table.insert(a)),
+                                    symbol_table.insert(a),
                                     Box::new(preprocess(body, symbol_table)?)))
                             } else {
                                 Err(InvalidTypeOfArguments)
@@ -57,7 +56,7 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                             if let Datum::Symbol(ref a) = args[0] {
                                 let body = args.get(1).unwrap().clone();
                                 Ok(Expression::VectorPush(
-                                    Symbol(symbol_table.insert(a)),
+                                    symbol_table.insert(a),
                                     Box::new(preprocess(body, symbol_table)?)))
                             } else {
                                 Err(InvalidTypeOfArguments)
@@ -69,7 +68,7 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                                 let index = args.get(1).unwrap().clone();
                                 let value = args.get(2).unwrap().clone();
                                 Ok(Expression::VectorSet(
-                                    Symbol(symbol_table.insert(a)),
+                                    symbol_table.insert(a),
                                     Box::new(preprocess(index, symbol_table)?),
                                     Box::new(preprocess(value, symbol_table)?)))
                             } else {
@@ -84,13 +83,13 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
 
                             match args[0] {
                                 Datum::Symbol(ref name) => {
-                                    params.push(Symbol(symbol_table.insert(name)));
+                                    params.push(symbol_table.insert(name));
                                     lambda_type = LambdaType::Var;
                                 },
                                 Datum::List(ref elems) => {
                                     for a in elems {
                                         if let Datum::Symbol(ref v) = *a {
-                                            params.push(Symbol(symbol_table.insert(v)));
+                                            params.push(symbol_table.insert(v));
                                         } else {
                                             return Err(InvalidTypeOfArguments);
                                         }
@@ -100,13 +99,13 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                                 Datum::DottedList(ref elems, ref tail) => {
                                     for a in elems {
                                         if let Datum::Symbol(ref v) = *a {
-                                            params.push(Symbol(symbol_table.insert(v)));
+                                            params.push(symbol_table.insert(v));
                                         } else {
                                             return Err(InvalidTypeOfArguments);
                                         }
                                     }
                                     if let Datum::Symbol(ref v) = **tail {
-                                        params.push(Symbol(symbol_table.insert(v)));
+                                        params.push(symbol_table.insert(v));
                                     }
                                     lambda_type = LambdaType::DottedList;
                                 },
@@ -234,7 +233,7 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                             Ok(Expression::SpecialFunctionCall(v.to_string(), exprs?))
                         }
                         other => {
-                            let fun = Symbol(symbol_table.insert(&other.to_string()));
+                            let fun = symbol_table.insert(&other.to_string());
                             let exprs: Result<Vec<Expression>, LispErr> = args.into_iter()
                                 .map( |arg| preprocess(arg.clone(), symbol_table) ).collect();
                             Ok(Expression::SymbolFunctionCall(fun, exprs?))
@@ -250,7 +249,7 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
             }
         },
         Datum::Symbol(ref name) => {
-            Ok(Expression::Symbol(Symbol(symbol_table.insert(name))))
+            Ok(Expression::Symbol(symbol_table.insert(name)))
         },
         Datum::Bool(v) => Ok(Expression::Bool(v)),
         Datum::Vector(v) => Ok(Expression::Vector(v)),

@@ -1,0 +1,29 @@
+    // pub fn sf_benchmark(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+    //     check_arity!(args, 2);
+
+    //     if let Datum::Number(iterations) = self.eval(&args[0], env_ref)? {
+    //         let mut res = Datum::Nil;
+    //         let start = time::now();
+
+    //         for _ in 0..iterations {
+    //             res = self.eval(&args[1], env_ref)?;
+    //         }
+
+    //         println!("Benchmark Result: {}", time::now() - start);
+    //         Ok(TCOWrapper::Return(res))
+    //     } else {
+    //         Err(InvalidNumberOfArguments)
+    //     }
+    // }
+
+    // pub fn sf_info(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+    //     check_arity!(args, 0);
+
+
+    //     println!("Envs: {}", self.envs.size());
+    //     println!("Symbols: {}", self.envs.symbol_table.index);
+    //     println!("Level: {}", self.level);
+    //     Ok(TCOWrapper::Return(Datum::Nil))
+    // }
+
+

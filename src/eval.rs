@@ -14,18 +14,21 @@ use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::collections::HashMap;
+use std::rc::Rc;
+use std::cell::RefCell;
 
-use env::*;
+use env::{Env, EnvRef};
+use env;
 use parser;
 use desugar;
 use builtin;
 use preprocess;
 
 pub struct Evaluator {
-    envs: EnvArena,
     level: i64,
     symbol_table: SymbolTable,
-    macros: HashMap<Symbol, Expression>
+    macros: HashMap<Symbol, Expression>,
+    root_env: EnvRef
 }
 
 pub type TCOResult = Result<TCOWrapper, LispErr>;
@@ -36,38 +39,39 @@ pub enum TCOWrapper {
 
 impl Evaluator {
     pub fn new() -> Self {
+        let mut symbol_table = SymbolTable::new();
+
+        let mut hm: HashMap<String, Datum> = HashMap::new(); 
+        builtin::load(&mut hm);
+
+        let mut hm_sym: HashMap<usize, Datum> = HashMap::new(); 
+        for (k, v) in hm {
+            hm_sym.insert(symbol_table.insert(&k), v);
+        }
+        let root_env = Env{ bindings: hm_sym, parent: None };
+        let env_ref = Rc::new(RefCell::new(root_env));
+
         let mut ev = Evaluator {
-            symbol_table: SymbolTable::new(),
+            symbol_table: symbol_table,
             macros: HashMap::new(),
-            envs: EnvArena::new(),
             level: 0,
+            root_env: env_ref
         };
-        ev.make_root_env();
 
         let paths = fs::read_dir("./stdlib").unwrap();
         for path in paths {
             let path_str = path.unwrap().path().display().to_string();
             println!("Loading {}", path_str);
-            ev.eval_file(&path_str[..], 0);
+            ev.eval_file(&path_str[..]).expect("Failed to load lib");
         }
 
         ev
     }
 
-    pub fn make_root_env(&mut self) -> EnvRef {
-        let mut hm: HashMap<String, Datum> = HashMap::new(); 
-        builtin::load(&mut hm);
-        self.envs.add_env(hm, &mut self.symbol_table)
-    }
-
-    pub fn make_env(&mut self, parent: Option<EnvRef>) -> EnvRef {
-        self.envs.make_env(parent)
-    }
-
     fn eval_sf_cond(&mut self, conditions: Vec<Condition>, else_case: Expression, env_ref: EnvRef) -> TCOResult {
         for condition in conditions.into_iter() {
             let Condition(cond, cons) = condition;
-            let res = self.eval(*cond, env_ref)?;
+            let res = self.eval(*cond, env_ref.clone())?;
             if res == Datum::Bool(true) {
                 return Ok(TCOWrapper::TailCall(*cons, env_ref));
             } else {
@@ -78,38 +82,9 @@ impl Evaluator {
         Ok(TCOWrapper::Return(self.eval(else_case, env_ref)?))
     }
 
-    // pub fn sf_benchmark(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-    //     check_arity!(args, 2);
-
-    //     if let Datum::Number(iterations) = self.eval(&args[0], env_ref)? {
-    //         let mut res = Datum::Nil;
-    //         let start = time::now();
-
-    //         for _ in 0..iterations {
-    //             res = self.eval(&args[1], env_ref)?;
-    //         }
-
-    //         println!("Benchmark Result: {}", time::now() - start);
-    //         Ok(TCOWrapper::Return(res))
-    //     } else {
-    //         Err(InvalidNumberOfArguments)
-    //     }
-    // }
-
-    // pub fn sf_info(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-    //     check_arity!(args, 0);
-
-
-    //     println!("Environments: {}", self.envs.size());
-    //     println!("Symbols: {}", self.envs.symbol_table.index);
-    //     println!("Level: {}", self.level);
-    //     Ok(TCOWrapper::Return(Datum::Nil))
-    // }
-
-
     fn eval_sf_and(&mut self, es: Vec<Expression>, last: Expression, env_ref: EnvRef) -> TCOResult {
         for a in es.into_iter() {
-            match self.eval(a, env_ref)? {
+            match self.eval(a, env_ref.clone())? {
                 Datum::Bool(v) => {
                     if v == false {
                         return Ok(TCOWrapper::Return(Datum::Bool(false)))
@@ -123,7 +98,7 @@ impl Evaluator {
 
     fn eval_sf_or(&mut self, es: Vec<Expression>, last: Expression, env_ref: EnvRef) -> TCOResult {
         for a in es.into_iter() {
-            match self.eval(a, env_ref)? {
+            match self.eval(a, env_ref.clone())? {
                 Datum::Bool(v) => {
                     if v == true {
                         return Ok(TCOWrapper::Return(Datum::Bool(true)));
@@ -185,20 +160,20 @@ impl Evaluator {
     //     }
     // }
 
-    pub fn apply(&mut self, f: Datum, evaled_args: Vec<Datum>) -> TCOResult {
+    pub fn apply(&mut self, f: Datum, evaled_args: Vec<Datum>, env_ref: EnvRef) -> TCOResult {
         match f {
             Datum::Lambda(env, params, body, lambda_type) => {
-                let child_env = self.make_env(Some(env));
+                let mut child_env = Env::new(Some(env.clone()));
 
                 match lambda_type {
                     LambdaType::Var => {
-                        self.envs.define(child_env, params[0].clone(), Datum::List(evaled_args));
+                        child_env.define(params[0].clone(), Datum::List(evaled_args));
                     },
                     LambdaType::List => {
                         if evaled_args.len() != params.len() {
                             return Err(InvalidNumberOfArguments);
                         } else {
-                            self.envs.extend(child_env, params, evaled_args);
+                            child_env.extend(params, evaled_args);
                         }
                     },
 
@@ -218,7 +193,7 @@ impl Evaluator {
                     }
                 }
 
-                Ok(TCOWrapper::TailCall((*body).clone(), child_env))
+                Ok(TCOWrapper::TailCall((*body).clone(), Rc::new(RefCell::new(child_env))))
             },
             Datum::Builtin(LispFn(fun)) => {
                 Ok(TCOWrapper::Return(fun(evaled_args)?))
@@ -227,24 +202,25 @@ impl Evaluator {
         } 
     }
 
-    pub fn eval_file(&mut self, path: &str, env_ref: EnvRef) -> LispResult {
+    pub fn eval_file(&mut self, path: &str) -> LispResult {
         // TODO: Add IOError type
         let mut f = File::open(path).expect("Could not open file");
         let mut input = String::new();
-
         f.read_to_string(&mut input).expect("Could not read file");
-        self.eval_str(&input[..], env_ref)
+        self.eval_str(&input[..])
     }
 
     pub fn lookup_macro(&self, name: Symbol) -> Option<&Expression> {
         self.macros.get(&name)
     }
 
-    pub fn eval_str(&mut self, input: &str, env_ref: EnvRef) -> LispResult {
+    pub fn eval_str(&mut self, input: &str) -> LispResult {
         let result = parser::parse_program(input);
         let mut ret = Datum::Nil;
 
         for v in result.iter() {
+            let env_ref = self.root_env.clone();
+
             let desugared = desugar::desugar(v);
             let preprocessed = preprocess::preprocess(desugared, &mut self.symbol_table)?;
             // println!("Preprocessed: {:?}", &preprocessed);
@@ -258,46 +234,58 @@ impl Evaluator {
     }
 
     fn eval_list(&mut self, exprs: Vec<Expression>, env_ref: EnvRef) -> Vec<Datum> {
-        exprs.into_iter().map(|a| self.eval(a, env_ref).unwrap()).collect()
+        exprs.into_iter().map(|a| self.eval(a, env_ref.clone()).unwrap()).collect()
     }
 
     fn eval_sf_if(&mut self, cond: Expression, cons: Expression, alt: Expression, env_ref: EnvRef) -> TCOResult {
-        match self.eval(cond, env_ref)? {
-            Datum::Bool(true) => Ok(TCOWrapper::TailCall(cons, env_ref)),
-            Datum::Bool(false) => Ok(TCOWrapper::TailCall(alt, env_ref)),
+        match self.eval(cond, env_ref.clone())? {
+            Datum::Bool(true) => Ok(TCOWrapper::TailCall(cons, env_ref.clone())),
+            Datum::Bool(false) => Ok(TCOWrapper::TailCall(alt, env_ref.clone())),
             _ => panic!("Condition of if must return a boolean"),
         }
     }
 
     fn eval_sf_do(&mut self, expressions: Vec<Expression>, last: Expression, env_ref: EnvRef) -> TCOResult {
         for e in expressions.into_iter() {
-            self.eval(e, env_ref)?;
+            self.eval(e, env_ref.clone())?;
         }
-        Ok(TCOWrapper::TailCall(last, env_ref))
+        Ok(TCOWrapper::TailCall(last, env_ref.clone()))
     }
 
-    fn eval_sf_definition(&mut self, name: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
-        let value = self.eval(value, env_ref)?;
-        if self.envs.define(env_ref, name, value) {
-            Ok(TCOWrapper::Return(Datum::Undefined))
-        } else {
+    fn eval_sf_definition(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
+        let value = self.eval(value, env_ref.clone())?;
+
+        let mut env_ = env_ref.borrow_mut();
+
+        if env_.bindings.contains_key(&key) {
             Err(DefinitionAlreadyDefined)
+        } else {
+            env_.bindings.insert(key, value);
+            Ok(TCOWrapper::Return(Datum::Undefined))
         }
     }
 
-    fn eval_sf_assignment(&mut self, name: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
-        let value = self.eval(value, env_ref)?;
-        if let Some(old) = self.envs.get_mut(env_ref, name) {
-            *old = value;
+    fn eval_sf_assignment(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
+        let value = self.eval(value, env_ref.clone())?;
+
+        let env = env::find_def_env(env_ref, key).unwrap().clone();
+        let mut env_ = env.borrow_mut();
+
+        if env_.bindings.contains_key(&key) {
+            env_.bindings.insert(key, value);
             Ok(TCOWrapper::Return(Datum::Undefined))
         } else {
             Err(DefinitionNotFound)
         }
     }
 
-    fn eval_sf_vector_push(&mut self, name: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
-        let value = self.eval(value, env_ref)?;
-        if let Some(old) = self.envs.get_mut(env_ref, name) {
+    fn eval_sf_vector_push(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
+        let value = self.eval(value, env_ref.clone())?;
+
+        let env = env::find_def_env(env_ref, key).unwrap().clone();
+        let mut env_ = env.borrow_mut();
+
+        if let Some(old) = env_.bindings.get_mut(&key) {
             match old {
                 &mut Datum::Vector(ref mut elements) => {
                     elements.push(value);
@@ -312,12 +300,15 @@ impl Evaluator {
         }
     }
 
-    fn eval_sf_vector_set(&mut self, name: Symbol, index: Expression, value: Expression, env_ref: EnvRef) -> TCOResult {
-        let vindex = self.eval(index, env_ref)?;
-        let value = self.eval(value, env_ref)?;
+    fn eval_sf_vector_set(&mut self, key: Symbol, index: Expression, value: Expression, env_ref: EnvRef) -> TCOResult {
+        let vindex = self.eval(index, env_ref.clone())?;
+        let value = self.eval(value, env_ref.clone())?;
 
         if let Datum::Number(index) = vindex {
-            if let Some(old) = self.envs.get_mut(env_ref, name) {
+            let env = env::find_def_env(env_ref, key).unwrap().clone();
+            let mut env_ = env.borrow_mut();
+
+            if let Some(old) = env_.bindings.get_mut(&key) {
                 match old {
                     &mut Datum::Vector(ref mut elements) => {
                         if let Some(elem) = elements.get_mut(index as usize) {
@@ -345,22 +336,22 @@ impl Evaluator {
         // that will be fixed in a future release of rust
         // let mac = self.lookup_macro(fun);
 
-        let f = self.eval(Expression::Symbol(fun), env_ref)?;
-        let evaled_args = self.eval_list(args, env_ref);
-        self.apply(f, evaled_args)
+        let f = self.eval(Expression::Symbol(fun), env_ref.clone())?;
+        let evaled_args = self.eval_list(args, env_ref.clone());
+        self.apply(f, evaled_args, env_ref)
     }
 
     fn eval_special_apply(&mut self, args: Vec<Datum>, env_ref: EnvRef) -> TCOResult {
         let f = args.get(0).unwrap();
         let argslist = args.get(1).unwrap();
         if let Datum::List(ref args_) = *argslist {
-            self.apply(f.clone(), args_.clone())
+            self.apply(f.clone(), args_.clone(), env_ref)
         } else {
             Err(InvalidTypeOfArguments)
         }
     }
 
-    fn eval_special_read(&mut self, args: Vec<Datum>, env_ref: EnvRef) -> TCOResult {
+    fn eval_special_read(&mut self, args: Vec<Datum>, _: EnvRef) -> TCOResult {
         let arg = args.get(0).unwrap();
         if let Datum::Str(ref input) = *arg {
             let result = parser::parse_datum(input.as_ref());
@@ -377,12 +368,10 @@ impl Evaluator {
         Ok(TCOWrapper::Return(self.eval(preprocessed, env_ref)?))
     }
 
-    pub fn eval(&mut self, expr: Expression, ienv_ref: EnvRef) -> LispResult {
+    pub fn eval(&mut self, expr: Expression, mut env_ref: EnvRef) -> LispResult {
         self.level += 1;
         // println!("Evaling on level {} and env {}", self.level, ienv_ref);
         let mut maybe_expr = Some(expr);
-        let mut env_ref = ienv_ref;
-        let mut last_was_tail = false;
 
         while let Some(e) = maybe_expr {
             let res = match e {
@@ -400,11 +389,13 @@ impl Evaluator {
                 Expression::Assignment(name, value) => self.eval_sf_assignment(name, *value, env_ref),
                 Expression::VectorPush(name, value) => self.eval_sf_vector_push(name, *value, env_ref),
                 Expression::VectorSet(name, index, value) => self.eval_sf_vector_set(name, *index, *value, env_ref),
-                Expression::Symbol(ref name) => {
-                    match self.envs.get(env_ref, name.clone()) {
+                Expression::Symbol(key) => {
+                    let env = env::find_def_env(env_ref, key).unwrap().clone();
+                    let env_ = env.borrow();
+
+                    match env_.bindings.get(&key) {
                         Some(value) => Ok(TCOWrapper::Return(value.clone())),
                         None => {
-                            let Symbol(key) = name.clone();
                             panic!("Key not found: {}", self.symbol_table.name(key));
                         }
                     } 
@@ -415,18 +406,18 @@ impl Evaluator {
                 Expression::Character(v) => Ok(TCOWrapper::Return(Datum::Character(v))),
                 Expression::Str(v) => Ok(TCOWrapper::Return(Datum::Str(v))),
                 Expression::FunctionCall(fun, args) => {
-                    let f = self.eval(*fun, env_ref)?;
-                    let evaled_args = self.eval_list(args, env_ref);
-                    self.apply(f, evaled_args)
+                    let f = self.eval(*fun, env_ref.clone())?;
+                    let evaled_args = self.eval_list(args, env_ref.clone());
+                    self.apply(f, evaled_args, env_ref)
                 },
                 Expression::SymbolFunctionCall(fun, args) => self.eval_sf_symbol_function_call(fun, args, env_ref),
                 // TODO: Refactor this to something cleaner & remove `.clone()`s
                 Expression::SpecialFunctionCall(fun, args) => {
-                    let evaled_args = self.eval_list(args, env_ref);
+                    let evaled_args = self.eval_list(args, env_ref.clone());
                     match fun.as_ref() {
-                        "apply" => self.eval_special_apply(evaled_args, env_ref),
-                        "eval" => self.eval_special_eval(evaled_args, env_ref),
-                        "read" => self.eval_special_read(evaled_args, env_ref),
+                        "apply" => self.eval_special_apply(evaled_args, env_ref.clone()),
+                        "eval" => self.eval_special_eval(evaled_args, env_ref.clone()),
+                        "read" => self.eval_special_read(evaled_args, env_ref.clone()),
                         _ => panic!("Unknown builtin function: {}", fun)
                     }
                 },
@@ -446,17 +437,11 @@ impl Evaluator {
 
             match res? {
                 TCOWrapper::Return(v) => {
-                    last_was_tail = false;
                     self.level -= 1;
                     return Ok(v)
                 },
                 TCOWrapper::TailCall(a, e) => {
                     maybe_expr = Some(a);
-                    // TODO: Better handling of old envs
-                    if (last_was_tail && e != env_ref) {
-                        // self.envs.free(env_ref);
-                    }
-                    last_was_tail = true;
                     env_ref = e;
                     continue;
                 }
@@ -467,11 +452,3 @@ impl Evaluator {
         Ok(Datum::Undefined)
     }
 }
-//                         "debug-env" => {
-//                             println!("{:?}", self.envs.get_env(env_ref));
-//                             Ok(TCOWrapper::Return(Datum::Undefined))
-//                         },
-//                         "debug-envref" => {
-//                             println!("{:?}", env_ref);
-//                             Ok(TCOWrapper::Return(Datum::Undefined))
-//                         },

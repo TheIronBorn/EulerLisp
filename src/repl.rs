@@ -17,7 +17,7 @@ pub fn run() {
         match readline {
           Ok(line) => {
             rl.add_history_entry(&line);
-            match eval.eval_str(&line, 0) {
+            match eval.eval_str(&line) {
                 Ok(res) => {
                     if res != Datum::Undefined {
                         println!("=> {}", res);

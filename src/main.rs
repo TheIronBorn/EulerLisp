@@ -1,7 +1,6 @@
 extern crate lisp;
 
 use std::env;
-
 use lisp::eval::Evaluator;
 
 fn main() {
@@ -19,7 +18,7 @@ fn main() {
             "run" => {
                 let filename = args.get(2).expect("No filename provided");
                 let mut eval = Evaluator::new();
-                match eval.eval_file(filename, 0) {
+                match eval.eval_file(filename) {
                     Err(e) => println!("Error: {}", e),
                     _ => (),
                 }
