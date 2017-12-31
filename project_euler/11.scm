@@ -1,4 +1,7 @@
-; Solved: 22.12.17
+; Solved: 29.12.17
+; Changes:
+;  * add `any?`, `all?`, `zip`, `sum`, `product`, `take`, `chunks` list functions
+;  * add `curry` fn functions
 
 (def input
 "08 02 22 97 38 15 00 40 00 75 04 05 07 78 52 12 50 77 91 08
@@ -22,42 +25,34 @@
 20 73 35 29 78 31 90 01 74 31 49 71 48 86 81 16 23 57 05 54
 01 70 54 71 83 51 54 69 16 92 33 48 61 43 52 01 89 19 67 48")
 
-(defn take (lst n)
-      (if (zero? n)
-          '()
-          (cons (fst lst) (take (rst lst) (dec n)))))
-
-(defn chunks (lst size)
-      (if (< (length lst) size)
-          '()
-          (cons (take lst size)
-                (chunks (rst lst) size))))
+(def chunks4 (curry chunks 4))
 
 (def grid
   (map (fn (x) (map string->number (words x))) (lines input)))
 
 (defn transpose (lst)
-      (transpose_ lst 0 (length (fst lst)) '()))
-(defn transpose_ (lst from to acc)
-      (if (= from to)
-          acc
-          (transpose_ lst (inc from) to
-                      (push
-                        acc
-                        (map (fn (l) (nth from l)) lst)))))
+      (map
+        (fn (i) (map (curry nth i) lst))
+        (range 0 (dec (length (fst lst))))))
 
-(println (transpose
-           (list 
-             (list 1 2 3)
-             (list 4 5 6)
-             (list 7 8 9)
-             )))
+(defn diagonals (rows)
+      (zip
+        (fst rows)
+        (rst (frst rows))
+        (rrst (frrst rows))
+        (rrrst (frrrst rows))))
 
-(def max-row
-     (apply max
-            (flatmap (fn (x) (chunks x 4)) grid)))
+(def row-chunks (flatmap chunks4 grid))
+(def col-chunks (flatmap chunks4 (transpose grid)))
+(def diagonal-chunks (flatmap diagonals (chunks4 grid)))
+(def antidiagonal-chunks (flatmap diagonals (chunks4 (map reverse grid))))
 
-(def max-
-  (apply max
-  (map (fn (chunk) (apply * chunk))
-    (flatmap (fn (x) (chunks x 4)) grid))))
+(defn max-product (lst)
+      (apply max (map product lst)))
+
+(println
+  (max
+    (max-product row-chunks)
+    (max-product col-chunks)
+    (max-product diagonal-chunks)
+    (max-product antidiagonal-chunks)))

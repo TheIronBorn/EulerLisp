@@ -2,6 +2,7 @@
 ; Changes:
 ;  * implement string-bytes method
 ;  * implement filter
+; 29.12.17, Refactor to use chunks & product methods
 
 (def input "73167176531330624919225119674426574742355349194934
 96983520312774506326239578318016984801869478851843
@@ -25,11 +26,6 @@
 71636269561882670428252483600823257530420752963450
 ")
 
-(defn prod-n (n arr)
-  (if (or (nil? arr) (zero? n))
-      1
-      (* (fst arr) (prod-n (dec n) (rst arr)))))
-
 (defn parse-byte (b) (- b 48))
 (defn is-number (b) (and (>= b 48) (<= b 57)))
 
@@ -37,11 +33,4 @@
    (map parse-byte
         (filter is-number (string-bytes input))))
 
-(defn max-prod-n (n arr) (max-prod-n_ n arr 0))
-(defn max-prod-n_ (n arr acc)
-  (if (nil? arr)
-      acc
-      (let ((prod (prod-n n arr)))
-        (max-prod-n_ n (rst arr) (max prod acc)))))
-
-(println (max-prod-n 13 numbers))
+(println (apply max (map product (chunks 13 numbers))))

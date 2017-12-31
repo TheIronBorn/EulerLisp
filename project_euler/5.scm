@@ -32,12 +32,7 @@
              (cons k2 v2)
              (merge a1 (rst a2)))))))))
 
-(defn reduce (f acc arr)
-  (if (nil? arr)
-      acc
-      (reduce f (f (fst arr) acc) (rst arr))))
-
-(def factors (map prime_factors (range from to)))
+(def factors (map prime-factors (range from to)))
 (def max_factors (reduce merge '() factors))
 
 (println

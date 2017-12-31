@@ -1,11 +1,12 @@
 ; Solved: 22.12.17
 
-(defn prime-sum (limit) (prime-sum_ limit 3 2))
-(defn prime-sum_ (limit cur acc)
-      (if (> cur limit)
-          acc
-          (if (prime? cur)
-              (prime-sum_ limit (+ cur 2) (+ acc cur))
-              (prime-sum_ limit (+ cur 2) acc))))
+(defn prime-sum (limit)
+  (defn helper (limit cur acc)
+        (if (> cur limit)
+            acc
+            (if (prime? cur)
+                (helper limit (+ cur 2) (+ acc cur))
+                (helper limit (+ cur 2) acc))))
+  (helper limit 3 2))
 
 (println (prime-sum 2000000))

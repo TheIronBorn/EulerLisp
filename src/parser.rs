@@ -1,8 +1,5 @@
 use std::str::from_utf8;
 
-use rustyline::error::ReadlineError;
-use rustyline::Editor;
-
 use nom::*;
 use nom::{digit, oct_digit, hex_digit};
 use nom::{anychar, multispace};
@@ -101,7 +98,10 @@ named!(
 );
 
 named!(string<String>,
-    delimited!(tag!("\""), string_content, tag!("\""))
+   alt!(
+     tag!("\"\"") => { |_| String::from("")} |
+     delimited!(tag!("\""), string_content, tag!("\""))
+   )
 );
 
 fn to_s(i: Vec<u8>) -> String {
@@ -271,7 +271,7 @@ named!(
             identifier  => { |s| Datum::Symbol(s) } |
             list        => { |ds| Datum::List(ds) } |
             dotted_list => { |(ds, d)| Datum::DottedList(ds, Box::new(d)) } |
-            // vector      => { |ds| Datum::Vector(ds) } |
+            vector      => { |ds| Datum::Vector(ds) } |
             quote       => { |q| Datum::List(vec!(make_symbol("quote"), q)) } |
             quasiquote  => { |q| Datum::List(vec!(make_symbol("quasiquote"), q)) } |
             unquote     => { |q| Datum::List(vec!(make_symbol("unquote"), q)) } |
@@ -342,7 +342,7 @@ macro_rules! assert_parsed_fully {
 //     assert_parsed_fully!(token, "1", Token::Number(1));
 //     assert_parsed_fully!(token, "else", Token::Keyword(SyntacticKeyword::Else));
 //     assert_parsed_fully!(token, "lambda", Token::Keyword(
-//         SyntacticKeyword::Expression(ExpressionKeyword::Lambda))
+//         SyntacticKeyword::Ex	pression(ExpressionKeyword::Lambda))
 //     );
 //     assert_parsed_fully!(token, "#\\space", Token::Character(' '));
 //     // ...

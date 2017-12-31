@@ -88,6 +88,7 @@ pub enum Datum {
     Str(String),
     Symbol(String),
     List(Vec<Datum>),
+    Vector(Vec<Datum>),
     DottedList(Vec<Datum>, Box<Datum>),
     Lambda(env::EnvRef, Vec<Symbol>, Box<Expression>, LambdaType),
     Builtin(LispFn),
@@ -147,6 +148,18 @@ impl fmt::Display for Datum {
                 result.push_str(")");
                 write!(f, "{}", result)
             },
+            Vector(ref elems) => {
+                let mut result = String::new();
+                result.push_str("#(");
+                for (i, e) in elems.iter().enumerate() {
+                    if i != 0 {
+                        result.push_str(" ");
+                    }
+                    result.push_str(&e.to_string());
+                }
+                result.push_str(")");
+                write!(f, "{}", result)
+            },
             DottedList(ref elems, ref tail) => {
                 let mut result = String::new();
                 result.push_str("(");
@@ -188,6 +201,8 @@ pub enum Expression {
     Definition(Symbol, Box<Expression>),
     MacroDefinition(Symbol, Box<Expression>),
     Assignment(Symbol, Box<Expression>),
+    VectorPush(Symbol, Box<Expression>),
+    VectorSet(Symbol, Box<Expression>, Box<Expression>),
     DirectFunctionCall(Symbol, Vec<Expression>),
     SpecialFunctionCall(String, Vec<Expression>),
     SymbolFunctionCall(Symbol, Vec<Expression>),
@@ -199,6 +214,7 @@ pub enum Expression {
     Str(String),
     List(Vec<Datum>),
     DottedList(Vec<Datum>, Box<Datum>),
+    Vector(Vec<Datum>),
     Lambda(env::EnvRef, Vec<Symbol>, Box<Expression>, LambdaType),
     Builtin(LispFn),
     Promise(Promise),

@@ -11,7 +11,8 @@
             (for (inc from) to fun))))
 
 
-(def base 1000000000)
+(def size 18)
+(def base (pow 10 18))
 
 ; We can assume that b is always bigger,
 ; this simplifies some steps
@@ -37,16 +38,27 @@
 (def b '(1))
 
 (defn numlength (n)
-  (cond
-    ((< n 10) 1) 
-    ((< n 100) 2) 
-    ((< n 1000) 3) 
-    ((< n 10000) 4) 
-    ((< n 100000) 5) 
-    ((< n 1000000) 6) 
-    ((< n 10000000) 7) 
-    ((< n 100000000) 8) 
-    ((< n 1000000000) 9)))
+  (if (< n 1000000000)
+    (cond
+      ((< n 10) 1) 
+      ((< n 100) 2) 
+      ((< n 1000) 3) 
+      ((< n 10000) 4) 
+      ((< n 100000) 5) 
+      ((< n 1000000) 6) 
+      ((< n 10000000) 7) 
+      ((< n 100000000) 8) 
+      (else 9))
+    (cond
+      ((< n 10000000000) 10)
+      ((< n 100000000000) 11)
+      ((< n 1000000000000) 12)
+      ((< n 10000000000000) 13)
+      ((< n 100000000000000) 14)
+      ((< n 1000000000000000) 15)
+      ((< n 10000000000000000) 16)
+      ((< n 100000000000000000) 17)
+      ((< n 1000000000000000000) 18))))
 
 (defn lastlength (l)
       (let ((last (nth (dec (length l)) l)))
@@ -54,7 +66,7 @@
 
 (defn listlength (l)
   (+ (lastlength l)
-     (* 9 (dec (length l)))))
+     (* size (dec (length l)))))
 
 (defn solve (n)
       (if (= (listlength a) 1000)

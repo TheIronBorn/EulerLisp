@@ -52,6 +52,30 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                                 Err(InvalidTypeOfArguments)
                             }
                         },
+                        "vector-push!"       => {
+                            check_arity!(args, 2);
+                            if let Datum::Symbol(ref a) = args[0] {
+                                let body = args.get(1).unwrap().clone();
+                                Ok(Expression::VectorPush(
+                                    Symbol(symbol_table.insert(a)),
+                                    Box::new(preprocess(body, symbol_table)?)))
+                            } else {
+                                Err(InvalidTypeOfArguments)
+                            }
+                        },
+                        "vector-set!"       => {
+                            check_arity!(args, 3);
+                            if let Datum::Symbol(ref a) = args[0] {
+                                let index = args.get(1).unwrap().clone();
+                                let value = args.get(2).unwrap().clone();
+                                Ok(Expression::VectorSet(
+                                    Symbol(symbol_table.insert(a)),
+                                    Box::new(preprocess(index, symbol_table)?),
+                                    Box::new(preprocess(value, symbol_table)?)))
+                            } else {
+                                Err(InvalidTypeOfArguments)
+                            }
+                        },
                         "fn"        => {
                             check_arity!(args, 2);
 
@@ -229,6 +253,7 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
             Ok(Expression::Symbol(Symbol(symbol_table.insert(name))))
         },
         Datum::Bool(v) => Ok(Expression::Bool(v)),
+        Datum::Vector(v) => Ok(Expression::Vector(v)),
         Datum::Number(v) => Ok(Expression::Number(v)),
         Datum::Character(v) => Ok(Expression::Character(v)),
         Datum::Str(ref v) => Ok(Expression::Str(v.clone())),
@@ -238,6 +263,6 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
         Datum::Promise(v) => Ok(Expression::Promise(v)),
         Datum::Undefined => Ok(Expression::Undefined),
         Datum::Nil => Ok(Expression::Nil),
-        ref other => Err(InvalidTypeOfArguments),
+        _ => Err(InvalidTypeOfArguments),
     }
 }

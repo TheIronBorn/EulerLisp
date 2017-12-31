@@ -5,8 +5,6 @@ use ::Datum;
 use ::LispFn;
 use ::LispResult;
 
-use macros;
-
 mod list;
 mod math;
 mod misc;

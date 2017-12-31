@@ -57,3 +57,35 @@
   (if (nil? arr)
       acc
       (reduce f (f (fst arr) acc) (rst arr))))
+
+(defn any? (pred arr)
+  (cond
+    ((nil? arr) #f)
+    ((pred (fst arr)) #t)
+    (else (any? pred (rst arr)))))
+
+(defn all? (pred arr)
+  (cond
+    ((nil? arr) #t)
+    ((pred (fst arr)) (all? pred (rest arr)))
+    (else #f)))
+
+(defn zip lists
+      (if (any? nil? lists)
+          '()
+          (cons (map fst lists)
+                (apply zip (map rst lists)))))
+
+(defn product (lst) (reduce * 1 lst))
+(defn sum (lst) (reduce + 0 lst))
+
+(defn take (n lst)
+      (if (zero? n)
+          '()
+          (cons (fst lst) (take (dec n) (rst lst)))))
+
+(defn chunks (size lst)
+      (if (< (length lst) size)
+          '()
+          (cons (take size lst)
+                (chunks size (rst lst)))))

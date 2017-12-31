@@ -15,15 +15,11 @@ use std::fs::File;
 use std::io::Read;
 use std::collections::HashMap;
 
-use time;
-
 use env::*;
 use parser;
 use desugar;
 use builtin;
 use preprocess;
-
-use macros;
 
 pub struct Evaluator {
     envs: EnvArena,
@@ -167,7 +163,7 @@ impl Evaluator {
     //                 Datum::Promise(ref p) => {
     //                     let res = self.force_promise(p, env_ref)?;
     //                     let new = Datum::Promise(Promise::Result(Box::new(res.clone())));
-    //                     self.envs.set_into(env_ref, name, new);
+    //                     self.envs.set(env_ref, name, new);
     //                     Ok(TCOWrapper::Return(res))
     //                 },
     //                 ref other => Ok(TCOWrapper::Return(self.eval(other, env_ref)?)),
@@ -196,7 +192,7 @@ impl Evaluator {
 
                 match lambda_type {
                     LambdaType::Var => {
-                        self.envs.define_into_sym(child_env, params[0].clone(), Datum::List(evaled_args));
+                        self.envs.define(child_env, params[0].clone(), Datum::List(evaled_args));
                     },
                     LambdaType::List => {
                         if evaled_args.len() != params.len() {
@@ -213,11 +209,11 @@ impl Evaluator {
                     //         return Err(InvalidNumberOfArguments);
                     //     } else {
                     //         for (p, value) in params[0..(params.len() - 1)].iter().zip(evaled_args.clone()) {
-                    //             self.envs.define_into_sym(child_env, p.clone(), value);
+                    //             self.envs.define(child_env, p.clone(), value);
                     //         }
                     //         self.envs.extend(child_env, params[0..(params.len() - 1)].iter().collect(), evaled_args);
                     //         let rest: Vec<Datum> = evaled_args.iter().skip(params.len() - 1).cloned().collect();
-                    //         self.envs.define_into_sym(child_env, params[params.len() - 1].clone(), Datum::List(evaled_args));
+                    //         self.envs.define(child_env, params[params.len() - 1].clone(), Datum::List(evaled_args));
                     //     }
                     }
                 }
@@ -282,7 +278,7 @@ impl Evaluator {
 
     fn eval_sf_definition(&mut self, name: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
         let value = self.eval(value, env_ref)?;
-        if self.envs.define_into_sym(env_ref, name, value) {
+        if self.envs.define(env_ref, name, value) {
             Ok(TCOWrapper::Return(Datum::Undefined))
         } else {
             Err(DefinitionAlreadyDefined)
@@ -291,10 +287,56 @@ impl Evaluator {
 
     fn eval_sf_assignment(&mut self, name: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
         let value = self.eval(value, env_ref)?;
-        if self.envs.set_into_sym(env_ref, name, value) {
+        if let Some(old) = self.envs.get_mut(env_ref, name) {
+            *old = value;
             Ok(TCOWrapper::Return(Datum::Undefined))
         } else {
             Err(DefinitionNotFound)
+        }
+    }
+
+    fn eval_sf_vector_push(&mut self, name: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
+        let value = self.eval(value, env_ref)?;
+        if let Some(old) = self.envs.get_mut(env_ref, name) {
+            match old {
+                &mut Datum::Vector(ref mut elements) => {
+                    elements.push(value);
+                },
+                _ => {
+                    return Err(InvalidTypeOfArguments);
+                }
+            }
+            Ok(TCOWrapper::Return(Datum::Undefined))
+        } else {
+            Err(DefinitionNotFound)
+        }
+    }
+
+    fn eval_sf_vector_set(&mut self, name: Symbol, index: Expression, value: Expression, env_ref: EnvRef) -> TCOResult {
+        let vindex = self.eval(index, env_ref)?;
+        let value = self.eval(value, env_ref)?;
+
+        if let Datum::Number(index) = vindex {
+            if let Some(old) = self.envs.get_mut(env_ref, name) {
+                match old {
+                    &mut Datum::Vector(ref mut elements) => {
+                        if let Some(elem) = elements.get_mut(index as usize) {
+                            *elem = value;
+                        } else {
+                            // TODO: Index out of bounds
+                            return Err(InvalidTypeOfArguments);
+                        }
+                    },
+                    _ => {
+                        return Err(InvalidTypeOfArguments);
+                    }
+                }
+                Ok(TCOWrapper::Return(Datum::Undefined))
+            } else {
+                Err(DefinitionNotFound)
+            }
+        } else {
+            Err(InvalidTypeOfArguments)
         }
     }
 
@@ -337,9 +379,10 @@ impl Evaluator {
 
     pub fn eval(&mut self, expr: Expression, ienv_ref: EnvRef) -> LispResult {
         self.level += 1;
-        // println!("Evaling {:?} on level {}", expr, self.level);
+        // println!("Evaling on level {} and env {}", self.level, ienv_ref);
         let mut maybe_expr = Some(expr);
         let mut env_ref = ienv_ref;
+        let mut last_was_tail = false;
 
         while let Some(e) = maybe_expr {
             let res = match e {
@@ -355,8 +398,10 @@ impl Evaluator {
                     Ok(TCOWrapper::Return(Datum::Undefined))
                 },
                 Expression::Assignment(name, value) => self.eval_sf_assignment(name, *value, env_ref),
+                Expression::VectorPush(name, value) => self.eval_sf_vector_push(name, *value, env_ref),
+                Expression::VectorSet(name, index, value) => self.eval_sf_vector_set(name, *index, *value, env_ref),
                 Expression::Symbol(ref name) => {
-                    match self.envs.get_sym(env_ref, name.clone()) {
+                    match self.envs.get(env_ref, name.clone()) {
                         Some(value) => Ok(TCOWrapper::Return(value.clone())),
                         None => {
                             let Symbol(key) = name.clone();
@@ -365,6 +410,7 @@ impl Evaluator {
                     } 
                 },
                 Expression::Bool(v) => Ok(TCOWrapper::Return(Datum::Bool(v))),
+                Expression::Vector(v) => Ok(TCOWrapper::Return(Datum::Vector(v))),
                 Expression::Number(v) => Ok(TCOWrapper::Return(Datum::Number(v))),
                 Expression::Character(v) => Ok(TCOWrapper::Return(Datum::Character(v))),
                 Expression::Str(v) => Ok(TCOWrapper::Return(Datum::Str(v))),
@@ -400,18 +446,23 @@ impl Evaluator {
 
             match res? {
                 TCOWrapper::Return(v) => {
+                    last_was_tail = false;
                     self.level -= 1;
                     return Ok(v)
                 },
                 TCOWrapper::TailCall(a, e) => {
                     maybe_expr = Some(a);
+                    // TODO: Better handling of old envs
+                    if (last_was_tail && e != env_ref) {
+                        // self.envs.free(env_ref);
+                    }
+                    last_was_tail = true;
                     env_ref = e;
                     continue;
                 }
             }
         }
 
-        self.envs.free(env_ref);
         self.level -= 1;
         Ok(Datum::Undefined)
     }

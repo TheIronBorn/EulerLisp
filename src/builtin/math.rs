@@ -265,5 +265,30 @@ pub fn load(hm: &mut HashMap<String, Datum>) {
         }
         Err(InvalidTypeOfArguments)
     }));
+    // TODO: Clean this up
+    register(hm, "factors", Rc::new(|vs| {
+        check_arity!(vs, 1);
+        if let Datum::Number(a) = vs[0] {
+            let mut result: Vec<Datum> = Vec::new();
+            let root = (a as f64).sqrt() as i64;
+
+            result.push(Datum::Number(1));
+            if a > 1 {
+                result.push(Datum::Number(a));
+            }
+            if a > 2 {
+                for i in 2..(root+1) {
+                    if a % i == 0 {
+                        result.push(Datum::Number(i));
+                        if i != root {
+                            result.push(Datum::Number(a / i));
+                        }
+                    }
+                }
+            }
+            return Ok(Datum::List(result));
+        }
+        Err(InvalidTypeOfArguments)
+    }));
 }
 

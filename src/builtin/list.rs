@@ -15,15 +15,38 @@ pub fn load(hm: &mut HashMap<String, Datum>) {
         }
     }));
 
+    register(hm, "make-vector", Rc::new(|vs| {
+        if vs.len() < 1 || vs.len() > 2 {
+            return Err(InvalidNumberOfArguments);
+        }
+
+        if let Datum::Number(len) = *vs.get(0).unwrap() {
+            let default = vs.get(1).unwrap_or(&Datum::Undefined);
+            let vector = vec![default.clone(); len as usize];
+            Ok(Datum::Vector(vector))
+        } else {
+            Err(InvalidTypeOfArguments)
+        }
+    }));
+
     register(hm, "nth", Rc::new(|vs| {
         check_arity!(vs, 2);
         // TODO: Handle index out of bounds error
         if let Datum::Number(n) = vs[0] {
-            if let Datum::List(ref elems) = vs[1] {
-                return Ok(elems.get(n as usize).unwrap().clone());
+            match vs[1] {
+                Datum::List(ref elems) => {
+                    Ok(elems.get(n as usize).unwrap().clone())
+                },
+                Datum::Vector(ref elems) => {
+                    Ok(elems.get(n as usize).unwrap().clone())
+                },
+                _ => {
+                    Err(InvalidTypeOfArguments)
+                }
             }
+        } else {
+            Err(InvalidTypeOfArguments)
         }
-        Err(InvalidTypeOfArguments)
     }));
 
     register(hm, "length", Rc::new(|vs| {
@@ -31,6 +54,9 @@ pub fn load(hm: &mut HashMap<String, Datum>) {
         match vs[0] {
             Datum::Nil => Ok(Datum::Number(0)),
             Datum::List(ref elems) => {
+                Ok(Datum::Number(elems.len() as i64))
+            },
+            Datum::Vector(ref elems) => {
                 Ok(Datum::Number(elems.len() as i64))
             },
             _ => Err(InvalidTypeOfArguments)
@@ -87,7 +113,7 @@ pub fn load(hm: &mut HashMap<String, Datum>) {
 
         match vs[0] {
             Datum::List(ref elems) => {
-                let mut new_elems = elems.iter().rev().cloned().collect();
+                let new_elems = elems.iter().rev().cloned().collect();
                 Ok(Datum::List(new_elems))
             },
             _ => Err(InvalidTypeOfArguments),
