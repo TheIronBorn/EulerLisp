@@ -13,7 +13,7 @@ use symbol_table::SymbolTable;
 use std::fs;
 use std::fs::File;
 use std::io::Read;
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -79,7 +79,17 @@ impl Evaluator {
             }
         }
 
-        Ok(TCOWrapper::Return(self.eval(else_case, env_ref)?))
+        Ok(TCOWrapper::TailCall(else_case, env_ref))
+    }
+
+    fn eval_sf_case(&mut self, expr: Expression, cases: BTreeMap<Datum, Expression>, else_case: Expression, env_ref: EnvRef) -> TCOResult {
+        let res = self.eval(expr, env_ref.clone())?;
+
+        if let Some(cons) = cases.get(&res) {
+            Ok(TCOWrapper::TailCall(cons.clone(), env_ref))
+        } else {
+            Ok(TCOWrapper::TailCall(else_case, env_ref))
+        }
     }
 
     fn eval_sf_and(&mut self, es: Vec<Expression>, last: Expression, env_ref: EnvRef) -> TCOResult {
@@ -195,7 +205,7 @@ impl Evaluator {
 
                 Ok(TCOWrapper::TailCall((*body).clone(), Rc::new(RefCell::new(child_env))))
             },
-            Datum::Builtin(LispFn(fun)) => {
+            Datum::Builtin(fun) => {
                 Ok(TCOWrapper::Return(fun(evaled_args)?))
             },
             _ => Err(InvalidTypeOfArguments),
@@ -332,10 +342,6 @@ impl Evaluator {
     }
 
     fn eval_sf_symbol_function_call(&mut self, fun: Symbol, args: Vec<Expression>, env_ref: EnvRef) -> TCOResult {
-        // Hack to get around issues with non-lexical borrowing
-        // that will be fixed in a future release of rust
-        // let mac = self.lookup_macro(fun);
-
         let f = self.eval(Expression::Symbol(fun), env_ref.clone())?;
         let evaled_args = self.eval_list(args, env_ref.clone());
         self.apply(f, evaled_args, env_ref)
@@ -380,6 +386,7 @@ impl Evaluator {
                 Expression::And(es, last) => self.eval_sf_and(es, *last, env_ref),
                 Expression::Or(es, last) => self.eval_sf_or(es, *last, env_ref),
                 Expression::Conditional(conditions, else_case) => self.eval_sf_cond(conditions, *else_case, env_ref),
+                Expression::Case(e, cases, else_case) => self.eval_sf_case(*e, cases, *else_case, env_ref),
                 Expression::Quote(datum) => Ok(TCOWrapper::Return(*datum)),
                 Expression::Definition(name, value) => self.eval_sf_definition(name, *value, env_ref),
                 Expression::MacroDefinition(name, value) => {
@@ -390,7 +397,9 @@ impl Evaluator {
                 Expression::VectorPush(name, value) => self.eval_sf_vector_push(name, *value, env_ref),
                 Expression::VectorSet(name, index, value) => self.eval_sf_vector_set(name, *index, *value, env_ref),
                 Expression::Symbol(key) => {
-                    let env = env::find_def_env(env_ref, key).unwrap().clone();
+                    let env = env::find_def_env(env_ref, key).unwrap_or_else(||
+                        panic!("Can't find var {}", self.symbol_table.name(key))
+                    ).clone();
                     let env_ = env.borrow();
 
                     match env_.bindings.get(&key) {

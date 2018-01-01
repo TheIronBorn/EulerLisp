@@ -103,11 +103,11 @@
 53503534226472524250874054075591789781264330331690")
 
 (defn parse-byte (b) (- b 48))
-(defn is-number (b) (and (>= b 48) (<= b 57)))
+(defn is-number? (b) (and (>= b 48) (<= b 57)))
 
 (defn parse-number (x)
    (map parse-byte
-        (filter is-number (string-bytes x))))
+        (select is-number? (string-bytes x))))
 
 (def numbers (map (fn (x) (reverse (parse-number x))) (lines input)))
 

@@ -1,13 +1,14 @@
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::fs::File;
+use std::io::Read;
 
 use ::Datum;
 use ::LispErr::*;
+use ::LispResult;
 
 use ::builtin::register;
 
-pub fn load(hm: &mut HashMap<String, Datum>) {
-    register(hm, "println", Rc::new(|vs| {
+fn println(vs: Vec<Datum>) -> LispResult {
         check_arity!(vs, 1);
         match vs[0] {
             // Print string without " around them
@@ -15,8 +16,9 @@ pub fn load(hm: &mut HashMap<String, Datum>) {
             ref other => println!("{}", other),
         };
         Ok(Datum::Undefined)
-    }));
-    register(hm, "print", Rc::new(|vs| {
+}
+
+fn print(vs: Vec<Datum>) -> LispResult {
         check_arity!(vs, 1);
         match vs[0] {
             // Print string without " around them
@@ -24,17 +26,43 @@ pub fn load(hm: &mut HashMap<String, Datum>) {
             ref other => print!("{}", other),
         };
         Ok(Datum::Undefined)
-    }));
-    register(hm, "inspect", Rc::new(|vs| {
+}
+
+fn inspect(vs: Vec<Datum>) -> LispResult {
         check_arity!(vs, 1);
         println!("{:?}", vs[0]);
         Ok(Datum::Undefined)
-    }));
-    register(hm, "not", Rc::new(|vs| {
+}
+
+fn not(vs: Vec<Datum>) -> LispResult {
         check_arity!(vs, 1);
         if let Datum::Bool(b) = vs[0] {
             return Ok(Datum::Bool(!b));
         }
         Err(InvalidTypeOfArguments)
-    }));
+}
+
+fn file_read(vs: Vec<Datum>) -> LispResult {
+        check_arity!(vs, 1);
+        if let Datum::Str(ref b) = vs[0] {
+            match File::open(b) {
+                Ok(ref mut file) => {
+                    let mut result = String::new();
+                    match file.read_to_string(&mut result) {
+                        Ok(_) => return Ok(Datum::Str(result)),
+                        Err(_) => return Err(IOError),
+                    };
+                },
+                Err(_) => return Err(IOError)
+            }
+        }
+        Err(InvalidTypeOfArguments)
+}
+
+pub fn load(hm: &mut HashMap<String, Datum>) {
+    register(hm, "println", println);
+    register(hm, "print", print);
+    register(hm, "inspect", inspect);
+    register(hm, "not", not);
+    register(hm, "file-read", file_read);
 }

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
-use std::rc::Rc;
 use rand::{thread_rng, Rng};
 
 use ::Datum;
 use ::LispErr::*;
+use ::LispResult;
 
 use ::builtin::register;
 
@@ -72,223 +72,277 @@ fn det_miller_rabin(n: i64) -> bool {
     true
 }
 
-pub fn load(hm: &mut HashMap<String, Datum>) {
-    register(hm, "prime?", Rc::new(|vs| {
-        check_arity!(vs, 1);
-        if let Datum::Number(n) = vs[0] {
-            return Ok(Datum::Bool(det_miller_rabin(n)))
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, "+", Rc::new(|vs| {
-        let mut res = 0;
-        for v in vs {
-            if let Datum::Number(a) = v {
-                res += a;
-            } else {
-                return Err(InvalidTypeOfArguments);
-            }
-        }
-        Ok(Datum::Number(res))
-    }));
-    register(hm, "*", Rc::new(|vs| {
-        let mut res = 1;
-        for v in vs {
-            if let Datum::Number(a) = v {
-                res *= a;
-            } else {
-                return Err(InvalidTypeOfArguments);
-            }
-        }
-        Ok(Datum::Number(res))
-    }));
-    register(hm, "max", Rc::new(|vs| {
-        if vs.len() == 0 {
-            return Err(InvalidNumberOfArguments);
-        }
-
-        let first = vs.get(0).unwrap();
-        if let Datum::Number(mut res) = *first {
-            for v in vs.iter().skip(1) {
-                if let Datum::Number(a) = *v {
-                    if a > res {
-                        res = a;
-                    }
-                } else {
-                    return Err(InvalidTypeOfArguments);
-                }
-            }
-            Ok(Datum::Number(res))
-        } else {
-            return Err(InvalidTypeOfArguments);
-        }
-    }));
-    register(hm, "min", Rc::new(|vs| {
-        if vs.len() == 0 {
-            return Err(InvalidNumberOfArguments);
-        }
-
-        let first = vs.get(0).unwrap();
-        if let Datum::Number(mut res) = *first {
-            for v in vs.iter().skip(1) {
-                if let Datum::Number(a) = *v {
-                    if a < res {
-                        res = a;
-                    }
-                } else {
-                    return Err(InvalidTypeOfArguments);
-                }
-            }
-            Ok(Datum::Number(res))
-        } else {
-            return Err(InvalidTypeOfArguments);
-        }
-    }));
-    register(hm, "isqrt", Rc::new(|vs| {
-        check_arity!(vs, 1);
-        if let Datum::Number(a) = vs[0] {
-            let res = (a as f64).sqrt() as i64;
-            return Ok(Datum::Number(res));
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, "inc", Rc::new(|vs| {
-        check_arity!(vs, 1);
-        if let Datum::Number(a) = vs[0] {
-            return Ok(Datum::Number(a + 1));
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, "dec", Rc::new(|vs| {
-        check_arity!(vs, 1);
-        if let Datum::Number(a) = vs[0] {
-            return Ok(Datum::Number(a - 1));
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, "divides?", Rc::new(|vs| {
-        check_arity!(vs, 2);
-        if let Datum::Number(a) = vs[0] {
-            if let Datum::Number(b) = vs[1] {
-                return Ok(Datum::Bool((b % a) == 0));
-            }
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, "zero?", Rc::new(|vs| {
-        check_arity!(vs, 1);
-        if let Datum::Number(a) = vs[0] {
-            return Ok(Datum::Bool(a == 0));
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, "even?", Rc::new(|vs| {
-        check_arity!(vs, 1);
-        if let Datum::Number(a) = vs[0] {
-            return Ok(Datum::Bool((a % 2) == 0));
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, "odd?", Rc::new(|vs| {
-        check_arity!(vs, 1);
-        if let Datum::Number(a) = vs[0] {
-            return Ok(Datum::Bool((a % 2) == 1));
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, "/", Rc::new(|vs| {
-        check_arity!(vs, 2);
-        if let Datum::Number(a) = vs[0] {
-            if let Datum::Number(b) = vs[1] {
-                return Ok(Datum::Number(a / b));
-            }
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, ">>", Rc::new(|vs| {
-        check_arity!(vs, 2);
-        if let Datum::Number(a) = vs[0] {
-            if let Datum::Number(b) = vs[1] {
-                return Ok(Datum::Number(a >> b));
-            }
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, "<<", Rc::new(|vs| {
-        check_arity!(vs, 2);
-        if let Datum::Number(a) = vs[0] {
-            if let Datum::Number(b) = vs[1] {
-                return Ok(Datum::Number(a << b));
-            }
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, "%", Rc::new(|vs| {
-        check_arity!(vs, 2);
-        if let Datum::Number(a) = vs[0] {
-            if let Datum::Number(b) = vs[1] {
-                return Ok(Datum::Number(a % b));
-            }
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, "-", Rc::new(|vs| {
-        // TODO: Check arity
-        if let Datum::Number(a) = vs[0] {
-            if vs.len() == 2 {
-                if let Datum::Number(b) = vs[1] {
-                    return Ok(Datum::Number(a - b));
-                } else {
-                    return Ok(Datum::Number(-a));
-                }
-            }
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, "rand", Rc::new(|vs| {
-        check_arity!(vs, 2);
-        if let Datum::Number(a) = vs[0] {
-            if let Datum::Number(b) = vs[1] {
-                return Ok(Datum::Number(thread_rng().gen_range(a, b + 1)));
-            }
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    register(hm, "modexp", Rc::new(|vs| {
-        check_arity!(vs, 3);
-        if let Datum::Number(b) = vs[0] {
-            if let Datum::Number(e) = vs[1] {
-                if let Datum::Number(m) = vs[2] {
-                    return Ok(Datum::Number(modexp(b, e, m)));
-                }
-            }
-        }
-        Err(InvalidTypeOfArguments)
-    }));
-    // TODO: Clean this up
-    register(hm, "factors", Rc::new(|vs| {
-        check_arity!(vs, 1);
-        if let Datum::Number(a) = vs[0] {
-            let mut result: Vec<Datum> = Vec::new();
-            let root = (a as f64).sqrt() as i64;
-
-            result.push(Datum::Number(1));
-            if a > 1 {
-                result.push(Datum::Number(a));
-            }
-            if a > 2 {
-                for i in 2..(root+1) {
-                    if a % i == 0 {
-                        result.push(Datum::Number(i));
-                        if i != root {
-                            result.push(Datum::Number(a / i));
-                        }
-                    }
-                }
-            }
-            return Ok(Datum::List(result));
-        }
-        Err(InvalidTypeOfArguments)
-    }));
+fn prime_questionmark(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 1);
+    if let Datum::Number(n) = vs[0] {
+        return Ok(Datum::Bool(det_miller_rabin(n)))
+    }
+    Err(InvalidTypeOfArguments)
 }
 
+fn add(vs: Vec<Datum>) -> LispResult {
+    let mut res = 0;
+    for v in vs {
+        if let Datum::Number(a) = v {
+            res += a;
+        } else {
+            return Err(InvalidTypeOfArguments);
+        }
+    }
+    Ok(Datum::Number(res))
+}
+
+fn subtract(vs: Vec<Datum>) -> LispResult {
+    // TODO: Check arity
+    if let Datum::Number(a) = vs[0] {
+        if vs.len() == 2 {
+            if let Datum::Number(b) = vs[1] {
+                return Ok(Datum::Number(a - b));
+            } else {
+                return Ok(Datum::Number(-a));
+            }
+        }
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn mult(vs: Vec<Datum>) -> LispResult {
+    let mut res = 1;
+    for v in vs {
+        if let Datum::Number(a) = v {
+            res *= a;
+        } else {
+            return Err(InvalidTypeOfArguments);
+        }
+    }
+    Ok(Datum::Number(res))
+}
+
+fn max(vs: Vec<Datum>) -> LispResult {
+    if vs.len() == 0 {
+        return Err(InvalidNumberOfArguments);
+    }
+
+    let first = vs.get(0).unwrap();
+    if let Datum::Number(mut res) = *first {
+        for v in vs.iter().skip(1) {
+            if let Datum::Number(a) = *v {
+                if a > res {
+                    res = a;
+                }
+            } else {
+                return Err(InvalidTypeOfArguments);
+            }
+        }
+        Ok(Datum::Number(res))
+    } else {
+        return Err(InvalidTypeOfArguments);
+    }
+}
+
+fn min(vs: Vec<Datum>) -> LispResult {
+    if vs.len() == 0 {
+        return Err(InvalidNumberOfArguments);
+    }
+
+    let first = vs.get(0).unwrap();
+    if let Datum::Number(mut res) = *first {
+        for v in vs.iter().skip(1) {
+            if let Datum::Number(a) = *v {
+                if a < res {
+                    res = a;
+                }
+            } else {
+                return Err(InvalidTypeOfArguments);
+            }
+        }
+        Ok(Datum::Number(res))
+    } else {
+        return Err(InvalidTypeOfArguments);
+    }
+}
+
+fn isqrt(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 1);
+    if let Datum::Number(a) = vs[0] {
+        let res = (a as f64).sqrt() as i64;
+        return Ok(Datum::Number(res));
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn inc(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 1);
+    if let Datum::Number(a) = vs[0] {
+        return Ok(Datum::Number(a + 1));
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn dec(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 1);
+    if let Datum::Number(a) = vs[0] {
+        return Ok(Datum::Number(a - 1));
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn zero_questionmark(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 1);
+    if let Datum::Number(a) = vs[0] {
+        return Ok(Datum::Bool(a == 0));
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn divides_questionmark(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 2);
+    if let Datum::Number(a) = vs[0] {
+        if let Datum::Number(b) = vs[1] {
+            return Ok(Datum::Bool((b % a) == 0));
+        }
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn even_questionmark(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 1);
+    if let Datum::Number(a) = vs[0] {
+        return Ok(Datum::Bool((a % 2) == 0));
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn odd_questionmark(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 1);
+    if let Datum::Number(a) = vs[0] {
+        return Ok(Datum::Bool((a % 2) == 1));
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn div(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 2);
+    if let Datum::Number(a) = vs[0] {
+        if let Datum::Number(b) = vs[1] {
+            return Ok(Datum::Number(a / b));
+        }
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn shift_left(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 2);
+    if let Datum::Number(a) = vs[0] {
+        if let Datum::Number(b) = vs[1] {
+            return Ok(Datum::Number(a >> b));
+        }
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn shift_right(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 2);
+    if let Datum::Number(a) = vs[0] {
+        if let Datum::Number(b) = vs[1] {
+            return Ok(Datum::Number(a << b));
+        }
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn modulo(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 2);
+    if let Datum::Number(a) = vs[0] {
+        if let Datum::Number(b) = vs[1] {
+            return Ok(Datum::Number(a % b));
+        }
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn divmod(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 2);
+    if let Datum::Number(a) = vs[0] {
+        if let Datum::Number(b) = vs[1] {
+            return Ok(
+                Datum::DottedList(
+                    vec!(Datum::Number(a / b)),
+                    Box::new(Datum::Number(a % b))
+                    )
+                );
+        }
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn builtin_modexp(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 3);
+    if let Datum::Number(b) = vs[0] {
+        if let Datum::Number(e) = vs[1] {
+            if let Datum::Number(m) = vs[2] {
+                return Ok(Datum::Number(modexp(b, e, m)));
+            }
+        }
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn rand(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 2);
+    if let Datum::Number(a) = vs[0] {
+        if let Datum::Number(b) = vs[1] {
+            return Ok(Datum::Number(thread_rng().gen_range(a, b + 1)));
+        }
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn factors(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 1);
+    if let Datum::Number(a) = vs[0] {
+        let mut result: Vec<Datum> = Vec::new();
+        let root = (a as f64).sqrt() as i64;
+
+        result.push(Datum::Number(1));
+        if a > 1 {
+            result.push(Datum::Number(a));
+        }
+        if a > 2 {
+            for i in 2..(root+1) {
+                if a % i == 0 {
+                    result.push(Datum::Number(i));
+                    if i != root {
+                        result.push(Datum::Number(a / i));
+                    }
+                }
+            }
+        }
+        return Ok(Datum::List(result));
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+pub fn load(hm: &mut HashMap<String, Datum>) {
+    register(hm, "prime?", prime_questionmark);
+    register(hm, "+", add);
+    register(hm, "-", subtract);
+    register(hm, "*", mult);
+    register(hm, "max", max);
+    register(hm, "min", min);
+    register(hm, "isqrt", isqrt);
+    register(hm, "inc", inc);
+    register(hm, "dec", dec);
+    register(hm, "divides?", divides_questionmark);
+    register(hm, "zero?", zero_questionmark);
+    register(hm, "even?", even_questionmark);
+    register(hm, "odd?", odd_questionmark);
+    register(hm, "/", div);
+    register(hm, ">>", shift_left);
+    register(hm, "<<", shift_right);
+    register(hm, "%", modulo);
+    register(hm, "divmod", divmod);
+    register(hm, "modexp", builtin_modexp);
+    register(hm, "rand", rand);
+    register(hm, "factors", factors);
+}

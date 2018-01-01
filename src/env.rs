@@ -20,6 +20,12 @@ impl PartialOrd for Env {
     }
 }
 
+impl Ord for Env {
+    fn cmp(&self, _: &Env) -> Ordering {
+        Ordering::Equal
+    }
+}
+
 pub fn find_def_env(env: EnvRef, key: Symbol) -> Option<EnvRef> {
     let cloned = env.clone();
     let e = cloned.borrow();
@@ -33,44 +39,11 @@ pub fn find_def_env(env: EnvRef, key: Symbol) -> Option<EnvRef> {
     }
 }
 
-// pub fn env_get<'a>(env: EnvRef, key: Symbol) -> Option<&'a mut Datum> {
-//     let Symbol(index) = key;
-//     let def_env = find_def_env(env, key)?.clone();
-//     def_env.borrow_mut().bindings.get_mut(&index)
-// }
-
 impl Env {
     pub fn new(parent: Option<EnvRef>) -> Self {
         Env { bindings: HashMap::new(), parent: parent }
     }
 
-    // pub fn get_mut(&mut self, key: Symbol) -> Option<&mut Datum> {
-    //     match self.bindings.get_mut(&key) {
-    //         Some(v) => {
-    //             return Some(v);
-    //         },
-    //         None => {
-    //             match self.parent.clone() {
-    //                 Some(ref r) => { return r.borrow_mut().get_mut(key); },
-    //                 None => { return None; },
-    //             };
-    //         }
-    //     };
-    // }
-
-    // pub fn get(&mut self, key: Symbol) -> Option<&Datum> {
-    //     match self.bindings.get(&key) {
-    //         Some(v) => {
-    //             return Some(v);
-    //         },
-    //         None => {
-    //             match self.parent.clone() {
-    //                 Some(ref r) => { return r.borrow().get(key); },
-    //                 None => { return None; },
-    //             };
-    //         }
-    //     };
-    // }
     
     pub fn extend(&mut self, keys: Vec<Symbol>, values: Vec<Datum>) {
         for (k, v) in keys.iter().zip(values.iter()) {

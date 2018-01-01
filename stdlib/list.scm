@@ -47,16 +47,31 @@
           (append (f (fst arr))
                 (flatmap f (rst arr)))))
 
-(defn filter (pred arr)
+(defn delete-nth (n lst)
+  (if (= n 0)
+      (rst lst)
+      (cons (fst lst)
+            (delete-nth (dec n) (rst lst)))))
+
+(defn select (pred arr)
   (cond
     ((nil? arr) '())
-    ((pred (fst arr)) (cons (fst arr) (filter pred (rst arr))))
-    (else (filter pred (rst arr)))))
+    ((pred (fst arr)) (cons (fst arr) (select pred (rst arr))))
+    (else (select pred (rst arr)))))
+
+(defn reject (pred arr)
+  (cond
+    ((nil? arr) '())
+    ((pred (fst arr)) (reject pred (rst arr)))
+    (else (cons (fst arr) (reject pred (rst arr))))))
 
 (defn reduce (f acc arr)
   (if (nil? arr)
       acc
       (reduce f (f (fst arr) acc) (rst arr))))
+
+(defn empty? (lst)
+      (zero? (length lst)))
 
 (defn any? (pred arr)
   (cond

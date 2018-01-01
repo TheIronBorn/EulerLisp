@@ -20,8 +20,8 @@ use env::EnvRef;
 
 use std::fmt;
 use std::cmp::Ordering;
-use std::rc::Rc;
 use std::boxed::Box;
+use std::collections::BTreeMap;
 
 pub type LispResult = Result<Datum, LispErr>;
 
@@ -31,6 +31,7 @@ pub enum LispErr {
     InvalidTypeOfArguments,
     DefinitionAlreadyDefined,
     DefinitionNotFound,
+    IOError,
 }
 
 impl fmt::Display for LispErr {
@@ -38,35 +39,14 @@ impl fmt::Display for LispErr {
         match *self {
             LispErr::InvalidNumberOfArguments => write!(f, "Invalid number of arguments"),
             LispErr::InvalidTypeOfArguments => write!(f, "Invalid types of arguments"),
-            LispErr::DefinitionAlreadyDefined => write!(f, "Definition is already defined"),
             LispErr::DefinitionNotFound => write!(f, "Definition not found"),
+            LispErr::DefinitionAlreadyDefined => write!(f, "Definition is already defined"),
+            LispErr::IOError => write!(f, "IO Error"),
         }
     }
 }
 
-#[derive(Clone)]
-pub struct LispFn(Rc<Fn(Vec<Datum>)->LispResult>);
-
-impl fmt::Debug for LispFn {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "builtin fn")
-    }
-}
-
-// TODO: This is a lie, eq is not reflexive
-impl Eq for LispFn {}
-
-impl PartialEq for LispFn {
-    fn eq(&self, _: &LispFn) -> bool {
-        false
-    }
-}
-
-impl PartialOrd for LispFn {
-    fn partial_cmp(&self, _: &LispFn) -> Option<Ordering> {
-        None
-    }
-}
+type LispFn = fn(Vec<Datum>) -> LispResult;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Promise {
@@ -80,14 +60,20 @@ impl PartialOrd for Promise {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
+impl Ord for Promise {
+    fn cmp(&self, _: &Promise) -> Ordering {
+        Ordering::Equal
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LambdaType {
     Var,
     List,
     DottedList,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Datum {
     Bool(bool),
     Number(i64),
@@ -194,9 +180,10 @@ impl fmt::Display for Datum {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
 pub struct Condition(Box<Expression>, Box<Expression>);
+
 pub type Symbol = usize;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
     If(Box<Expression>, Box<Expression>, Box<Expression>),
     LambdaDef(Vec<Symbol>, Box<Expression>, LambdaType),
@@ -205,6 +192,7 @@ pub enum Expression {
     Or(Vec<Expression>, Box<Expression>),
     Quote(Box<Datum>),
     Conditional(Vec<Condition>, Box<Expression>),
+    Case(Box<Expression>, BTreeMap<Datum, Expression>, Box<Expression>),
     Definition(Symbol, Box<Expression>),
     MacroDefinition(Symbol, Box<Expression>),
     Assignment(Symbol, Box<Expression>),
@@ -227,4 +215,16 @@ pub enum Expression {
     Promise(Promise),
     Undefined,
     Nil,
+}
+
+impl PartialOrd for Expression {
+    fn partial_cmp(&self, _: &Expression) -> Option<Ordering> {
+        None
+    }
+}
+
+impl Ord for Expression {
+    fn cmp(&self, _: &Expression) -> Ordering {
+        Ordering::Equal
+    }
 }

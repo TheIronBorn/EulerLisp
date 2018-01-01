@@ -1,24 +1,28 @@
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use ::Datum;
 use ::LispErr::*;
+use ::LispResult;
 
 use ::builtin::register;
 
+fn pair_questionmark(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 1);
+    Ok(Datum::Bool(vs[0].is_pair()))
+}
+
+fn list_questionmark(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 1);
+    Ok(Datum::Bool(vs[0].is_list()))
+}
+
+fn nil_qustionmark(vs: Vec<Datum>) -> LispResult {
+    check_arity!(vs, 1);
+    Ok(Datum::Bool(vs[0].is_nil()))
+}
+
 pub fn load(hm: &mut HashMap<String, Datum>) {
-    register(hm, "pair?", Rc::new(|vs| {
-        check_arity!(vs, 1);
-        Ok(Datum::Bool(vs[0].is_pair()))
-    }));
-
-    register(hm, "list?", Rc::new(|vs| {
-        check_arity!(vs, 1);
-        Ok(Datum::Bool(vs[0].is_list()))
-    }));
-
-    register(hm, "nil?", Rc::new(|vs| {
-        check_arity!(vs, 1);
-        Ok(Datum::Bool(vs[0].is_nil()))
-    }));
+    register(hm, "pair?", pair_questionmark);
+    register(hm, "list?", list_questionmark);
+    register(hm, "nil?", nil_qustionmark);
 }

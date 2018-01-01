@@ -31,6 +31,6 @@
 
 (def numbers
    (map parse-byte
-        (filter is-number (string-bytes input))))
+        (select is-number (string-bytes input))))
 
 (println (apply max (map product (chunks 13 numbers))))

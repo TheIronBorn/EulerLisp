@@ -7,7 +7,7 @@ use ::Condition;
 use ::LispErr::*;
 use symbol_table::SymbolTable;
 
-use macros;
+use std::collections::BTreeMap;
 
 pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expression, LispErr> {
     match datum {
@@ -79,7 +79,7 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                             check_arity!(args, 2);
 
                             let mut params: Vec<Symbol> = Vec::new();
-                            let mut lambda_type: LambdaType;
+                            let lambda_type: LambdaType;
 
                             match args[0] {
                                 Datum::Symbol(ref name) => {
@@ -167,6 +167,39 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
 
                             Ok(Expression::Conditional(conditions, Box::new(else_case)))
                         },
+                        "case"      => {
+                            let mut else_case = Expression::Nil;
+                            let mut cases: BTreeMap<Datum, Expression> = BTreeMap::new();
+
+                            let expr_ = args.get(0).unwrap();
+                            let expr = preprocess(expr_.clone(), symbol_table)?;
+
+                            for arg in args.into_iter().skip(1) {
+                                if let Datum::List(ref elems) = *arg {
+                                    if elems.len() != 2 {
+                                        return Err(InvalidTypeOfArguments);
+                                    }
+
+                                    let cond = elems.get(0).unwrap();
+                                    let cons = elems.get(1).unwrap();
+
+                                    // TODO this does not check if "else" comes last
+                                    if *cond == Datum::Symbol("else".to_string()) {
+                                        else_case = preprocess(cons.clone(), symbol_table)?;
+                                        break;
+                                    } else {
+                                        cases.insert(
+                                            cond.clone(),
+                                            preprocess(cons.clone(), symbol_table)?,
+                                        );
+                                    }
+                                } else {
+                                    return Err(InvalidTypeOfArguments);
+                                }
+                            }
+
+                            Ok(Expression::Case(Box::new(expr), cases, Box::new(else_case)))
+                        },
                         "do"        => {
                             if args.len() == 0 {
                                 Ok(Expression::Nil)
@@ -222,7 +255,32 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                             check_arity!(args, 1);
                             let body = args.get(0).unwrap().clone();
                             Ok(Expression::Quote(Box::new(body)))
-                        }
+                        },
+                        "~>" => {
+                            if args.len() == 0 {
+                                Err(InvalidNumberOfArguments)
+                            } else {
+                                let mut cur = args.get(0).unwrap().clone();
+
+                                for fun in args.into_iter().skip(1) {
+                                    match *fun {
+                                        Datum::List(ref elems) => {
+                                            let mut new_elems = elems.clone();
+                                            new_elems.insert(1, cur);
+                                            cur = Datum::List(new_elems);
+                                        },
+                                        ref s @ Datum::Symbol(_) => {
+                                            cur = Datum::List(vec!(
+                                               s.clone(), cur
+                                            ));
+                                        },
+                                        _ => panic!("Arguments to ~> must be lists")
+                                    }
+                                }
+
+                                Ok(preprocess(cur, symbol_table)?)
+                            }
+                        },
                         // "delay"     => self.sf_delay(args, env_ref),
                         // "force"     => self.sf_force(args, env_ref),
                         // TODO: Not sure how to handle these,

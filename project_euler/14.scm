@@ -1,30 +1,26 @@
-; Unsolved
-(def known '())
+; Solved 31.12,
+; but finding the solution takes 4:35 (more than a minute)
+; Improved to 3:10 by skipping a step for odd numbers
+; since 3n + 1 for odd n is always even
+;
+; TODO: Solve in < 60s
 
+(defn collatz-length (n) (helper n 1))
 (defn helper (n len)
-      (if (<= n (length known))
-          (+ len (nth (dec n) known))
-          (cond
-            ((= n 1) len)
-            ((even? n) (helper (>> n 1) (inc len)))
-            (else (helper (inc (* n 3)) (inc len))))))
+  (if (= n 1)
+    len
+    (if (even? n)
+      (helper (>> n 1) (inc len))
+      (helper (+ (* 3 (>> n 1)) 2) (+ len 2)))))
 
-(defn collatz-length (n)
-      (helper n 1))
-
-(def max-n 1)
-(def max-len 1)
-
-(defn solve (from to)
-      (println from)
-      (if (= from to)
+; We can be pretty sure that the number with the max length will be odd
+(defn rsolve (from to max-n max-len)
+      (if (> from to)
           (println max-n)
           (let ((cur-len (collatz-length from)))
-            (set! known (push known cur-len))
             (if (> cur-len max-len)
-                (do
-                  (set! max-n from)
-                  (set! max-len cur-len)))
-            (solve (inc from) to))))
+              (rsolve (+ from 2) to from cur-len)
+              (rsolve (+ from 2) to max-n max-len)))))
 
-(solve 1 100000)
+; (rsolve 1 1000000 1 1)
+(rsolve 1 50000 1 1)

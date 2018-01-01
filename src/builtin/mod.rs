@@ -17,9 +17,8 @@ mod string;
 // that special forms choose if they want to eval their arguments themselves,
 // builtins are called with evaluated arguments
 
-pub fn register(hm: &mut HashMap<String, Datum>, name: &str,
-            f: Rc<Fn(Vec<Datum>)->LispResult>) {
-    hm.insert(name.to_string(), Datum::Builtin(LispFn(f)));
+pub fn register(hm: &mut HashMap<String, Datum>, name: &str, f: LispFn) {
+    hm.insert(name.to_string(), Datum::Builtin(f));
 }
 
 
