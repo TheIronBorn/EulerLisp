@@ -63,6 +63,17 @@ pub fn preprocess(
                                 Err(InvalidTypeOfArguments)
                             }
                         },
+                        "vector-ref"       => {
+                            check_arity!(args, 2);
+                            if let Datum::Symbol(ref a) = args[0] {
+                                let body = args.get(1).unwrap().clone();
+                                Ok(Expression::VectorRef(
+                                    symbol_table.insert(a),
+                                    Box::new(preprocess(body, symbol_table, builtins)?)))
+                            } else {
+                                Err(InvalidTypeOfArguments)
+                            }
+                        },
                         "vector-push!"       => {
                             check_arity!(args, 2);
                             if let Datum::Symbol(ref a) = args[0] {
@@ -357,7 +368,7 @@ pub fn preprocess(
             }
 
         },
-        Datum::DottedList(vs, v) => panic!("Malformed expression"),
+        Datum::DottedList(_, _) => panic!("Malformed expression"),
         other => Ok(Expression::SelfEvaluating(Box::new(other))),
     }
 }

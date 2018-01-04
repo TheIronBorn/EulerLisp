@@ -84,7 +84,6 @@ impl Evaluator {
 
     fn eval_sf_case(&mut self, expr: Expression, cases: BTreeMap<Datum, Expression>, else_case: Expression, env_ref: EnvRef) -> TCOResult {
         let res = self.eval(expr, env_ref.clone())?;
-
         if let Some(cons) = cases.get(&res) {
             Ok(TCOWrapper::TailCall(cons.clone(), env_ref))
         } else {
@@ -272,6 +271,33 @@ impl Evaluator {
         }
     }
 
+    fn eval_sf_vector_ref(&mut self, key: Symbol, index: Expression, env_ref: EnvRef) -> TCOResult {
+        let vindex = self.eval(index, env_ref.clone())?;
+        if let Datum::Number(index) = vindex {
+            let env = env_ref.borrow();
+
+            if let Some(binding) = env.find_def(&key) {
+                match *binding.borrow_mut() {
+                    Datum::Vector(ref mut elements) => {
+                        if let Some(elem) = elements.get(index as usize) {
+                            Ok(TCOWrapper::Return(elem.clone()))
+                        } else {
+                            // TODO: Index out of bounds
+                            Err(InvalidTypeOfArguments)
+                        }
+                    },
+                    _ => {
+                        Err(InvalidTypeOfArguments)
+                    }
+                }
+            } else {
+                Err(DefinitionNotFound)
+            }
+        } else {
+            Err(InvalidTypeOfArguments)
+        }
+    }
+
     fn eval_sf_vector_set(&mut self, key: Symbol, index: Expression, value: Expression, env_ref: EnvRef) -> TCOResult {
         let vindex = self.eval(index, env_ref.clone())?;
         let value = self.eval(value, env_ref.clone())?;
@@ -353,6 +379,7 @@ impl Evaluator {
                 },
                 Expression::Assignment(name, value) => self.eval_sf_assignment(name, *value, env_ref),
                 Expression::VectorPush(name, value) => self.eval_sf_vector_push(name, *value, env_ref),
+                Expression::VectorRef(name, value) => self.eval_sf_vector_ref(name, *value, env_ref),
                 Expression::VectorSet(name, index, value) => self.eval_sf_vector_set(name, *index, *value, env_ref),
                 Expression::Symbol(key) => {
                     let env = env_ref.borrow();

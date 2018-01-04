@@ -94,7 +94,6 @@ fn add(vs: &mut [Datum]) -> LispResult {
 }
 
 fn subtract(vs: &mut [Datum]) -> LispResult {
-    // TODO: Check arity
     if let Datum::Number(a) = vs[0] {
         if vs.len() == 2 {
             if let Datum::Number(b) = vs[1] {

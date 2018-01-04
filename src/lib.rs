@@ -282,6 +282,7 @@ pub enum Expression {
     MacroDefinition(Symbol, Box<Expression>),
     Assignment(Symbol, Box<Expression>),
     VectorPush(Symbol, Box<Expression>),
+    VectorRef(Symbol, Box<Expression>),
     VectorSet(Symbol, Box<Expression>, Box<Expression>),
     DirectFunctionCall(Symbol, Vec<Expression>),
     BuiltinFunctionCall(fn(&mut [Datum])->LispResult, Vec<Expression>),

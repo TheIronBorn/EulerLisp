@@ -49,8 +49,8 @@ impl Env {
     }
     
     pub fn extend(&mut self, keys: Vec<Symbol>, values: Vec<Datum>) {
-        for (k, v) in keys.iter().zip(values.iter()) {
-            self.0.insert(*k, Rc::new(RefCell::new(v.clone())));
+        for (k, v) in keys.iter().zip(values.into_iter()) {
+            self.0.insert(*k, Rc::new(RefCell::new(v)));
         }
     }
 

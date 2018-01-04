@@ -7,28 +7,30 @@
 ;   switching on n % 4
 ; * Improve to 2:20 by using func refs instead of rc lambdas
 ; * Improve to 1:40 by removing some `.clone()`s
-; TODO: Solve in < 60s
+; * Improve to 20s via new `vector-ref`
+(def known #(0 1 2))
+(def known-len 2)
 
 (defn collatz-length (n) (helper n 1))
 (defn helper (n len)
-  (case n
-        (1 len)
-        (2 (inc len))
-        (else
-          (case (% n 4)
-            (0 (helper (>> n 2) (+ len 2)))
-            (1 (helper (+ (* 3 (>> n 2)) 1) (+ len 3)))
-            (2 (helper (+ (* 3 (>> n 2)) 2) (+ len 3)))
-            (3 (helper (+ (* 9 (>> n 2)) 8) (+ len 4)))
-          ))))
+  (if (<= n known-len)
+      (+ len (vector-ref known n))
+      (case (% n 4)
+        (0 (helper (>> n 2) (+ len 2)))
+        (1 (helper (+ (* 3 (>> n 2)) 1) (+ len 3)))
+        (2 (helper (+ (* 3 (>> n 2)) 2) (+ len 3)))
+        (3 (helper (+ (* 9 (>> n 2)) 8) (+ len 4))))))
 
 ; We can be pretty sure that the number with the max length will be odd
 (defn rsolve (from to max-n max-len)
+      (println from)
       (if (> from to)
           (println max-n)
           (let ((cur-len (collatz-length from)))
+            (vector-push! known cur-len)
+            (set! known-len (inc known-len))
             (if (> cur-len max-len)
-              (rsolve (+ from 2) to from cur-len)
-              (rsolve (+ from 2) to max-n max-len)))))
+              (rsolve (inc from) to from cur-len)
+              (rsolve (inc from) to max-n max-len)))))
 
-(rsolve 1 1000000 1 1)
+(rsolve 3 1000000 1 1)
