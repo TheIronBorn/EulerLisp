@@ -17,7 +17,6 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use env::{Env, EnvRef};
-use env;
 use parser;
 use desugar;
 use builtin;
@@ -62,7 +61,7 @@ impl Evaluator {
         let mut builtins: HashMap<String, LispFn> = HashMap::new(); 
         builtin::load(&mut builtins);
 
-        let root_env = Env{ bindings: HashMap::new(), parent: None };
+        let root_env = Env::new(None);
         let env_ref = Rc::new(RefCell::new(root_env));
 
         let mut ev = Evaluator {
@@ -236,25 +235,21 @@ impl Evaluator {
 
     fn eval_sf_definition(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
         let value = self.eval(value, env_ref.clone())?;
-
         let mut env_ = env_ref.borrow_mut();
 
-        if env_.bindings.contains_key(&key) {
-            Err(DefinitionAlreadyDefined)
-        } else {
-            env_.bindings.insert(key, value);
+        if env_.define(key, value) {
             Ok(TCOWrapper::Return(Datum::Undefined))
+        } else {
+            Err(DefinitionAlreadyDefined)
         }
     }
 
     fn eval_sf_assignment(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
         let value = self.eval(value, env_ref.clone())?;
+        let mut env = env_ref.borrow_mut();
 
-        let env = env::find_def_env(env_ref, key).unwrap().clone();
-        let mut env_ = env.borrow_mut();
-
-        if env_.bindings.contains_key(&key) {
-            env_.bindings.insert(key, value);
+        if let Some(binding) = env.find_def(&key) {
+            (*binding.borrow_mut()) = value;
             Ok(TCOWrapper::Return(Datum::Undefined))
         } else {
             Err(DefinitionNotFound)
@@ -263,20 +258,18 @@ impl Evaluator {
 
     fn eval_sf_vector_push(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
         let value = self.eval(value, env_ref.clone())?;
+        let mut env = env_ref.borrow_mut();
 
-        let env = env::find_def_env(env_ref, key).unwrap().clone();
-        let mut env_ = env.borrow_mut();
-
-        if let Some(old) = env_.bindings.get_mut(&key) {
-            match old {
-                &mut Datum::Vector(ref mut elements) => {
+        if let Some(binding) = env.find_def(&key) {
+            match *binding.borrow_mut() {
+                Datum::Vector(ref mut elements) => {
                     elements.push(value);
+                    Ok(TCOWrapper::Return(Datum::Undefined))
                 },
                 _ => {
-                    return Err(InvalidTypeOfArguments);
+                    Err(InvalidTypeOfArguments)
                 }
             }
-            Ok(TCOWrapper::Return(Datum::Undefined))
         } else {
             Err(DefinitionNotFound)
         }
@@ -287,24 +280,23 @@ impl Evaluator {
         let value = self.eval(value, env_ref.clone())?;
 
         if let Datum::Number(index) = vindex {
-            let env = env::find_def_env(env_ref, key).unwrap().clone();
-            let mut env_ = env.borrow_mut();
+            let mut env = env_ref.borrow_mut();
 
-            if let Some(old) = env_.bindings.get_mut(&key) {
-                match old {
-                    &mut Datum::Vector(ref mut elements) => {
+            if let Some(binding) = env.find_def(&key) {
+                match *binding.borrow_mut() {
+                    Datum::Vector(ref mut elements) => {
                         if let Some(elem) = elements.get_mut(index as usize) {
                             *elem = value;
+                            Ok(TCOWrapper::Return(Datum::Undefined))
                         } else {
                             // TODO: Index out of bounds
-                            return Err(InvalidTypeOfArguments);
+                            Err(InvalidTypeOfArguments)
                         }
                     },
                     _ => {
-                        return Err(InvalidTypeOfArguments);
+                        Err(InvalidTypeOfArguments)
                     }
                 }
-                Ok(TCOWrapper::Return(Datum::Undefined))
             } else {
                 Err(DefinitionNotFound)
             }
@@ -366,13 +358,9 @@ impl Evaluator {
                 Expression::VectorPush(name, value) => self.eval_sf_vector_push(name, *value, env_ref),
                 Expression::VectorSet(name, index, value) => self.eval_sf_vector_set(name, *index, *value, env_ref),
                 Expression::Symbol(key) => {
-                    let env = env::find_def_env(env_ref, key).unwrap_or_else(||
-                        panic!("Can't find var {}", self.symbol_table.name(key))
-                    ).clone();
-                    let env_ = env.borrow();
-
-                    match env_.bindings.get(&key) {
-                        Some(value) => Ok(TCOWrapper::Return(value.clone())),
+                    let env = env_ref.borrow();
+                    match env.find_def(&key) {
+                        Some(value) => Ok(TCOWrapper::Return(value.borrow().clone())),
                         None => {
                             panic!("Key not found: {}", self.symbol_table.name(key));
                         }

@@ -7,12 +7,10 @@ use ::Datum;
 use ::Symbol;
 
 pub type EnvRef = Rc<RefCell<Env>>;
+pub type Binding = Rc<RefCell<Datum>>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Env {
-    pub bindings: HashMap<usize, Datum>,
-    pub parent: Option<EnvRef>
-}
+pub struct Env(HashMap<usize, Binding>);
 
 impl PartialOrd for Env {
     fn partial_cmp(&self, _: &Env) -> Option<Ordering> {
@@ -26,52 +24,54 @@ impl Ord for Env {
     }
 }
 
-pub fn find_def_env(env: EnvRef, key: Symbol) -> Option<EnvRef> {
-    let cloned = env.clone();
-    let e = cloned.borrow();
-    if e.bindings.contains_key(&key) {
-        return Some(env);
-    } else {
-        match e.parent {
-            Some(ref parent_ref) => { return find_def_env(parent_ref.clone(), key); },
-            None => { return None; },
-        };
-    }
-}
-
 impl Env {
     pub fn new(parent: Option<EnvRef>) -> Self {
-        Env { bindings: HashMap::new(), parent: parent }
+        match parent {
+            Some(env_ref) => {
+                let bindings = env_ref.borrow().0.clone();
+                Env(bindings)
+            },
+            None => {
+                Env(HashMap::new())
+            }
+        }
     }
 
+    pub fn find_def(&self, key: &Symbol) -> Option<Binding> {
+        match self.0.get(&key) {
+            Some(binding) => Some(binding.clone()),
+            None => None
+        }
+    }
+
+    pub fn contains_key(&self, key: &Symbol) -> bool {
+        self.0.contains_key(key)
+    }
     
     pub fn extend(&mut self, keys: Vec<Symbol>, values: Vec<Datum>) {
         for (k, v) in keys.iter().zip(values.iter()) {
-            self.bindings.insert(*k, v.clone());
+            self.0.insert(*k, Rc::new(RefCell::new(v.clone())));
         }
+    }
+
+    pub fn insert(&mut self, key: Symbol, value: Datum) {
+        self.0.insert(key, Rc::new(RefCell::new(value)));
     }
 
     pub fn define(&mut self, key: Symbol, value: Datum) -> bool {
-        if self.bindings.contains_key(&key) {
-            false
-        } else {
-            self.bindings.insert(key, value);
-            true
-        }
+        self.0.insert(key, Rc::new(RefCell::new(value)));
+        true
     }
 
     pub fn set(&mut self, key: Symbol, value: Datum) -> bool {
-        match self.bindings.get_mut(&key) {
+        match self.0.get_mut(&key) {
             Some(v) => {
-                *v = value;
-                return true;
+                *v.borrow_mut() = value;
+                true
             },
             None => {
-                match self.parent.clone() {
-                    Some(r) => { return r.borrow_mut().set(key, value); },
-                    None => { return false; },
-                };
+                false
             }
-        };
+        }
     }
 }
