@@ -8,7 +8,7 @@ use ::Arity;
 
 use ::builtin::register;
 
-fn string_bytes(vs: Vec<Datum>) -> LispResult {
+fn string_bytes(vs: &mut [Datum]) -> LispResult {
     if let Datum::Str(ref string) = vs[0] {
         let bytes = string.as_bytes().iter().map(
             |b| Datum::Number(*b as i64)
@@ -18,14 +18,14 @@ fn string_bytes(vs: Vec<Datum>) -> LispResult {
     Err(InvalidTypeOfArguments)
 }
 
-fn string_length(vs: Vec<Datum>) -> LispResult {
+fn string_length(vs: &mut [Datum]) -> LispResult {
     if let Datum::Str(ref string) = vs[0] {
         return Ok(Datum::Number(string.len() as i64));
     }
     Err(InvalidTypeOfArguments)
 }
 
-fn string_to_number(vs: Vec<Datum>) -> LispResult {
+fn string_to_number(vs: &mut [Datum]) -> LispResult {
     if let Datum::Str(ref string) = vs[0] {
         match string.parse::<i64>() {
             Ok(i) => {
@@ -39,7 +39,7 @@ fn string_to_number(vs: Vec<Datum>) -> LispResult {
     Err(InvalidTypeOfArguments)
 }
 
-fn string_split(vs: Vec<Datum>) -> LispResult {
+fn string_split(vs: &mut [Datum]) -> LispResult {
     if let Datum::Str(ref string) = vs[0] {
         if let Datum::Str(ref splitter) = vs[1] {
             let lines: Vec<Datum> =
@@ -52,12 +52,12 @@ fn string_split(vs: Vec<Datum>) -> LispResult {
     Err(InvalidTypeOfArguments)
 }
 
-fn string_join(vs: Vec<Datum>) -> LispResult {
+fn string_join(vs: &mut [Datum]) -> LispResult {
     let mut result = String::new();
 
     for v in vs.into_iter() {
         match v {
-            Datum::Str(s) => result += &s,
+            &mut Datum::Str(ref s) => result += s,
             other => result += &other.to_string(),
         }
     }

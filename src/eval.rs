@@ -3,6 +3,7 @@ use ::LispFn;
 use ::LispResult;
 use ::LispErr;
 use ::Promise;
+use ::Lambda;
 use ::LambdaType;
 use ::Expression;
 use ::Symbol;
@@ -138,20 +139,20 @@ impl Evaluator {
     //     }
     // }
 
-    pub fn apply(&mut self, f: Datum, evaled_args: Vec<Datum>) -> TCOResult {
+    pub fn apply(&mut self, f: Datum, mut evaled_args: Vec<Datum>) -> TCOResult {
         match f {
-            Datum::Lambda(env, params, body, lambda_type) => {
-                let mut child_env = Env::new(Some(env.clone()));
+            Datum::Lambda(lambda) => {
+                let mut child_env = Env::new(Some(lambda.env));
 
-                match lambda_type {
+                match lambda.kind {
                     LambdaType::Var => {
-                        child_env.define(params[0].clone(), Datum::List(evaled_args));
+                        child_env.define(lambda.params[0], Datum::List(evaled_args));
                     },
                     LambdaType::List => {
-                        if evaled_args.len() != params.len() {
+                        if evaled_args.len() != lambda.params.len() {
                             return Err(InvalidNumberOfArguments);
                         } else {
-                            child_env.extend(params, evaled_args);
+                            child_env.extend(lambda.params, evaled_args);
                         }
                     },
 
@@ -171,11 +172,11 @@ impl Evaluator {
                     }
                 }
 
-                Ok(TCOWrapper::TailCall((*body).clone(), Rc::new(RefCell::new(child_env))))
+                Ok(TCOWrapper::TailCall(*lambda.body, Rc::new(RefCell::new(child_env))))
             },
             Datum::Builtin(LispFn(fun, arity)) => {
                 arity.check(evaled_args.len());
-                Ok(TCOWrapper::Return(fun(evaled_args)?))
+                Ok(TCOWrapper::Return(fun(evaled_args.as_mut_slice())?))
             },
             _ => Err(InvalidTypeOfArguments),
         } 
@@ -219,8 +220,8 @@ impl Evaluator {
 
     fn eval_sf_if(&mut self, cond: Expression, cons: Expression, alt: Expression, env_ref: EnvRef) -> TCOResult {
         match self.eval(cond, env_ref.clone())? {
-            Datum::Bool(true) => Ok(TCOWrapper::TailCall(cons, env_ref.clone())),
-            Datum::Bool(false) => Ok(TCOWrapper::TailCall(alt, env_ref.clone())),
+            Datum::Bool(true) => Ok(TCOWrapper::TailCall(cons, env_ref)),
+            Datum::Bool(false) => Ok(TCOWrapper::TailCall(alt, env_ref)),
             _ => panic!("Condition of if must return a boolean"),
         }
     }
@@ -229,7 +230,7 @@ impl Evaluator {
         for e in expressions.into_iter() {
             self.eval(e, env_ref.clone())?;
         }
-        Ok(TCOWrapper::TailCall(last, env_ref.clone()))
+        Ok(TCOWrapper::TailCall(last, env_ref))
     }
 
     fn eval_sf_definition(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
@@ -303,7 +304,7 @@ impl Evaluator {
 
     fn eval_sf_symbol_function_call(&mut self, fun: Symbol, args: Vec<Expression>, env_ref: EnvRef) -> TCOResult {
         let f = self.eval(Expression::Symbol(fun), env_ref.clone())?;
-        let evaled_args = self.eval_list(args, env_ref.clone());
+        let evaled_args = self.eval_list(args, env_ref);
         self.apply(f, evaled_args)
     }
 
@@ -364,12 +365,12 @@ impl Evaluator {
                 },
                 Expression::FunctionCall(fun, args) => {
                     let f = self.eval(*fun, env_ref.clone())?;
-                    let evaled_args = self.eval_list(args, env_ref.clone());
+                    let evaled_args = self.eval_list(args, env_ref);
                     self.apply(f, evaled_args)
                 },
                 Expression::BuiltinFunctionCall(fun, args) => {
-                    let evaled_args = self.eval_list(args, env_ref.clone());
-                    Ok(TCOWrapper::Return(fun(evaled_args)?))
+                    let mut evaled_args = self.eval_list(args, env_ref);
+                    Ok(TCOWrapper::Return(fun(evaled_args.as_mut_slice())?))
                 },
                 Expression::SymbolFunctionCall(fun, args) => self.eval_sf_symbol_function_call(fun, args, env_ref),
                 Expression::SpecialFunctionCall(fun, args) => {
@@ -382,7 +383,7 @@ impl Evaluator {
                     }
                 },
                 Expression::LambdaDef(args, body, lambda_type) => {
-                    Ok(TCOWrapper::Return(Datum::Lambda(env_ref.clone(), args, body, lambda_type)))
+                    Ok(TCOWrapper::Return(Datum::Lambda(Lambda{ env: env_ref, params: args, body: body, kind: lambda_type })))
                 },
                 Expression::SelfEvaluating(v) => Ok(TCOWrapper::Return(*v)),
                 _ => panic!("Expression not valid in this context")

@@ -10,7 +10,7 @@ use ::Arity;
 
 use ::builtin::register;
 
-fn println(vs: Vec<Datum>) -> LispResult {
+fn println(vs: &mut [Datum]) -> LispResult {
         match vs[0] {
             // Print string without " around them
             Datum::Str(ref x) => print!("{}\n", x),
@@ -19,7 +19,7 @@ fn println(vs: Vec<Datum>) -> LispResult {
         Ok(Datum::Undefined)
 }
 
-fn print(vs: Vec<Datum>) -> LispResult {
+fn print(vs: &mut [Datum]) -> LispResult {
         match vs[0] {
             // Print string without " around them
             Datum::Str(ref x) => print!("{}", x),
@@ -28,19 +28,19 @@ fn print(vs: Vec<Datum>) -> LispResult {
         Ok(Datum::Undefined)
 }
 
-fn inspect(vs: Vec<Datum>) -> LispResult {
+fn inspect(vs: &mut [Datum]) -> LispResult {
         println!("{:?}", vs[0]);
         Ok(Datum::Undefined)
 }
 
-fn not(vs: Vec<Datum>) -> LispResult {
+fn not(vs: &mut [Datum]) -> LispResult {
         if let Datum::Bool(b) = vs[0] {
             return Ok(Datum::Bool(!b));
         }
         Err(InvalidTypeOfArguments)
 }
 
-fn file_read(vs: Vec<Datum>) -> LispResult {
+fn file_read(vs: &mut [Datum]) -> LispResult {
         if let Datum::Str(ref b) = vs[0] {
             match File::open(b) {
                 Ok(ref mut file) => {

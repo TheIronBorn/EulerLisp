@@ -19,7 +19,7 @@ mod string;
 pub fn register(
     hm: &mut HashMap<String, LispFn>,
     name: &str,
-    f: fn(Vec<Datum>) -> LispResult,
+    f: fn(&mut [Datum]) -> LispResult,
     arity: Arity
 ) {
     hm.insert(name.to_string(), LispFn(f, arity));

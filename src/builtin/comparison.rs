@@ -7,27 +7,27 @@ use ::Arity;
 
 use ::builtin::register;
 
-fn eq(vs: Vec<Datum>) -> LispResult {
+fn eq(vs: &mut [Datum]) -> LispResult {
     Ok(Datum::Bool(vs[0] == vs[1]))
 }
 
-fn neq(vs: Vec<Datum>) -> LispResult {
+fn neq(vs: &mut [Datum]) -> LispResult {
     Ok(Datum::Bool(vs[0] != vs[1]))
 }
 
-fn lt(vs: Vec<Datum>) -> LispResult {
+fn lt(vs: &mut [Datum]) -> LispResult {
     Ok(Datum::Bool(vs[0] < vs[1]))
 }
 
-fn gt(vs: Vec<Datum>) -> LispResult {
+fn gt(vs: &mut [Datum]) -> LispResult {
     Ok(Datum::Bool(vs[0] > vs[1]))
 }
 
-fn lte(vs: Vec<Datum>) -> LispResult {
+fn lte(vs: &mut [Datum]) -> LispResult {
     Ok(Datum::Bool(vs[0] <= vs[1]))
 }
 
-fn gte(vs: Vec<Datum>) -> LispResult {
+fn gte(vs: &mut [Datum]) -> LispResult {
     Ok(Datum::Bool(vs[0] >= vs[1]))
 }
 

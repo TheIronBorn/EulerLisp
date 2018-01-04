@@ -6,6 +6,7 @@
 ; * Improve to 2:30 by skipping multiple steps
 ;   switching on n % 4
 ; * Improve to 2:20 by using func refs instead of rc lambdas
+; * Improve to 1:40 by removing some `.clone()`s
 ; TODO: Solve in < 60s
 
 (defn collatz-length (n) (helper n 1))

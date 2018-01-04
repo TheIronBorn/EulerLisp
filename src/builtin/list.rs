@@ -8,58 +8,53 @@ use ::Arity;
 
 use ::builtin::register;
 
-fn cons(vs: Vec<Datum>) -> LispResult {
-    // TODO: Can this be done without clone?
-    let fst = vs[0].clone();
-    let rst = vs[1].clone();
+fn cons(vs: &mut[Datum]) -> LispResult {
+    let fst = vs[0].take();
+    let rst = vs[1].take();
 
     match rst {
         Datum::Nil => Ok(Datum::List(vec![fst])),
-        Datum::DottedList(ref elems, ref tail) => {
-            let mut new = elems.clone();
-            new.insert(0, fst);
-            Ok(Datum::DottedList(new, tail.clone()))
+        Datum::DottedList(mut elems, tail) => {
+            elems.insert(0, fst);
+            Ok(Datum::DottedList(elems, tail))
         },
-        Datum::List(ref elems) => {
-            let mut new = elems.clone();
-            new.insert(0, fst);
-            Ok(Datum::List(new))
+        Datum::List(mut elems) => {
+            elems.insert(0, fst);
+            Ok(Datum::List(elems))
         },
         other => Ok(Datum::DottedList(vec!(fst), Box::new(other))),
     }
 }
 
-fn fst(vs: Vec<Datum>) -> LispResult {
-    match vs[0] {
+fn fst(vs: &mut [Datum]) -> LispResult {
+    match vs[0].take() {
         // TODO: find some way to ensure dotted list size >= 2
-        Datum::DottedList(ref elems, _) => {
-            Ok(elems.first().unwrap().clone())
+        Datum::DottedList(mut elems, _) => {
+            Ok(elems[0].take())
         },
-        Datum::List(ref elems) => {
-            Ok(elems.first().unwrap().clone())
+        Datum::List(mut elems) => {
+            Ok(elems[0].take())
         },
         _ => Err(InvalidTypeOfArguments)
     }
 }
 
-fn rst(vs: Vec<Datum>) -> LispResult {
-    match vs[0] {
+fn rst(vs: &mut [Datum]) -> LispResult {
+    match vs[0].take() {
         // TODO: find some way to ensure dotted list size >= 2
-        Datum::DottedList(ref elems, ref tail) => {
+        Datum::DottedList(elems, tail) => {
             if elems.len() == 1 {
-                // What is this strange creature?
-                // ** unboxes a ref to a box
-                Ok((**tail).clone())
+                Ok(*tail)
             } else {
-                let rest: Vec<Datum> = elems[1..].iter().map(|v| v.clone()).collect();
-                Ok(Datum::DottedList(rest, tail.clone()))
+                let rest: Vec<Datum> = elems[1..].to_vec();
+                Ok(Datum::DottedList(rest, tail))
             }
         },
         Datum::List(ref elems) => {
             if elems.len() == 1 {
                 Ok(Datum::Nil)
             } else {
-                let rest: Vec<Datum> = elems[1..].iter().map(|v| v.clone()).collect();
+                let rest: Vec<Datum> = elems[1..].to_vec();
                 Ok(Datum::List(rest))
             }
         },
@@ -67,32 +62,32 @@ fn rst(vs: Vec<Datum>) -> LispResult {
     }
 }
 
-fn list(vs: Vec<Datum>) -> LispResult {
+fn list(vs: &mut [Datum]) -> LispResult {
     if vs.len() == 0 {
         Ok(Datum::Nil)
     } else {
-        Ok(Datum::List(vs))
+        Ok(Datum::List(vs.to_vec()))
     }
 }
 
-fn make_vector(vs: Vec<Datum>) -> LispResult {
+fn make_vector(vs: &mut [Datum]) -> LispResult {
     if let Datum::Number(len) = vs[0] {
-        let default = &vs[1];
-        let vector = vec![default.clone(); len as usize];
+        let default = vs[1].take();
+        let vector = vec![default; len as usize];
         Ok(Datum::Vector(vector))
     } else {
         Err(InvalidTypeOfArguments)
     }
 }
 
-fn nth(vs: Vec<Datum>) -> LispResult {
+fn nth(vs: &mut [Datum]) -> LispResult {
     if let Datum::Number(n) = vs[0] {
-        match vs[1] {
-            Datum::List(ref elems) => {
-                Ok(elems.get(n as usize).expect("Index out of bounds").clone())
+        match vs[1].take() {
+            Datum::List(mut elems) => {
+                Ok(elems.get_mut(n as usize).expect("Index out of bounds").take())
             },
-            Datum::Vector(ref elems) => {
-                Ok(elems.get(n as usize).expect("Index out of bounds").clone())
+            Datum::Vector(mut elems) => {
+                Ok(elems.get_mut(n as usize).expect("Index out of bounds").take())
             },
             _ => {
                 Err(InvalidTypeOfArguments)
@@ -103,7 +98,7 @@ fn nth(vs: Vec<Datum>) -> LispResult {
     }
 }
 
-fn length(vs: Vec<Datum>) -> LispResult {
+fn length(vs: &mut [Datum]) -> LispResult {
     match vs[0] {
         Datum::Nil => Ok(Datum::Number(0)),
         Datum::List(ref elems) => {
@@ -119,28 +114,26 @@ fn length(vs: Vec<Datum>) -> LispResult {
     }
 }
 
-fn append(vs: Vec<Datum>) -> LispResult {
-    match vs[0] {
+fn append(vs: &mut [Datum]) -> LispResult {
+    match vs[0].take() {
         Datum::Nil => {
-            Ok(vs[1].clone())
+            Ok(vs[1].take())
         },
-        Datum::List(ref elems) => {
-            match vs[1] {
-                Datum::List(ref elems2) => {
-                    let mut new_elems = elems.clone();
-                    new_elems.extend(elems2.iter().cloned());
-                    Ok(Datum::List(new_elems))
+        Datum::List(mut elems) => {
+            match vs[1].take() {
+                Datum::List(elems2) => {
+                    elems.extend(elems2);
+                    Ok(Datum::List(elems))
                 },
-                Datum::DottedList(ref elems2, ref tail) => {
-                    let mut new_elems = elems.clone();
-                    new_elems.extend(elems2.iter().cloned());
-                    Ok(Datum::DottedList(new_elems, tail.clone()))
+                Datum::DottedList(elems2, tail) => {
+                    elems.extend(elems2);
+                    Ok(Datum::DottedList(elems, tail))
                 },
                 Datum::Nil => {
-                    Ok(Datum::List(elems.clone()))
+                    Ok(Datum::List(elems))
                 },
-                ref other => {
-                    Ok(Datum::DottedList(elems.clone(), Box::new(other.clone())))
+                other => {
+                    Ok(Datum::DottedList(elems, Box::new(other)))
                 }
             }
         },
@@ -148,45 +141,42 @@ fn append(vs: Vec<Datum>) -> LispResult {
     }
 }
 
-fn push(vs: Vec<Datum>) -> LispResult {
-    match vs[0] {
+fn push(vs: &mut [Datum]) -> LispResult {
+    match vs[0].take() {
         Datum::Nil => {
-            Ok(Datum::List(vec!(vs[1].clone())))
+            Ok(Datum::List(vec!(vs[1].take())))
         },
-        Datum::List(ref elems) => {
-            let mut new_elems = elems.clone();
-            new_elems.push(vs[1].clone());
-            Ok(Datum::List(new_elems))
+        Datum::List(mut elems) => {
+            elems.push(vs[1].take());
+            Ok(Datum::List(elems))
         },
         _ => Err(InvalidTypeOfArguments)
     }
 }
 
-fn reverse(vs: Vec<Datum>) -> LispResult {
-    match vs[0] {
-        Datum::List(ref elems) => {
-            let new_elems = elems.iter().rev().cloned().collect();
-            Ok(Datum::List(new_elems))
+fn reverse(vs: &mut [Datum]) -> LispResult {
+    match vs[0].take() {
+        Datum::List(mut elems) => {
+            elems.reverse();
+            Ok(Datum::List(elems))
         },
-        Datum::Vector(ref elems) => {
-            let new_elems = elems.iter().rev().cloned().collect();
-            Ok(Datum::Vector(new_elems))
+        Datum::Vector(mut elems) => {
+            elems.reverse();
+            Ok(Datum::Vector(elems))
         },
         _ => Err(InvalidTypeOfArguments),
     }
 }
 
-fn sort(vs: Vec<Datum>) -> LispResult {
-    match vs[0] {
-        Datum::List(ref elems) => {
-            let mut new_elems = elems.clone();
-            new_elems.sort();
-            Ok(Datum::List(new_elems))
+fn sort(vs: &mut [Datum]) -> LispResult {
+    match vs[0].take() {
+        Datum::List(mut elems) => {
+            elems.sort();
+            Ok(Datum::List(elems))
         },
-        Datum::Vector(ref elems) => {
-            let mut new_elems = elems.clone();
-            new_elems.sort();
-            Ok(Datum::Vector(new_elems))
+        Datum::Vector(mut elems) => {
+            elems.sort();
+            Ok(Datum::Vector(elems))
         },
         _ => Err(InvalidTypeOfArguments),
     }

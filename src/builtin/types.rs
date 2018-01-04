@@ -7,15 +7,15 @@ use ::Arity;
 
 use ::builtin::register;
 
-fn pair_questionmark(vs: Vec<Datum>) -> LispResult {
+fn pair_questionmark(vs: &mut [Datum]) -> LispResult {
     Ok(Datum::Bool(vs[0].is_pair()))
 }
 
-fn list_questionmark(vs: Vec<Datum>) -> LispResult {
+fn list_questionmark(vs: &mut [Datum]) -> LispResult {
     Ok(Datum::Bool(vs[0].is_list()))
 }
 
-fn nil_qustionmark(vs: Vec<Datum>) -> LispResult {
+fn nil_qustionmark(vs: &mut [Datum]) -> LispResult {
     Ok(Datum::Bool(vs[0].is_nil()))
 }
 
