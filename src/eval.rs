@@ -36,19 +36,19 @@ pub enum TCOWrapper {
     TailCall(Expression, EnvRef),
 }
 
-pub struct ContWrapper {
-    expression: Expression,
-    environment: Env,
-    continuation: Continuation
-}
+// pub struct ContWrapper {
+//     expression: Expression,
+//     environment: Env,
+//     continuation: Continuation
+// }
 
-enum Continuation {
-    If(Expression, Expression, Env, Box<Continuation>),
-    Print,
-    Do(Vec<Expression>, Env),
-    Set(Symbol, Env),
-    Define(Symbol, Env),
-}
+// enum Continuation {
+//     If(Expression, Expression, Env, Box<Continuation>),
+//     Print,
+//     Do(Vec<Expression>, Env),
+//     Set(Symbol, Env),
+//     Define(Symbol, Env),
+// }
 
 // trait Continuation {
 //     fn resume(&self, value: Datum) -> LispResult;
@@ -56,8 +56,7 @@ enum Continuation {
 
 impl Evaluator {
     pub fn new() -> Self {
-        let mut symbol_table = SymbolTable::new();
-
+        let symbol_table = SymbolTable::new();
         let mut builtins: HashMap<String, LispFn> = HashMap::new(); 
         builtin::load(&mut builtins);
 
@@ -139,7 +138,7 @@ impl Evaluator {
     //     }
     // }
 
-    pub fn apply(&mut self, f: Datum, evaled_args: Vec<Datum>, env_ref: EnvRef) -> TCOResult {
+    pub fn apply(&mut self, f: Datum, evaled_args: Vec<Datum>) -> TCOResult {
         match f {
             Datum::Lambda(env, params, body, lambda_type) => {
                 let mut child_env = Env::new(Some(env.clone()));
@@ -237,16 +236,13 @@ impl Evaluator {
         let value = self.eval(value, env_ref.clone())?;
         let mut env_ = env_ref.borrow_mut();
 
-        if env_.define(key, value) {
-            Ok(TCOWrapper::Return(Datum::Undefined))
-        } else {
-            Err(DefinitionAlreadyDefined)
-        }
+        env_.define(key, value);
+        Ok(TCOWrapper::Return(Datum::Undefined))
     }
 
     fn eval_sf_assignment(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
         let value = self.eval(value, env_ref.clone())?;
-        let mut env = env_ref.borrow_mut();
+        let env = env_ref.borrow();
 
         if let Some(binding) = env.find_def(&key) {
             (*binding.borrow_mut()) = value;
@@ -258,7 +254,7 @@ impl Evaluator {
 
     fn eval_sf_vector_push(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
         let value = self.eval(value, env_ref.clone())?;
-        let mut env = env_ref.borrow_mut();
+        let env = env_ref.borrow();
 
         if let Some(binding) = env.find_def(&key) {
             match *binding.borrow_mut() {
@@ -280,7 +276,7 @@ impl Evaluator {
         let value = self.eval(value, env_ref.clone())?;
 
         if let Datum::Number(index) = vindex {
-            let mut env = env_ref.borrow_mut();
+            let env = env_ref.borrow();
 
             if let Some(binding) = env.find_def(&key) {
                 match *binding.borrow_mut() {
@@ -308,20 +304,20 @@ impl Evaluator {
     fn eval_sf_symbol_function_call(&mut self, fun: Symbol, args: Vec<Expression>, env_ref: EnvRef) -> TCOResult {
         let f = self.eval(Expression::Symbol(fun), env_ref.clone())?;
         let evaled_args = self.eval_list(args, env_ref.clone());
-        self.apply(f, evaled_args, env_ref)
+        self.apply(f, evaled_args)
     }
 
-    fn eval_special_apply(&mut self, args: Vec<Datum>, env_ref: EnvRef) -> TCOResult {
+    fn eval_special_apply(&mut self, args: Vec<Datum>) -> TCOResult {
         let f = args.get(0).unwrap();
         let argslist = args.get(1).unwrap();
         if let Datum::List(ref args_) = *argslist {
-            self.apply(f.clone(), args_.clone(), env_ref)
+            self.apply(f.clone(), args_.clone())
         } else {
             Err(InvalidTypeOfArguments)
         }
     }
 
-    fn eval_special_read(&mut self, args: Vec<Datum>, _: EnvRef) -> TCOResult {
+    fn eval_special_read(&mut self, args: Vec<Datum>) -> TCOResult {
         let arg = args.get(0).unwrap();
         if let Datum::Str(ref input) = *arg {
             let result = parser::parse_datum(input.as_ref());
@@ -369,7 +365,7 @@ impl Evaluator {
                 Expression::FunctionCall(fun, args) => {
                     let f = self.eval(*fun, env_ref.clone())?;
                     let evaled_args = self.eval_list(args, env_ref.clone());
-                    self.apply(f, evaled_args, env_ref)
+                    self.apply(f, evaled_args)
                 },
                 Expression::BuiltinFunctionCall(fun, args) => {
                     let evaled_args = self.eval_list(args, env_ref.clone());
@@ -379,9 +375,9 @@ impl Evaluator {
                 Expression::SpecialFunctionCall(fun, args) => {
                     let evaled_args = self.eval_list(args, env_ref.clone());
                     match fun.as_ref() {
-                        "apply" => self.eval_special_apply(evaled_args, env_ref),
+                        "apply" => self.eval_special_apply(evaled_args),
                         "eval" => self.eval_special_eval(evaled_args, env_ref),
-                        "read" => self.eval_special_read(evaled_args, env_ref),
+                        "read" => self.eval_special_read(evaled_args),
                         _ => panic!("Unknown builtin function: {}", fun)
                     }
                 },

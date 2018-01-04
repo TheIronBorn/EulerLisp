@@ -58,9 +58,8 @@ impl Env {
         self.0.insert(key, Rc::new(RefCell::new(value)));
     }
 
-    pub fn define(&mut self, key: Symbol, value: Datum) -> bool {
+    pub fn define(&mut self, key: Symbol, value: Datum) {
         self.0.insert(key, Rc::new(RefCell::new(value)));
-        true
     }
 
     pub fn set(&mut self, key: Symbol, value: Datum) -> bool {
