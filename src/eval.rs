@@ -37,6 +37,25 @@ pub enum TCOWrapper {
     TailCall(Expression, EnvRef),
 }
 
+pub struct ContWrapper {
+    expression: Expression,
+    environment: Env,
+    continuation: Continuation
+}
+
+enum Continuation {
+    If(Expression, Expression, Env, Box<Continuation>),
+    Print,
+    Do(Vec<Expression>, Env),
+    Set(Symbol, Env),
+    Define(Symbol, Env),
+
+}
+
+// trait Continuation {
+//     fn resume(&self, value: Datum) -> LispResult;
+// }
+
 impl Evaluator {
     pub fn new() -> Self {
         let mut symbol_table = SymbolTable::new();
