@@ -32,8 +32,8 @@
              (cons k2 v2)
              (merge a1 (rst a2)))))))))
 
-(def factors (map prime-factors (range from to)))
-(def max_factors (reduce merge '() factors))
+(def factors_ (map prime-factors (range from to)))
+(def max_factors (reduce merge '() factors_))
 
 (println
   (reduce (fn (factor acc)

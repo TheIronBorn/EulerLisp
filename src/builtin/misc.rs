@@ -6,11 +6,11 @@ use ::Datum;
 use ::LispFn;
 use ::LispErr::*;
 use ::LispResult;
+use ::Arity;
 
 use ::builtin::register;
 
 fn println(vs: Vec<Datum>) -> LispResult {
-        check_arity!(vs, 1);
         match vs[0] {
             // Print string without " around them
             Datum::Str(ref x) => print!("{}\n", x),
@@ -20,7 +20,6 @@ fn println(vs: Vec<Datum>) -> LispResult {
 }
 
 fn print(vs: Vec<Datum>) -> LispResult {
-        check_arity!(vs, 1);
         match vs[0] {
             // Print string without " around them
             Datum::Str(ref x) => print!("{}", x),
@@ -30,13 +29,11 @@ fn print(vs: Vec<Datum>) -> LispResult {
 }
 
 fn inspect(vs: Vec<Datum>) -> LispResult {
-        check_arity!(vs, 1);
         println!("{:?}", vs[0]);
         Ok(Datum::Undefined)
 }
 
 fn not(vs: Vec<Datum>) -> LispResult {
-        check_arity!(vs, 1);
         if let Datum::Bool(b) = vs[0] {
             return Ok(Datum::Bool(!b));
         }
@@ -44,7 +41,6 @@ fn not(vs: Vec<Datum>) -> LispResult {
 }
 
 fn file_read(vs: Vec<Datum>) -> LispResult {
-        check_arity!(vs, 1);
         if let Datum::Str(ref b) = vs[0] {
             match File::open(b) {
                 Ok(ref mut file) => {
@@ -61,9 +57,9 @@ fn file_read(vs: Vec<Datum>) -> LispResult {
 }
 
 pub fn load(hm: &mut HashMap<String, LispFn>) {
-    register(hm, "println", println);
-    register(hm, "print", print);
-    register(hm, "inspect", inspect);
-    register(hm, "not", not);
-    register(hm, "file-read", file_read);
+    register(hm, "println", println, Arity::Exact(1));
+    register(hm, "print", print, Arity::Exact(1));
+    register(hm, "inspect", inspect, Arity::Exact(1));
+    register(hm, "not", not, Arity::Exact(1));
+    register(hm, "file-read", file_read, Arity::Exact(1));
 }

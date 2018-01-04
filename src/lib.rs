@@ -46,7 +46,37 @@ impl fmt::Display for LispErr {
     }
 }
 
-type LispFn = fn(Vec<Datum>) -> LispResult;
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
+pub enum Arity {
+    Exact(usize),
+    Range(usize, usize),
+    Min(usize)
+}
+
+impl Arity {
+    fn check(&self, provided: usize) {
+        match *self {
+            Arity::Exact(a) => {
+                if a != provided {
+                    panic!("Expected {} arguments, got {}", a, provided);
+                }
+            },
+            Arity::Min(a) => {
+                if a > provided {
+                    panic!("Expected at least {} arguments, got {}", a, provided);
+                }
+            },
+            Arity::Range(a, b) => {
+                if provided < a || provided > b {
+                    panic!("Expected between {} and {} arguments, got {}", a, b, provided);
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
+pub struct LispFn(fn(Vec<Datum>) -> LispResult, Arity);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Promise {
@@ -193,7 +223,7 @@ pub enum Expression {
     VectorPush(Symbol, Box<Expression>),
     VectorSet(Symbol, Box<Expression>, Box<Expression>),
     DirectFunctionCall(Symbol, Vec<Expression>),
-    BuiltinFunctionCall(LispFn, Vec<Expression>),
+    BuiltinFunctionCall(fn(Vec<Datum>)->LispResult, Vec<Expression>),
     SpecialFunctionCall(String, Vec<Expression>),
     SymbolFunctionCall(Symbol, Vec<Expression>),
     FunctionCall(Box<Expression>, Vec<Expression>),

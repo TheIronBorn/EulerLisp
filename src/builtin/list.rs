@@ -4,11 +4,11 @@ use ::LispFn;
 use ::Datum;
 use ::LispErr::*;
 use ::LispResult;
+use ::Arity;
 
 use ::builtin::register;
 
 fn cons(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 2);
     // TODO: Can this be done without clone?
     let fst = vs[0].clone();
     let rst = vs[1].clone();
@@ -30,7 +30,6 @@ fn cons(vs: Vec<Datum>) -> LispResult {
 }
 
 fn fst(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 1);
     match vs[0] {
         // TODO: find some way to ensure dotted list size >= 2
         Datum::DottedList(ref elems, _) => {
@@ -44,7 +43,6 @@ fn fst(vs: Vec<Datum>) -> LispResult {
 }
 
 fn rst(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 1);
     match vs[0] {
         // TODO: find some way to ensure dotted list size >= 2
         Datum::DottedList(ref elems, ref tail) => {
@@ -78,12 +76,8 @@ fn list(vs: Vec<Datum>) -> LispResult {
 }
 
 fn make_vector(vs: Vec<Datum>) -> LispResult {
-    if vs.len() < 1 || vs.len() > 2 {
-        return Err(InvalidNumberOfArguments);
-    }
-
-    if let Datum::Number(len) = *vs.get(0).unwrap() {
-        let default = vs.get(1).unwrap_or(&Datum::Undefined);
+    if let Datum::Number(len) = vs[0] {
+        let default = &vs[1];
         let vector = vec![default.clone(); len as usize];
         Ok(Datum::Vector(vector))
     } else {
@@ -92,8 +86,6 @@ fn make_vector(vs: Vec<Datum>) -> LispResult {
 }
 
 fn nth(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 2);
-    // TODO: Handle index out of bounds error
     if let Datum::Number(n) = vs[0] {
         match vs[1] {
             Datum::List(ref elems) => {
@@ -112,7 +104,6 @@ fn nth(vs: Vec<Datum>) -> LispResult {
 }
 
 fn length(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 1);
     match vs[0] {
         Datum::Nil => Ok(Datum::Number(0)),
         Datum::List(ref elems) => {
@@ -129,7 +120,6 @@ fn length(vs: Vec<Datum>) -> LispResult {
 }
 
 fn append(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 2);
     match vs[0] {
         Datum::Nil => {
             Ok(vs[1].clone())
@@ -159,7 +149,6 @@ fn append(vs: Vec<Datum>) -> LispResult {
 }
 
 fn push(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 2);
     match vs[0] {
         Datum::Nil => {
             Ok(Datum::List(vec!(vs[1].clone())))
@@ -174,8 +163,6 @@ fn push(vs: Vec<Datum>) -> LispResult {
 }
 
 fn reverse(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 1);
-
     match vs[0] {
         Datum::List(ref elems) => {
             let new_elems = elems.iter().rev().cloned().collect();
@@ -190,8 +177,6 @@ fn reverse(vs: Vec<Datum>) -> LispResult {
 }
 
 fn sort(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 1);
-
     match vs[0] {
         Datum::List(ref elems) => {
             let mut new_elems = elems.clone();
@@ -208,15 +193,15 @@ fn sort(vs: Vec<Datum>) -> LispResult {
 }
 
 pub fn load(hm: &mut HashMap<String, LispFn>) {
-    register(hm, "cons", cons);
-    register(hm, "fst", fst);
-    register(hm, "rst", rst);
-    register(hm, "list", list);
-    register(hm, "make-vector", make_vector);
-    register(hm, "nth", nth);
-    register(hm, "length", length);
-    register(hm, "append", append);
-    register(hm, "push", push);
-    register(hm, "reverse", reverse);
-    register(hm, "sort", sort);
+    register(hm, "cons", cons, Arity::Exact(2));
+    register(hm, "fst", fst, Arity::Exact(1));
+    register(hm, "rst", rst, Arity::Exact(1));
+    register(hm, "list", list, Arity::Min(0));
+    register(hm, "make-vector", make_vector, Arity::Range(1, 2));
+    register(hm, "nth", nth, Arity::Exact(2));
+    register(hm, "length", length, Arity::Exact(1));
+    register(hm, "append", append, Arity::Exact(2));
+    register(hm, "push", push, Arity::Exact(2));
+    register(hm, "reverse", reverse, Arity::Exact(1));
+    register(hm, "sort", sort, Arity::Exact(1));
 }

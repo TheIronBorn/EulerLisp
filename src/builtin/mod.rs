@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use ::Datum;
 use ::LispFn;
+use ::LispResult;
+use ::Arity;
 
 mod list;
 mod math;
@@ -14,8 +16,13 @@ mod string;
 // that special forms choose if they want to eval their arguments themselves,
 // builtins are called with evaluated arguments
 
-pub fn register(hm: &mut HashMap<String, LispFn>, name: &str, f: LispFn) {
-    hm.insert(name.to_string(), f);
+pub fn register(
+    hm: &mut HashMap<String, LispFn>,
+    name: &str,
+    f: fn(Vec<Datum>) -> LispResult,
+    arity: Arity
+) {
+    hm.insert(name.to_string(), LispFn(f, arity));
 }
 
 pub fn load(hm: &mut HashMap<String, LispFn>) {

@@ -5,6 +5,7 @@ use ::LispFn;
 use ::Datum;
 use ::LispErr::*;
 use ::LispResult;
+use ::Arity;
 
 use ::builtin::register;
 
@@ -74,7 +75,6 @@ fn det_miller_rabin(n: i64) -> bool {
 }
 
 fn prime_questionmark(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 1);
     if let Datum::Number(n) = vs[0] {
         return Ok(Datum::Bool(det_miller_rabin(n)))
     }
@@ -120,10 +120,6 @@ fn mult(vs: Vec<Datum>) -> LispResult {
 }
 
 fn max(vs: Vec<Datum>) -> LispResult {
-    if vs.len() == 0 {
-        return Err(InvalidNumberOfArguments);
-    }
-
     let first = vs.get(0).unwrap();
     if let Datum::Number(mut res) = *first {
         for v in vs.iter().skip(1) {
@@ -142,10 +138,6 @@ fn max(vs: Vec<Datum>) -> LispResult {
 }
 
 fn min(vs: Vec<Datum>) -> LispResult {
-    if vs.len() == 0 {
-        return Err(InvalidNumberOfArguments);
-    }
-
     let first = vs.get(0).unwrap();
     if let Datum::Number(mut res) = *first {
         for v in vs.iter().skip(1) {
@@ -164,7 +156,6 @@ fn min(vs: Vec<Datum>) -> LispResult {
 }
 
 fn isqrt(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 1);
     if let Datum::Number(a) = vs[0] {
         let res = (a as f64).sqrt() as i64;
         return Ok(Datum::Number(res));
@@ -173,7 +164,6 @@ fn isqrt(vs: Vec<Datum>) -> LispResult {
 }
 
 fn inc(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 1);
     if let Datum::Number(a) = vs[0] {
         return Ok(Datum::Number(a + 1));
     }
@@ -181,7 +171,6 @@ fn inc(vs: Vec<Datum>) -> LispResult {
 }
 
 fn dec(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 1);
     if let Datum::Number(a) = vs[0] {
         return Ok(Datum::Number(a - 1));
     }
@@ -189,7 +178,6 @@ fn dec(vs: Vec<Datum>) -> LispResult {
 }
 
 fn zero_questionmark(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 1);
     if let Datum::Number(a) = vs[0] {
         return Ok(Datum::Bool(a == 0));
     }
@@ -197,7 +185,6 @@ fn zero_questionmark(vs: Vec<Datum>) -> LispResult {
 }
 
 fn divides_questionmark(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 2);
     if let Datum::Number(a) = vs[0] {
         if let Datum::Number(b) = vs[1] {
             return Ok(Datum::Bool((b % a) == 0));
@@ -207,7 +194,6 @@ fn divides_questionmark(vs: Vec<Datum>) -> LispResult {
 }
 
 fn even_questionmark(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 1);
     if let Datum::Number(a) = vs[0] {
         return Ok(Datum::Bool((a % 2) == 0));
     }
@@ -215,7 +201,6 @@ fn even_questionmark(vs: Vec<Datum>) -> LispResult {
 }
 
 fn odd_questionmark(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 1);
     if let Datum::Number(a) = vs[0] {
         return Ok(Datum::Bool((a % 2) == 1));
     }
@@ -223,7 +208,6 @@ fn odd_questionmark(vs: Vec<Datum>) -> LispResult {
 }
 
 fn div(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 2);
     if let Datum::Number(a) = vs[0] {
         if let Datum::Number(b) = vs[1] {
             return Ok(Datum::Number(a / b));
@@ -233,7 +217,6 @@ fn div(vs: Vec<Datum>) -> LispResult {
 }
 
 fn shift_left(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 2);
     if let Datum::Number(a) = vs[0] {
         if let Datum::Number(b) = vs[1] {
             return Ok(Datum::Number(a >> b));
@@ -243,7 +226,6 @@ fn shift_left(vs: Vec<Datum>) -> LispResult {
 }
 
 fn shift_right(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 2);
     if let Datum::Number(a) = vs[0] {
         if let Datum::Number(b) = vs[1] {
             return Ok(Datum::Number(a << b));
@@ -253,7 +235,6 @@ fn shift_right(vs: Vec<Datum>) -> LispResult {
 }
 
 fn modulo(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 2);
     if let Datum::Number(a) = vs[0] {
         if let Datum::Number(b) = vs[1] {
             return Ok(Datum::Number(a % b));
@@ -263,7 +244,6 @@ fn modulo(vs: Vec<Datum>) -> LispResult {
 }
 
 fn divmod(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 2);
     if let Datum::Number(a) = vs[0] {
         if let Datum::Number(b) = vs[1] {
             return Ok(
@@ -278,7 +258,6 @@ fn divmod(vs: Vec<Datum>) -> LispResult {
 }
 
 fn builtin_modexp(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 3);
     if let Datum::Number(b) = vs[0] {
         if let Datum::Number(e) = vs[1] {
             if let Datum::Number(m) = vs[2] {
@@ -290,7 +269,6 @@ fn builtin_modexp(vs: Vec<Datum>) -> LispResult {
 }
 
 fn rand(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 2);
     if let Datum::Number(a) = vs[0] {
         if let Datum::Number(b) = vs[1] {
             return Ok(Datum::Number(thread_rng().gen_range(a, b + 1)));
@@ -300,7 +278,6 @@ fn rand(vs: Vec<Datum>) -> LispResult {
 }
 
 fn factors(vs: Vec<Datum>) -> LispResult {
-    check_arity!(vs, 1);
     if let Datum::Number(a) = vs[0] {
         let mut result: Vec<Datum> = Vec::new();
         let root = (a as f64).sqrt() as i64;
@@ -325,25 +302,25 @@ fn factors(vs: Vec<Datum>) -> LispResult {
 }
 
 pub fn load(hm: &mut HashMap<String, LispFn>) {
-    register(hm, "prime?", prime_questionmark);
-    register(hm, "+", add);
-    register(hm, "-", subtract);
-    register(hm, "*", mult);
-    register(hm, "max", max);
-    register(hm, "min", min);
-    register(hm, "isqrt", isqrt);
-    register(hm, "inc", inc);
-    register(hm, "dec", dec);
-    register(hm, "divides?", divides_questionmark);
-    register(hm, "zero?", zero_questionmark);
-    register(hm, "even?", even_questionmark);
-    register(hm, "odd?", odd_questionmark);
-    register(hm, "/", div);
-    register(hm, ">>", shift_left);
-    register(hm, "<<", shift_right);
-    register(hm, "%", modulo);
-    register(hm, "divmod", divmod);
-    register(hm, "modexp", builtin_modexp);
-    register(hm, "rand", rand);
-    register(hm, "factors", factors);
+    register(hm, "prime?", prime_questionmark, Arity::Exact(1));
+    register(hm, "+", add, Arity::Min(2));
+    register(hm, "-", subtract, Arity::Min(1));
+    register(hm, "*", mult, Arity::Min(2));
+    register(hm, "max", max, Arity::Min(2));
+    register(hm, "min", min, Arity::Min(2));
+    register(hm, "isqrt", isqrt, Arity::Exact(1));
+    register(hm, "inc", inc, Arity::Exact(1));
+    register(hm, "dec", dec, Arity::Exact(1));
+    register(hm, "divides?", divides_questionmark, Arity::Exact(2));
+    register(hm, "zero?", zero_questionmark, Arity::Exact(1));
+    register(hm, "even?", even_questionmark, Arity::Exact(1));
+    register(hm, "odd?", odd_questionmark, Arity::Exact(1));
+    register(hm, "/", div, Arity::Exact(2));
+    register(hm, ">>", shift_left, Arity::Exact(2));
+    register(hm, "<<", shift_right, Arity::Exact(2));
+    register(hm, "%", modulo, Arity::Exact(2));
+    register(hm, "divmod", divmod, Arity::Exact(2));
+    register(hm, "modexp", builtin_modexp, Arity::Exact(3));
+    register(hm, "rand", rand, Arity::Exact(2));
+    register(hm, "factors", factors, Arity::Exact(1));
 }

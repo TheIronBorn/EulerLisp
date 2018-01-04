@@ -322,15 +322,17 @@ pub fn preprocess(
                             Ok(Expression::SpecialFunctionCall(v.to_string(), exprs?))
                         }
                         other => {
-                            let exprs: Result<Vec<Expression>, LispErr> = args.into_iter()
+                            let maybe_exprs: Result<Vec<Expression>, LispErr> = args.into_iter()
                                 .map( |arg| preprocess(arg.clone(), symbol_table, builtins) ).collect();
+                            let exprs = maybe_exprs?;
                             match builtins.get(other.clone()) {
-                                Some(fun) => {
-                                    Ok(Expression::BuiltinFunctionCall(*fun, exprs?))
+                                Some(&LispFn(ref fun, ref arity)) => {
+                                    arity.check(exprs.len());
+                                    Ok(Expression::BuiltinFunctionCall(*fun, exprs))
                                 },
                                 None => {
                                     let fun = symbol_table.insert(&other.to_string());
-                                    Ok(Expression::SymbolFunctionCall(fun, exprs?))
+                                    Ok(Expression::SymbolFunctionCall(fun, exprs))
                                 }
                             }
                         }
@@ -347,7 +349,7 @@ pub fn preprocess(
         Datum::Symbol(ref name) => {
             match builtins.get(name) {
                 Some(fun) => {
-                    Ok(Expression::SelfEvaluating(Box::new(Datum::Builtin(*fun))))
+                    Ok(Expression::SelfEvaluating(Box::new(Datum::Builtin(fun.clone()))))
                 },
                 None => {
                     Ok(Expression::Symbol(symbol_table.insert(name)))
@@ -357,6 +359,5 @@ pub fn preprocess(
         },
         Datum::DottedList(vs, v) => panic!("Malformed expression"),
         other => Ok(Expression::SelfEvaluating(Box::new(other))),
-        _ => Err(InvalidTypeOfArguments),
     }
 }

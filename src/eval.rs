@@ -175,7 +175,8 @@ impl Evaluator {
 
                 Ok(TCOWrapper::TailCall((*body).clone(), Rc::new(RefCell::new(child_env))))
             },
-            Datum::Builtin(fun) => {
+            Datum::Builtin(LispFn(fun, arity)) => {
+                arity.check(evaled_args.len());
                 Ok(TCOWrapper::Return(fun(evaled_args)?))
             },
             _ => Err(InvalidTypeOfArguments),
