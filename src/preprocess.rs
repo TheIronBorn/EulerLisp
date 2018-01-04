@@ -1,15 +1,21 @@
+use std::collections::HashMap;
+
 use ::Datum;
 use ::Expression;
 use ::LispErr;
+use ::LispFn;
 use ::LambdaType;
 use ::Symbol;
-use ::Condition;
 use ::LispErr::*;
 use symbol_table::SymbolTable;
 
 use std::collections::BTreeMap;
 
-pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expression, LispErr> {
+pub fn preprocess(
+    datum: Datum,
+    symbol_table: &mut SymbolTable,
+    builtins: &HashMap<String, LispFn>
+) -> Result<Expression, LispErr> {
     match datum {
         Datum::List(ref elems) => {
             if elems.len() == 0 {
@@ -22,9 +28,12 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                         "def"       => {
                             check_arity!(args, 2);
                             if let Datum::Symbol(ref a) = args[0] {
+                                if builtins.contains_key(a) {
+                                    panic!("{} is a reserved name", a);
+                                }
                                 let body = args.get(1).unwrap().clone();
                                 Ok(Expression::Definition(symbol_table.insert(a),
-                                    Box::new(preprocess(body, symbol_table)?)))
+                                    Box::new(preprocess(body, symbol_table, builtins)?)))
                             } else {
                                 Err(InvalidTypeOfArguments)
                             }
@@ -32,10 +41,13 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                         "defmacro" => {
                             check_arity!(args, 2);
                             if let Datum::Symbol(ref a) = args[0] {
+                                if builtins.contains_key(a) {
+                                    panic!("{} is a reserved name", a);
+                                }
                                 let body = args.get(1).unwrap().clone();
                                 Ok(Expression::MacroDefinition(
                                     symbol_table.insert(a),
-                                    Box::new(preprocess(body, symbol_table)?)))
+                                    Box::new(preprocess(body, symbol_table, builtins)?)))
                             } else {
                                 Err(InvalidTypeOfArguments)
                             }
@@ -46,7 +58,7 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                                 let body = args.get(1).unwrap().clone();
                                 Ok(Expression::Assignment(
                                     symbol_table.insert(a),
-                                    Box::new(preprocess(body, symbol_table)?)))
+                                    Box::new(preprocess(body, symbol_table, builtins)?)))
                             } else {
                                 Err(InvalidTypeOfArguments)
                             }
@@ -57,7 +69,7 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                                 let body = args.get(1).unwrap().clone();
                                 Ok(Expression::VectorPush(
                                     symbol_table.insert(a),
-                                    Box::new(preprocess(body, symbol_table)?)))
+                                    Box::new(preprocess(body, symbol_table, builtins)?)))
                             } else {
                                 Err(InvalidTypeOfArguments)
                             }
@@ -69,8 +81,8 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                                 let value = args.get(2).unwrap().clone();
                                 Ok(Expression::VectorSet(
                                     symbol_table.insert(a),
-                                    Box::new(preprocess(index, symbol_table)?),
-                                    Box::new(preprocess(value, symbol_table)?)))
+                                    Box::new(preprocess(index, symbol_table, builtins)?),
+                                    Box::new(preprocess(value, symbol_table, builtins)?)))
                             } else {
                                 Err(InvalidTypeOfArguments)
                             }
@@ -112,7 +124,7 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                                 _ => return Err(InvalidTypeOfArguments),
                             }
 
-                            let body = preprocess(args.get(1).unwrap().clone(), symbol_table)?;
+                            let body = preprocess(args.get(1).unwrap().clone(), symbol_table, builtins)?;
                             Ok(Expression::LambdaDef(params, Box::new(body), lambda_type))
                         },
                         "if"        => {
@@ -121,24 +133,24 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
 
                             if args.len() == 2 {
                                 Ok(Expression::If(
-                                        Box::new(preprocess(cond, symbol_table)?),
-                                        Box::new(preprocess(cons, symbol_table)?),
-                                        Box::new(Expression::Nil),
+                                        Box::new(preprocess(cond, symbol_table, builtins)?),
+                                        Box::new(preprocess(cons, symbol_table, builtins)?),
+                                        Box::new(Expression::SelfEvaluating(Box::new(Datum::Nil))),
                                 ))
                             } else if args.len() == 3 {
                                 let alt = args.get(2).unwrap().clone();
                                 Ok(Expression::If(
-                                        Box::new(preprocess(cond, symbol_table)?),
-                                        Box::new(preprocess(cons, symbol_table)?),
-                                        Box::new(preprocess(alt, symbol_table)?),
+                                        Box::new(preprocess(cond, symbol_table, builtins)?),
+                                        Box::new(preprocess(cons, symbol_table, builtins)?),
+                                        Box::new(preprocess(alt, symbol_table, builtins)?),
                                 ))
                             } else {
                                 return Err(InvalidNumberOfArguments);
                             }
                         },
                         "cond"      => {
-                            let mut else_case = Expression::Nil;
-                            let mut conditions: Vec<Condition> = Vec::new();
+                            let mut else_case = Expression::SelfEvaluating(Box::new(Datum::Nil));
+                            let mut conditions: Vec<(Expression, Expression)> = Vec::new();
 
                             for arg in args.into_iter() {
                                 if let Datum::List(ref elems) = *arg {
@@ -151,12 +163,12 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
 
                                     // TODO this does not check if "else" comes last
                                     if *cond == Datum::Symbol("else".to_string()) {
-                                        else_case = preprocess(cons.clone(), symbol_table)?;
+                                        else_case = preprocess(cons.clone(), symbol_table, builtins)?;
                                         break;
                                     } else {
-                                        let condition = Condition(
-                                            Box::new(preprocess(cond.clone(), symbol_table)?),
-                                            Box::new(preprocess(cons.clone(), symbol_table)?),
+                                        let condition = (
+                                            preprocess(cond.clone(), symbol_table, builtins)?,
+                                            preprocess(cons.clone(), symbol_table, builtins)?,
                                          );
                                         conditions.push(condition);
                                     }
@@ -165,14 +177,24 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                                 }
                             }
 
-                            Ok(Expression::Conditional(conditions, Box::new(else_case)))
+                            let mut cur = else_case;
+
+                            for (cond, cons) in conditions.into_iter().rev() {
+                                cur = Expression::If(
+                                    Box::new(cond),
+                                    Box::new(cons),
+                                    Box::new(cur)
+                                );
+                            }
+
+                            Ok(cur)
                         },
                         "case"      => {
-                            let mut else_case = Expression::Nil;
+                            let mut else_case = Expression::SelfEvaluating(Box::new(Datum::Nil));
                             let mut cases: BTreeMap<Datum, Expression> = BTreeMap::new();
 
                             let expr_ = args.get(0).unwrap();
-                            let expr = preprocess(expr_.clone(), symbol_table)?;
+                            let expr = preprocess(expr_.clone(), symbol_table, builtins)?;
 
                             for arg in args.into_iter().skip(1) {
                                 if let Datum::List(ref elems) = *arg {
@@ -185,12 +207,12 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
 
                                     // TODO this does not check if "else" comes last
                                     if *cond == Datum::Symbol("else".to_string()) {
-                                        else_case = preprocess(cons.clone(), symbol_table)?;
+                                        else_case = preprocess(cons.clone(), symbol_table, builtins)?;
                                         break;
                                     } else {
                                         cases.insert(
                                             cond.clone(),
-                                            preprocess(cons.clone(), symbol_table)?,
+                                            preprocess(cons.clone(), symbol_table, builtins)?,
                                         );
                                     }
                                 } else {
@@ -202,13 +224,13 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                         },
                         "do"        => {
                             if args.len() == 0 {
-                                Ok(Expression::Nil)
+                                Ok(Expression::SelfEvaluating(Box::new(Datum::Nil)))
                             } else if args.len() == 1 {
-                                Ok(preprocess(args.get(0).unwrap().clone(), symbol_table)?)
+                                Ok(preprocess(args.get(0).unwrap().clone(), symbol_table, builtins)?)
                             } else {
                                 // TODO: Make this less complicated
                                 let maybe_exprs: Result<Vec<Expression>, LispErr> = args.into_iter()
-                                    .map( |arg| preprocess(arg.clone(), symbol_table) ).collect();
+                                    .map( |arg| preprocess(arg.clone(), symbol_table, builtins) ).collect();
                                 let exprs = maybe_exprs?;
                                 let len = exprs.len();
                                 let mut exprs = exprs;
@@ -219,36 +241,45 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                         },
                         "and"        => {
                             if args.len() == 0 {
-                                Ok(Expression::Bool(true))
+                                Ok(Expression::SelfEvaluating(Box::new(Datum::Bool(true))))
                             } else if args.len() == 1 {
-                                Ok(preprocess(args.get(0).unwrap().clone(), symbol_table)?)
+                                Ok(preprocess(args.get(0).unwrap().clone(), symbol_table, builtins)?)
                             } else {
-                                // TODO: Make this less complicated
                                 let maybe_exprs: Result<Vec<Expression>, LispErr> = args.into_iter()
-                                    .map( |arg| preprocess(arg.clone(), symbol_table) ).collect();
-                                let exprs = maybe_exprs?;
-                                let len = exprs.len();
-                                let mut exprs = exprs;
+                                    .map( |arg| preprocess(arg.clone(), symbol_table, builtins) ).collect();
+                                let exprs = maybe_exprs?.into_iter().rev();
 
-                                let last = exprs.remove(len - 1);
-                                Ok(Expression::And(exprs, Box::new(last)))
+                                let mut cur = Expression::SelfEvaluating(Box::new(Datum::Bool(true)));
+                                for e in exprs {
+                                    cur = Expression::If(
+                                        Box::new(e),
+                                        Box::new(cur),
+                                        Box::new(Expression::SelfEvaluating(Box::new(Datum::Bool(false))))
+                                    );
+                                }
+
+                                Ok(cur)
                             }
                         },
                         "or"        => {
                             if args.len() == 0 {
-                                Ok(Expression::Bool(false))
+                                Ok(Expression::SelfEvaluating(Box::new(Datum::Bool(false))))
                             } else if args.len() == 1 {
-                                Ok(preprocess(args.get(0).unwrap().clone(), symbol_table)?)
+                                Ok(preprocess(args.get(0).unwrap().clone(), symbol_table, builtins)?)
                             } else {
-                                // TODO: Make this less complicated
                                 let maybe_exprs: Result<Vec<Expression>, LispErr> = args.into_iter()
-                                    .map( |arg| preprocess(arg.clone(), symbol_table) ).collect();
-                                let exprs = maybe_exprs?;
-                                let len = exprs.len();
-                                let mut exprs = exprs;
+                                    .map( |arg| preprocess(arg.clone(), symbol_table, builtins) ).collect();
+                                let exprs = maybe_exprs?.into_iter().rev();
+                                let mut cur = Expression::SelfEvaluating(Box::new(Datum::Bool(false)));
 
-                                let last = exprs.remove(len - 1);
-                                Ok(Expression::Or(exprs, Box::new(last)))
+                                for e in exprs {
+                                    cur = Expression::If(
+                                        Box::new(e),
+                                        Box::new(Expression::SelfEvaluating(Box::new(Datum::Bool(true)))),
+                                        Box::new(cur)
+                                    );
+                                }
+                                Ok(cur)
                             }
                         },
                         "quote"     => {
@@ -278,7 +309,7 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                                     }
                                 }
 
-                                Ok(preprocess(cur, symbol_table)?)
+                                Ok(preprocess(cur, symbol_table, builtins)?)
                             }
                         },
                         // "delay"     => self.sf_delay(args, env_ref),
@@ -287,39 +318,45 @@ pub fn preprocess(datum: Datum, symbol_table: &mut SymbolTable) -> Result<Expres
                         // they can't go into `builtin` because the need access to the evaluator
                         v @ "read" | v @ "apply" | v @ "eval" => {
                             let exprs: Result<Vec<Expression>, LispErr> = args.into_iter()
-                                .map( |arg| preprocess(arg.clone(), symbol_table) ).collect();
+                                .map( |arg| preprocess(arg.clone(), symbol_table, builtins) ).collect();
                             Ok(Expression::SpecialFunctionCall(v.to_string(), exprs?))
                         }
                         other => {
-                            let fun = symbol_table.insert(&other.to_string());
                             let exprs: Result<Vec<Expression>, LispErr> = args.into_iter()
-                                .map( |arg| preprocess(arg.clone(), symbol_table) ).collect();
-                            Ok(Expression::SymbolFunctionCall(fun, exprs?))
+                                .map( |arg| preprocess(arg.clone(), symbol_table, builtins) ).collect();
+                            match builtins.get(other.clone()) {
+                                Some(fun) => {
+                                    Ok(Expression::BuiltinFunctionCall(*fun, exprs?))
+                                },
+                                None => {
+                                    let fun = symbol_table.insert(&other.to_string());
+                                    Ok(Expression::SymbolFunctionCall(fun, exprs?))
+                                }
+                            }
                         }
                     }
                 },
                 other => {
-                    let fun = preprocess(other, symbol_table)?;
+                    let fun = preprocess(other, symbol_table, builtins)?;
                     let exprs: Result<Vec<Expression>, LispErr> = args.into_iter()
-                        .map( |arg| preprocess(arg.clone(), symbol_table) ).collect();
+                        .map( |arg| preprocess(arg.clone(), symbol_table, builtins) ).collect();
                     Ok(Expression::FunctionCall(Box::new(fun), exprs?))
                 }
             }
         },
         Datum::Symbol(ref name) => {
-            Ok(Expression::Symbol(symbol_table.insert(name)))
+            match builtins.get(name) {
+                Some(fun) => {
+                    Ok(Expression::SelfEvaluating(Box::new(Datum::Builtin(*fun))))
+                },
+                None => {
+                    Ok(Expression::Symbol(symbol_table.insert(name)))
+                }
+            }
+
         },
-        Datum::Bool(v) => Ok(Expression::Bool(v)),
-        Datum::Vector(v) => Ok(Expression::Vector(v)),
-        Datum::Number(v) => Ok(Expression::Number(v)),
-        Datum::Character(v) => Ok(Expression::Character(v)),
-        Datum::Str(ref v) => Ok(Expression::Str(v.clone())),
-        // Datum::List(vs) => Ok(Expression::List(vs)),
-        // Datum::DottedList(vs, v) => Ok(Expression::DottedList(vs, v)),
-        Datum::Builtin(v) => Ok(Expression::Builtin(v)),
-        Datum::Promise(v) => Ok(Expression::Promise(v)),
-        Datum::Undefined => Ok(Expression::Undefined),
-        Datum::Nil => Ok(Expression::Nil),
+        Datum::DottedList(vs, v) => panic!("Malformed expression"),
+        other => Ok(Expression::SelfEvaluating(Box::new(other))),
         _ => Err(InvalidTypeOfArguments),
     }
 }

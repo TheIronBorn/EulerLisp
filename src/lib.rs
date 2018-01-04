@@ -178,9 +178,6 @@ impl fmt::Display for Datum {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
-pub struct Condition(Box<Expression>, Box<Expression>);
-
 pub type Symbol = usize;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -188,10 +185,7 @@ pub enum Expression {
     If(Box<Expression>, Box<Expression>, Box<Expression>),
     LambdaDef(Vec<Symbol>, Box<Expression>, LambdaType),
     Do(Vec<Expression>, Box<Expression>),
-    And(Vec<Expression>, Box<Expression>),
-    Or(Vec<Expression>, Box<Expression>),
     Quote(Box<Datum>),
-    Conditional(Vec<Condition>, Box<Expression>),
     Case(Box<Expression>, BTreeMap<Datum, Expression>, Box<Expression>),
     Definition(Symbol, Box<Expression>),
     MacroDefinition(Symbol, Box<Expression>),
@@ -199,22 +193,13 @@ pub enum Expression {
     VectorPush(Symbol, Box<Expression>),
     VectorSet(Symbol, Box<Expression>, Box<Expression>),
     DirectFunctionCall(Symbol, Vec<Expression>),
+    BuiltinFunctionCall(LispFn, Vec<Expression>),
     SpecialFunctionCall(String, Vec<Expression>),
     SymbolFunctionCall(Symbol, Vec<Expression>),
     FunctionCall(Box<Expression>, Vec<Expression>),
+    SelfEvaluating(Box<Datum>),
     Symbol(Symbol),
-    Bool(bool),
-    Number(i64),
-    Character(char),
-    Str(String),
-    List(Vec<Datum>),
     DottedList(Vec<Datum>, Box<Datum>),
-    Vector(Vec<Datum>),
-    Lambda(EnvRef, Vec<Symbol>, Box<Expression>, LambdaType),
-    Builtin(LispFn),
-    Promise(Promise),
-    Undefined,
-    Nil,
 }
 
 impl PartialOrd for Expression {

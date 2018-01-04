@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use ::Datum;
+use ::LispFn;
 use ::LispErr::*;
 use ::LispResult;
 
@@ -36,7 +37,7 @@ fn gte(vs: Vec<Datum>) -> LispResult {
     Ok(Datum::Bool(vs[0] >= vs[1]))
 }
 
-pub fn load(hm: &mut HashMap<String, Datum>) {
+pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "=", eq);
     register(hm, "!=", neq);
     register(hm, "<", lt);

@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::Read;
 
 use ::Datum;
+use ::LispFn;
 use ::LispErr::*;
 use ::LispResult;
 
@@ -59,7 +60,7 @@ fn file_read(vs: Vec<Datum>) -> LispResult {
         Err(InvalidTypeOfArguments)
 }
 
-pub fn load(hm: &mut HashMap<String, Datum>) {
+pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "println", println);
     register(hm, "print", print);
     register(hm, "inspect", inspect);

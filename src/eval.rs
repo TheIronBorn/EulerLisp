@@ -5,7 +5,6 @@ use ::LispErr;
 use ::Promise;
 use ::LambdaType;
 use ::Expression;
-use ::Condition;
 use ::Symbol;
 use ::LispErr::*;
 use symbol_table::SymbolTable;
@@ -28,7 +27,8 @@ pub struct Evaluator {
     level: i64,
     symbol_table: SymbolTable,
     macros: HashMap<Symbol, Expression>,
-    root_env: EnvRef
+    root_env: EnvRef,
+    builtins: HashMap<String, LispFn>,
 }
 
 pub type TCOResult = Result<TCOWrapper, LispErr>;
@@ -49,7 +49,6 @@ enum Continuation {
     Do(Vec<Expression>, Env),
     Set(Symbol, Env),
     Define(Symbol, Env),
-
 }
 
 // trait Continuation {
@@ -60,19 +59,16 @@ impl Evaluator {
     pub fn new() -> Self {
         let mut symbol_table = SymbolTable::new();
 
-        let mut hm: HashMap<String, Datum> = HashMap::new(); 
-        builtin::load(&mut hm);
+        let mut builtins: HashMap<String, LispFn> = HashMap::new(); 
+        builtin::load(&mut builtins);
 
-        let mut hm_sym: HashMap<usize, Datum> = HashMap::new(); 
-        for (k, v) in hm {
-            hm_sym.insert(symbol_table.insert(&k), v);
-        }
-        let root_env = Env{ bindings: hm_sym, parent: None };
+        let root_env = Env{ bindings: HashMap::new(), parent: None };
         let env_ref = Rc::new(RefCell::new(root_env));
 
         let mut ev = Evaluator {
             symbol_table: symbol_table,
             macros: HashMap::new(),
+            builtins: builtins,
             level: 0,
             root_env: env_ref
         };
@@ -87,20 +83,6 @@ impl Evaluator {
         ev
     }
 
-    fn eval_sf_cond(&mut self, conditions: Vec<Condition>, else_case: Expression, env_ref: EnvRef) -> TCOResult {
-        for condition in conditions.into_iter() {
-            let Condition(cond, cons) = condition;
-            let res = self.eval(*cond, env_ref.clone())?;
-            if res == Datum::Bool(true) {
-                return Ok(TCOWrapper::TailCall(*cons, env_ref));
-            } else {
-                continue
-            }
-        }
-
-        Ok(TCOWrapper::TailCall(else_case, env_ref))
-    }
-
     fn eval_sf_case(&mut self, expr: Expression, cases: BTreeMap<Datum, Expression>, else_case: Expression, env_ref: EnvRef) -> TCOResult {
         let res = self.eval(expr, env_ref.clone())?;
 
@@ -109,37 +91,6 @@ impl Evaluator {
         } else {
             Ok(TCOWrapper::TailCall(else_case, env_ref))
         }
-    }
-
-    fn eval_sf_and(&mut self, es: Vec<Expression>, last: Expression, env_ref: EnvRef) -> TCOResult {
-        for a in es.into_iter() {
-            match self.eval(a, env_ref.clone())? {
-                Datum::Bool(v) => {
-                    if v == false {
-                        return Ok(TCOWrapper::Return(Datum::Bool(false)))
-                    }
-                },
-                _ => (),
-            }
-        }
-        return Ok(TCOWrapper::TailCall(last, env_ref))
-    }
-
-    fn eval_sf_or(&mut self, es: Vec<Expression>, last: Expression, env_ref: EnvRef) -> TCOResult {
-        for a in es.into_iter() {
-            match self.eval(a, env_ref.clone())? {
-                Datum::Bool(v) => {
-                    if v == true {
-                        return Ok(TCOWrapper::Return(Datum::Bool(true)));
-                    }
-                },
-                ref v => {
-                    return Ok(TCOWrapper::Return(v.clone()));
-                },
-            }
-        }
-
-        return Ok(TCOWrapper::TailCall(last, env_ref))
     }
 
     // fn sf_load(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
@@ -251,7 +202,8 @@ impl Evaluator {
             let env_ref = self.root_env.clone();
 
             let desugared = desugar::desugar(v);
-            let preprocessed = preprocess::preprocess(desugared, &mut self.symbol_table)?;
+            let preprocessed = preprocess::preprocess(desugared, &mut self.symbol_table,
+                                                      &self.builtins)?;
             // println!("Preprocessed: {:?}", &preprocessed);
             match self.eval(preprocessed, env_ref) {
                 Ok(res) => ret = res,
@@ -389,7 +341,7 @@ impl Evaluator {
     fn eval_special_eval(&mut self, args: Vec<Datum>, env_ref: EnvRef) -> TCOResult {
         let arg = args.get(0).unwrap();
         let desugared = desugar::desugar(arg);
-        let preprocessed = preprocess::preprocess(desugared, &mut self.symbol_table)?;
+        let preprocessed = preprocess::preprocess(desugared, &mut self.symbol_table, &self.builtins)?;
         Ok(TCOWrapper::Return(self.eval(preprocessed, env_ref)?))
     }
 
@@ -402,9 +354,6 @@ impl Evaluator {
             let res = match e {
                 Expression::If(cond, cons, alt) => self.eval_sf_if(*cond, *cons, *alt, env_ref),
                 Expression::Do(es, last) => self.eval_sf_do(es, *last, env_ref),
-                Expression::And(es, last) => self.eval_sf_and(es, *last, env_ref),
-                Expression::Or(es, last) => self.eval_sf_or(es, *last, env_ref),
-                Expression::Conditional(conditions, else_case) => self.eval_sf_cond(conditions, *else_case, env_ref),
                 Expression::Case(e, cases, else_case) => self.eval_sf_case(*e, cases, *else_case, env_ref),
                 Expression::Quote(datum) => Ok(TCOWrapper::Return(*datum)),
                 Expression::Definition(name, value) => self.eval_sf_definition(name, *value, env_ref),
@@ -428,38 +377,29 @@ impl Evaluator {
                         }
                     } 
                 },
-                Expression::Bool(v) => Ok(TCOWrapper::Return(Datum::Bool(v))),
-                Expression::Vector(v) => Ok(TCOWrapper::Return(Datum::Vector(v))),
-                Expression::Number(v) => Ok(TCOWrapper::Return(Datum::Number(v))),
-                Expression::Character(v) => Ok(TCOWrapper::Return(Datum::Character(v))),
-                Expression::Str(v) => Ok(TCOWrapper::Return(Datum::Str(v))),
                 Expression::FunctionCall(fun, args) => {
                     let f = self.eval(*fun, env_ref.clone())?;
                     let evaled_args = self.eval_list(args, env_ref.clone());
                     self.apply(f, evaled_args, env_ref)
                 },
+                Expression::BuiltinFunctionCall(fun, args) => {
+                    let evaled_args = self.eval_list(args, env_ref.clone());
+                    Ok(TCOWrapper::Return(fun(evaled_args)?))
+                },
                 Expression::SymbolFunctionCall(fun, args) => self.eval_sf_symbol_function_call(fun, args, env_ref),
-                // TODO: Refactor this to something cleaner & remove `.clone()`s
                 Expression::SpecialFunctionCall(fun, args) => {
                     let evaled_args = self.eval_list(args, env_ref.clone());
                     match fun.as_ref() {
-                        "apply" => self.eval_special_apply(evaled_args, env_ref.clone()),
-                        "eval" => self.eval_special_eval(evaled_args, env_ref.clone()),
-                        "read" => self.eval_special_read(evaled_args, env_ref.clone()),
+                        "apply" => self.eval_special_apply(evaled_args, env_ref),
+                        "eval" => self.eval_special_eval(evaled_args, env_ref),
+                        "read" => self.eval_special_read(evaled_args, env_ref),
                         _ => panic!("Unknown builtin function: {}", fun)
                     }
                 },
                 Expression::LambdaDef(args, body, lambda_type) => {
                     Ok(TCOWrapper::Return(Datum::Lambda(env_ref.clone(), args, body, lambda_type)))
-                }
-                Expression::Lambda(env, args, body, lambda_type) =>
-                    Ok(TCOWrapper::Return(Datum::Lambda(env, args, body, lambda_type))),
-                Expression::Builtin(v) => Ok(TCOWrapper::Return(Datum::Builtin(v))),
-                Expression::Promise(v) => Ok(TCOWrapper::Return(Datum::Promise(v))),
-                Expression::Undefined => Ok(TCOWrapper::Return(Datum::Undefined)),
-                Expression::Nil => Ok(TCOWrapper::Return(Datum::Nil)),
-                // List(Vec<Datum>),
-                // DottedList(Vec<Datum>, Box<Datum>),
+                },
+                Expression::SelfEvaluating(v) => Ok(TCOWrapper::Return(*v)),
                 _ => panic!("Expression not valid in this context")
             };
 

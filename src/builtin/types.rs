@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use ::Datum;
+use ::LispFn;
 use ::LispErr::*;
 use ::LispResult;
 
@@ -21,7 +22,7 @@ fn nil_qustionmark(vs: Vec<Datum>) -> LispResult {
     Ok(Datum::Bool(vs[0].is_nil()))
 }
 
-pub fn load(hm: &mut HashMap<String, Datum>) {
+pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "pair?", pair_questionmark);
     register(hm, "list?", list_questionmark);
     register(hm, "nil?", nil_qustionmark);

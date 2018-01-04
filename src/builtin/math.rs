@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use rand::{thread_rng, Rng};
 
+use ::LispFn;
 use ::Datum;
 use ::LispErr::*;
 use ::LispResult;
@@ -323,7 +324,7 @@ fn factors(vs: Vec<Datum>) -> LispResult {
     Err(InvalidTypeOfArguments)
 }
 
-pub fn load(hm: &mut HashMap<String, Datum>) {
+pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "prime?", prime_questionmark);
     register(hm, "+", add);
     register(hm, "-", subtract);

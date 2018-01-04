@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use ::Datum;
+use ::LispFn;
 use ::LispErr::*;
 use ::LispResult;
 
@@ -66,7 +67,7 @@ fn string_join(vs: Vec<Datum>) -> LispResult {
     return Ok(Datum::Str(result));
 }
 
-pub fn load(hm: &mut HashMap<String, Datum>) {
+pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "string-bytes", string_bytes);
     register(hm, "string-length", string_length);
     register(hm, "string->number", string_to_number);
