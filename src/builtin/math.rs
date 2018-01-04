@@ -312,7 +312,7 @@ fn factors(vs: Vec<Datum>) -> LispResult {
             for i in 2..(root+1) {
                 if a % i == 0 {
                     result.push(Datum::Number(i));
-                    if i != root {
+                    if (a / i) != i {
                         result.push(Datum::Number(a / i));
                     }
                 }

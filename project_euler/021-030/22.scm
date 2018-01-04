@@ -3,7 +3,7 @@
 ;  * add thread macro `~>`
 
 (def names
-     (~> "project_euler/22.txt"
+     (~> "project_euler/021-030/22.txt"
          file-read
          (string-split ",")
          sort))

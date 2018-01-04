@@ -34,10 +34,10 @@ fn nth(vs: Vec<Datum>) -> LispResult {
     if let Datum::Number(n) = vs[0] {
         match vs[1] {
             Datum::List(ref elems) => {
-                Ok(elems.get(n as usize).unwrap().clone())
+                Ok(elems.get(n as usize).expect("Index out of bounds").clone())
             },
             Datum::Vector(ref elems) => {
-                Ok(elems.get(n as usize).unwrap().clone())
+                Ok(elems.get(n as usize).expect("Index out of bounds").clone())
             },
             _ => {
                 Err(InvalidTypeOfArguments)

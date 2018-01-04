@@ -5,7 +5,7 @@
 (def input
   (map (fn (x)
            (map string->number (words x)))
-      (~> "project_euler/18.txt"
+      (~> "project_euler/011-020/18.txt"
           file-read
           lines
           reverse
