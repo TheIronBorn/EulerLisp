@@ -11,7 +11,7 @@ use ::builtin::register;
 fn string_bytes(vs: &mut [Datum]) -> LispResult {
     if let Datum::Str(ref string) = vs[0] {
         let bytes = string.as_bytes().iter().map(
-            |b| Datum::Number(*b as i64)
+            |b| Datum::Number(*b as isize)
             ).collect();
         return Ok(Datum::List(bytes));
     }
@@ -20,14 +20,14 @@ fn string_bytes(vs: &mut [Datum]) -> LispResult {
 
 fn string_length(vs: &mut [Datum]) -> LispResult {
     if let Datum::Str(ref string) = vs[0] {
-        return Ok(Datum::Number(string.len() as i64));
+        return Ok(Datum::Number(string.len() as isize));
     }
     Err(InvalidTypeOfArguments)
 }
 
 fn string_to_number(vs: &mut [Datum]) -> LispResult {
     if let Datum::Str(ref string) = vs[0] {
-        match string.parse::<i64>() {
+        match string.parse::<isize>() {
             Ok(i) => {
                 return Ok(Datum::Number(i));
             },
@@ -69,5 +69,5 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "string-length", string_length, Arity::Exact(1));
     register(hm, "string->number", string_to_number, Arity::Exact(1));
     register(hm, "string-split", string_split, Arity::Exact(2));
-    register(hm, "str", string_join, Arity::Min(2));
+    register(hm, "str", string_join, Arity::Min(0));
 }

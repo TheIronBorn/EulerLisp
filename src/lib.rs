@@ -15,6 +15,7 @@ mod env;
 mod desugar;
 mod symbol_table;
 mod preprocess;
+mod bignum;
 
 use env::EnvRef;
 
@@ -98,7 +99,7 @@ impl Ord for LispFn {
 }
 
 impl PartialEq for LispFn {
-    fn eq(&self, other: &LispFn) -> bool {
+    fn eq(&self, _other: &LispFn) -> bool {
         false
     }
 }
@@ -145,7 +146,7 @@ impl fmt::Debug for Lambda {
     }
 }
 impl PartialEq for Lambda {
-    fn eq(&self, other: &Lambda) -> bool {
+    fn eq(&self, _other: &Lambda) -> bool {
         false
     }
 }
@@ -166,7 +167,7 @@ impl Ord for Lambda {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Datum {
     Bool(bool),
-    Number(i64),
+    Number(isize),
     Character(char),
     Str(String),
     Symbol(String),
@@ -178,6 +179,7 @@ pub enum Datum {
     Promise(Promise),
     Undefined,
     Nil,
+    Bignum(bignum::Bignum)
 }
 
 // TODO: Fix this
@@ -258,6 +260,7 @@ impl fmt::Display for Datum {
                 write!(f, "{}", result)
             },
             Datum::Number(x) => write!(f, "{}", x),
+            Datum::Bignum(ref x) => write!(f, "{}", x),
             Datum::Str(ref s) => write!(f, "\"{}\"", s),
             Datum::Nil => write!(f, "'()"),
             Datum::Undefined => write!(f, "undefined"),

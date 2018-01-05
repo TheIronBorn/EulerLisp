@@ -1,15 +1,16 @@
-; Solved 2.1
+; Solved 5.1
 
-; (def max-n 28123)
+; The Problem descriptions contains a different limit,
+; but the one below is more accurate
 (def max-n 20161)
-; (def max-n 1000)
+
 (defn factor-sum (n) (- (sum (factors n)) n))
 (defn abundant? (n) (> (factor-sum n) n))
 
 (def abundants #())
 
 (def abundant-sums (make-vector max-n #f))
-(defn abundant-sum? (n) (nth (dec n) abundant-sum))
+(defn abundant-sum? (n) (vector-ref abundant-sums (dec n)))
 
 (defn loop (from to)
       (if (<= from to)
@@ -22,24 +23,31 @@
 (vector-push! abundants 0)
 
 (def len (dec (length abundants)))
-(def init (nth 0 abundants))
+(def init (vector-ref abundants 0))
 
-(println len)
-
-(defn loop2 (pa pb va vb)
-      (println pb)
+(defn loop2 (pa pb va vb limit)
       (if (>= pb len)
         #t
-        (if (or 
-              (>= pa len)
-              (> (+ va vb) 10000))
-          (loop2 0 (inc pb)
-                 init
-                 (nth (inc pb) abundants))
+        (if (or (>= pa len)
+                (>= va limit))
+          (let ((next-vb (vector-ref abundants (inc pb))))
+            (loop2 0 (inc pb)
+                   init next-vb
+                   (- max-n next-vb)))
           (do
             (vector-set! abundant-sums (dec (+ va vb)) #t)
             (loop2 (inc pa) pb
-                   (nth (inc pa) abundants) vb)
-            ))))
+                   (vector-ref abundants (inc pa)) vb
+                   limit)))))
 
-(println (loop2 0 0 init init))
+(println (loop2 0 0 init init (- max-n init)))
+
+(defn loop3 (from to acc)
+      (if (> from to)
+          acc
+          (loop3 (inc from)
+                 to
+                 (if (abundant-sum? from)
+                     acc
+                     (+ acc from)))))
+(println (loop3 1 max-n 0))

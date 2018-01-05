@@ -9,7 +9,7 @@ use ::Arity;
 
 use ::builtin::register;
 
-const WITNESSES: [(i64, &[i64]);7] = [
+const WITNESSES: [(isize, &[isize]);7] = [
     (2_047, &[2]),
     (1_373_653, &[2, 3]),
     (9_080_191, &[31, 73]),
@@ -19,7 +19,7 @@ const WITNESSES: [(i64, &[i64]);7] = [
     (1_122_004_669_633, &[2, 13, 23, 1662803]),
 ];
 
-fn modexp(mut base: i64, mut exponent: i64, modulo: i64) -> i64 {
+fn modexp(mut base: isize, mut exponent: isize, modulo: isize) -> isize {
     let mut c = 1;
     while exponent != 0 {
         if exponent % 2 == 1 {
@@ -32,7 +32,7 @@ fn modexp(mut base: i64, mut exponent: i64, modulo: i64) -> i64 {
     c
 }
 
-fn factor2(n: i64) -> (i64, i64) {
+fn factor2(n: isize) -> (isize, isize) {
     let mut d = n;
     let mut r = 0;
 
@@ -44,7 +44,7 @@ fn factor2(n: i64) -> (i64, i64) {
     (r, d)
 }
 
-fn det_miller_rabin(n: i64) -> bool {
+fn det_miller_rabin(n: isize) -> bool {
     if n < 2 {
         return false;
     }
@@ -183,7 +183,7 @@ fn min(vs: &mut [Datum]) -> LispResult {
 
 fn isqrt(vs: &mut [Datum]) -> LispResult {
     if let Datum::Number(a) = vs[0] {
-        let res = (a as f64).sqrt() as i64;
+        let res = (a as f64).sqrt() as isize;
         return Ok(Datum::Number(res));
     }
     Err(InvalidTypeOfArguments)
@@ -306,7 +306,7 @@ fn rand(vs: &mut [Datum]) -> LispResult {
 fn factors(vs: &mut [Datum]) -> LispResult {
     if let Datum::Number(a) = vs[0] {
         let mut result = Vec::new();
-        let root = (a as f64).sqrt() as i64;
+        let root = (a as f64).sqrt() as isize;
 
         result.push(Datum::Number(1));
         if a > 1 {

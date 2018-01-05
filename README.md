@@ -19,3 +19,8 @@
         (solve_ limit (+ n 1) (+ acc n))
         (solve_ limit (+ n 1) acc))))
 ```
+
+## Problems for Performance Testing
+
+* 14, runs in ~22s
+* 23, runs in ~62s

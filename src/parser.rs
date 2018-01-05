@@ -36,39 +36,39 @@ named!(
 );
 
 named!(
-    integer2<i64>,
+    integer2<isize>,
     map_res!(
         map_res!(integer_literal2, from_utf8),
-        |s| i64::from_str_radix(s, 2)
+        |s| isize::from_str_radix(s, 2)
     )
 );
 
 named!(
-    integer8<i64>,
+    integer8<isize>,
     map_res!(
         map_res!(integer_literal8, from_utf8),
-        |s| i64::from_str_radix(s, 8)
+        |s| isize::from_str_radix(s, 8)
     )
 );
 
 named!(
-    integer10<i64>,
+    integer10<isize>,
     map_res!(
         map_res!(integer_literal10, from_utf8),
-        |s| i64::from_str_radix(s, 10)
+        |s| isize::from_str_radix(s, 10)
     )
 );
 
 named!(
-    integer16<i64>,
+    integer16<isize>,
     map_res!(
         map_res!(integer_literal16, from_utf8),
-        |s| i64::from_str_radix(s, 16)
+        |s| isize::from_str_radix(s, 16)
     )
 );
 
 named!(
-    integer<i64>,
+    integer<isize>,
     alt!(
         preceded!(tag!("#b"), integer2) |
         preceded!(tag!("#o"), integer8) |

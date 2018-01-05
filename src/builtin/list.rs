@@ -102,13 +102,13 @@ fn length(vs: &mut [Datum]) -> LispResult {
     match vs[0] {
         Datum::Nil => Ok(Datum::Number(0)),
         Datum::List(ref elems) => {
-            Ok(Datum::Number(elems.len() as i64))
+            Ok(Datum::Number(elems.len() as isize))
         },
         Datum::Vector(ref elems) => {
-            Ok(Datum::Number(elems.len() as i64))
+            Ok(Datum::Number(elems.len() as isize))
         },
         Datum::Str(ref s) => {
-            Ok(Datum::Number(s.len() as i64))
+            Ok(Datum::Number(s.len() as isize))
         },
         _ => Err(InvalidTypeOfArguments)
     }

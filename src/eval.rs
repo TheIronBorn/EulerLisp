@@ -24,7 +24,7 @@ use builtin;
 use preprocess;
 
 pub struct Evaluator {
-    level: i64,
+    level: isize,
     symbol_table: SymbolTable,
     macros: HashMap<Symbol, Expression>,
     root_env: EnvRef,
@@ -203,7 +203,6 @@ impl Evaluator {
             let desugared = desugar::desugar(v);
             let preprocessed = preprocess::preprocess(desugared, &mut self.symbol_table,
                                                       &self.builtins)?;
-            // println!("Preprocessed: {:?}", &preprocessed);
             match self.eval(preprocessed, env_ref) {
                 Ok(res) => ret = res,
                 Err(msg) => println!("!! {}", msg)
@@ -248,7 +247,7 @@ impl Evaluator {
             (*binding.borrow_mut()) = value;
             Ok(TCOWrapper::Return(Datum::Undefined))
         } else {
-            Err(DefinitionNotFound)
+            panic!("Definition not found: {}", self.symbol_table.name(key));
         }
     }
 
@@ -267,7 +266,7 @@ impl Evaluator {
                 }
             }
         } else {
-            Err(DefinitionNotFound)
+            panic!("Definition not found: {}", self.symbol_table.name(key));
         }
     }
 
@@ -291,7 +290,7 @@ impl Evaluator {
                     }
                 }
             } else {
-                Err(DefinitionNotFound)
+                panic!("Definition not found: {}", self.symbol_table.name(key));
             }
         } else {
             Err(InvalidTypeOfArguments)
@@ -321,7 +320,7 @@ impl Evaluator {
                     }
                 }
             } else {
-                Err(DefinitionNotFound)
+                panic!("Definition not found: {}", self.symbol_table.name(key));
             }
         } else {
             Err(InvalidTypeOfArguments)

@@ -1,1 +1,3 @@
 * Convert lambdas to use activation frames instead of envs
+* Pass rc<ref-cells> to functions instead of &[Datum],
+  so that vector-ref, vector-set, vector-push, even set! can be implemented as a normal functions
