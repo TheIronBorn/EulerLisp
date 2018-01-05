@@ -6,6 +6,13 @@
     (else
       (* number (pow number (dec exponent))))))
 
+(defn bigpow (b e)
+  (cond
+    ((= e 0) (bignum 1))
+    ((even? e) (bigpow (bignum* b b) (/ e 2)))
+    (else
+      (bignum* b (bigpow b (dec e))))))
+
 (defn fac (n) (fac_ n 1))
 
 (defn fac_ (n acc)

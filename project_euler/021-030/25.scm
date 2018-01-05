@@ -4,7 +4,7 @@
 (defn fib (n a b)
       (if (= 0 n)
           a
-          (fib (dec n) b (bg+ a b))))
+          (fib (dec n) b (bignum+ a b))))
 
 (defn for (from to fun)
       (if (<= from to)
@@ -16,10 +16,10 @@
 (def b (bignum 1))
 
 (defn solve (n)
-      (if (>= (bignum-digits a) 1000)
+      (if (>= (bignum-num-digits a) 1000)
           (println n)
           (do
-             (let ((new_a b) (new_b (bg+ a b)))
+             (let ((new_a b) (new_b (bignum+ a b)))
                   (set! a new_a)
                   (set! b new_b))
              (solve (inc n)))))

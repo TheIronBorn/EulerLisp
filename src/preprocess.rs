@@ -308,7 +308,7 @@ pub fn preprocess(
                                     match *fun {
                                         Datum::List(ref elems) => {
                                             let mut new_elems = elems.clone();
-                                            new_elems.insert(1, cur);
+                                            new_elems.push(cur);
                                             cur = Datum::List(new_elems);
                                         },
                                         ref s @ Datum::Symbol(_) => {
