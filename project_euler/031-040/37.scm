@@ -1,0 +1,43 @@
+; Solved 6.1
+
+(defn truncations (n)
+  (cond
+    ((< n 10)
+     (list))
+    ((< n 100)
+     (list
+       (/ n 10)
+       (% n 10)))
+    ((< n 1000)
+     (list
+       (/ n 10) (/ n 100)
+       (% n 10) (% n 100)))
+    ((< n 10000)
+     (list
+       (/ n 10) (/ n 100) (/ n 1000)
+       (% n 10) (% n 100) (% n 1000)))
+    ((< n 100000)
+     (list
+       (/ n 10) (/ n 100) (/ n 1000) (/ n 10000)
+       (% n 10) (% n 100) (% n 1000) (% n 10000)))
+    ((< n 1000000)
+     (list
+       (/ n 10) (/ n 100) (/ n 1000) (/ n 10000) (/ n 100000)
+       (% n 10) (% n 100) (% n 1000) (% n 10000) (% n 100000)))
+    (else (println "Error, number is to big"))))
+
+(defn truncatable-prime? (n)
+  (and (prime? n)
+       (all? prime? (truncations n))))
+
+; This is based on the assumption that all 11 trunc primes are < 1000000
+(defn solve (cur needed acc)
+  (if (zero? needed)
+      acc
+      (if (truncatable-prime? cur)
+          (do
+            (println cur)
+            (solve (+ cur 2) (dec needed) (+ cur acc)))
+          (solve (+ cur 2) needed acc))))
+
+(println (solve 11 11 0))

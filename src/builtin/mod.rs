@@ -6,6 +6,7 @@ use ::LispResult;
 use ::Arity;
 
 mod list;
+mod primes;
 mod math;
 mod misc;
 mod types;

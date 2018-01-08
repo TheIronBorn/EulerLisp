@@ -82,7 +82,7 @@
 (defn all? (pred arr)
   (cond
     ((nil? arr) #t)
-    ((pred (fst arr)) (all? pred (rest arr)))
+    ((pred (fst arr)) (all? pred (rst arr)))
     (else #f)))
 
 (defn zip lists

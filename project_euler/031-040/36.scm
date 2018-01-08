@@ -1,3 +1,5 @@
+; Solved 6.1
+
 (defn digits10 (n)
       (if (= n 0)
           '()

@@ -1,15 +1,16 @@
 use std::collections::HashMap;
 use rand::{thread_rng, Rng};
 
-use ::LispFn;
-use ::Datum;
-use ::LispErr::*;
-use ::LispResult;
-use ::Arity;
+use LispFn;
+use Datum;
+use LispErr::*;
+use LispResult;
+use Arity;
 
-use ::builtin::register;
+use builtin::primes::PRIMES;
+use builtin::register;
 
-const WITNESSES: [(isize, &[isize]);7] = [
+const WITNESSES: [(isize, &[isize]); 7] = [
     (2_047, &[2]),
     (1_373_653, &[2, 3]),
     (9_080_191, &[31, 73]),
@@ -49,7 +50,7 @@ fn det_miller_rabin(n: isize) -> bool {
         return false;
     }
     if n == 2 {
-        return  true;
+        return true;
     }
 
     let (s, d) = factor2(n - 1);
@@ -58,15 +59,15 @@ fn det_miller_rabin(n: isize) -> bool {
     'witness: for &a in witnesses.iter() {
         let mut x = modexp(a, d, n);
         if x == 1 || x == n - 1 {
-            continue 'witness
+            continue 'witness;
         }
         for _ in 0..s {
             x = (x * x) % n;
             if x == 1 {
-                return false
+                return false;
             }
             if x == n - 1 {
-                continue 'witness
+                continue 'witness;
             }
         }
         return false;
@@ -76,7 +77,7 @@ fn det_miller_rabin(n: isize) -> bool {
 
 fn prime_questionmark(vs: &mut [Datum]) -> LispResult {
     if let Datum::Number(n) = vs[0] {
-        return Ok(Datum::Bool(det_miller_rabin(n)))
+        return Ok(Datum::Bool(det_miller_rabin(n)));
     }
     Err(InvalidTypeOfArguments)
 }
@@ -272,12 +273,10 @@ fn modulo(vs: &mut [Datum]) -> LispResult {
 fn divmod(vs: &mut [Datum]) -> LispResult {
     if let Datum::Number(a) = vs[0] {
         if let Datum::Number(b) = vs[1] {
-            return Ok(
-                Datum::DottedList(
-                    vec!(Datum::Number(a / b)),
-                    Box::new(Datum::Number(a % b))
-                    )
-                );
+            return Ok(Datum::DottedList(
+                vec![Datum::Number(a / b)],
+                Box::new(Datum::Number(a % b)),
+            ));
         }
     }
     Err(InvalidTypeOfArguments)
@@ -303,6 +302,55 @@ fn rand(vs: &mut [Datum]) -> LispResult {
     Err(InvalidTypeOfArguments)
 }
 
+fn prime_factors(vs: &mut [Datum]) -> LispResult {
+    if let Datum::Number(mut a) = vs[0] {
+        let mut result = Vec::new();
+        if a < 2 {
+            return Ok(Datum::List(result));
+        }
+
+        for i in PRIMES.iter() {
+            if a % i == 0 {
+                let mut count = 0;
+                while a % i == 0 {
+                    a /= i;
+                    count += 1;
+                }
+                result.push(Datum::DottedList(
+                    vec![Datum::Number(*i)],
+                    Box::new(Datum::Number(count))
+                ));
+            }
+            if *i > a {
+                break;
+            }
+        }
+
+        let mut i = PRIMES[PRIMES.len() - 1] + 2;
+        if a > i {
+            loop {
+                if a % i == 0 {
+                    let mut count = 0;
+                    while a % i == 0 {
+                        a /= i;
+                        count += 1;
+                    }
+                    result.push(Datum::DottedList(
+                        vec![Datum::Number(i)],
+                        Box::new(Datum::Number(count))
+                    ));
+                }
+                i += 1;
+                if i > a {
+                    break;
+                }
+            }
+        }
+        return Ok(Datum::List(result));
+    }
+    Err(InvalidTypeOfArguments)
+}
+
 fn factors(vs: &mut [Datum]) -> LispResult {
     if let Datum::Number(a) = vs[0] {
         let mut result = Vec::new();
@@ -313,7 +361,7 @@ fn factors(vs: &mut [Datum]) -> LispResult {
             result.push(Datum::Number(a));
         }
         if a > 2 {
-            for i in 2..(root+1) {
+            for i in 2..(root + 1) {
                 if a % i == 0 {
                     result.push(Datum::Number(i));
                     if (a / i) != i {
@@ -352,4 +400,5 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "modexp", builtin_modexp, Arity::Exact(3));
     register(hm, "rand", rand, Arity::Exact(2));
     register(hm, "factors", factors, Arity::Exact(1));
+    register(hm, "prime-factors", prime_factors, Arity::Exact(1));
 }
