@@ -35,12 +35,6 @@
       (if (> from to) acc
           (range_ from (dec to) (cons to acc))))
 
-(defn map (f arr)
-      (if (nil? arr)
-          '()
-          (cons (f (fst arr))
-                (map f (rst arr)))))
-
 (defn flatmap (f arr)
       (if (nil? arr)
           '()

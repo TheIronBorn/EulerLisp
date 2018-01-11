@@ -45,4 +45,4 @@
             (solve (+ cur 2) (inc acc)))
           (solve (+ cur 2) acc))))
 
-(println (solve 3 1))
+(println "Solution: " (solve 3 1))

@@ -25,4 +25,4 @@
         (find-digit (fst bracket) (rst bracket))
         )))
 
-(println (product (map (fn (n) (digit (pow 10 n))) (range 0 6))))
+(println "Solution: " (product (map (fn (n) (digit (pow 10 n))) (range 0 6))))

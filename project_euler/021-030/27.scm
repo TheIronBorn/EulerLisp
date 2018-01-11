@@ -15,4 +15,4 @@
                     (solve (inc a) b a b len)
                     (solve (inc a) b maxa maxb maxlen))))))
 
-(println (solve -999 -1000 0 0 0))
+(println "Solution: " (solve -999 -1000 0 0 0))

@@ -38,4 +38,4 @@
                 acc)
             )))
 
-(println (solve names 1 0))
+(println "Solution: " (solve names 1 0))

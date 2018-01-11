@@ -23,7 +23,6 @@
           (count-solutions p (inc a) solutions))))
 
 (defn solve (p max-p max-solutions)
-  (println p)
   (if (> p 1000)
       (cons max-p max-solutions)
       (let ((solutions (count-solutions p 1 0)))
@@ -34,4 +33,4 @@
 ; 2 wont work, because a + b + c >= 3
 ; and p must be even,
 ; otherwise a^2 + b^2 = c^2 is not possible
-(println (solve 12 12 0))
+(println "Solution: " (solve 12 12 0))

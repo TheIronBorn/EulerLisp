@@ -9,4 +9,4 @@
                 (helper limit (+ cur 2) acc))))
   (helper limit 3 2))
 
-(println (prime-sum 2000000))
+(println "Solution: " (prime-sum 2000000))

@@ -23,7 +23,7 @@
             ))))
 
 (defn solve (n)
-  (println (loop (range 1 n) 0 (fac n) 0)))
+  (loop (range 1 n) 0 (fac n) 0))
 
 ; 1 + ... + n = 
 ;   1 -> 1, trivial
@@ -40,4 +40,4 @@
 ; if the sum of its digits is divisible by 3
 ; => can't be prime
 
-(max (solve 4) (solve 7))
+(println "Solution: " (max (solve 4) (solve 7)))

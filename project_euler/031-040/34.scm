@@ -23,4 +23,4 @@
           (solve (inc cur) acc))
       acc))
 
-(println (solve 3 0))
+(println "Solution: " (solve 3 0))

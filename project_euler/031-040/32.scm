@@ -60,4 +60,4 @@
   sort
   dedup
   sum
-  println)
+  (println "Solution: "))

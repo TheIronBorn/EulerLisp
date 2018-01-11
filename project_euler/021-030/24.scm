@@ -12,4 +12,4 @@
                 (delete-nth first candidates))))))
 
 ; Permutations are 0-indexed
-(println (apply str (permutation 999999 (list 0 1 2 3 4 5 6 7 8 9))))
+(println "Solution: " (apply str (permutation 999999 (list 0 1 2 3 4 5 6 7 8 9))))

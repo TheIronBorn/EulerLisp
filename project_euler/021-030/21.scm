@@ -19,4 +19,4 @@
             (+ acc from)
             acc))))
 
-(println (solve 1 10000 0))
+(println "Solution: " (solve 1 10000 0))

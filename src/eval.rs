@@ -251,53 +251,46 @@ impl Evaluator {
         }
     }
 
-    fn eval_sf_vector_push(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
+    fn eval_sf_list_push(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
         let value = self.eval(value, env_ref.clone())?;
         let env = env_ref.borrow();
 
         if let Some(binding) = env.find_def(&key) {
-            match *binding.borrow_mut() {
-                Datum::Vector(ref mut elements) => {
-                    elements.push(value);
-                    Ok(TCOWrapper::Return(Datum::Undefined))
-                },
-                _ => {
-                    Err(InvalidTypeOfArguments)
-                }
-            }
+            let mut b = binding.borrow_mut();
+            b.push(value);
+            Ok(TCOWrapper::Return(Datum::Undefined))
         } else {
             panic!("Definition not found: {}", self.symbol_table.name(key));
         }
     }
 
-    fn eval_sf_vector_ref(&mut self, key: Symbol, index: Expression, env_ref: EnvRef) -> TCOResult {
+    fn eval_sf_list_ref(&mut self, key: Symbol, index: Expression, env_ref: EnvRef) -> TCOResult {
         let vindex = self.eval(index, env_ref.clone())?;
         if let Datum::Number(index) = vindex {
             let env = env_ref.borrow();
 
             if let Some(binding) = env.find_def(&key) {
                 match *binding.borrow_mut() {
-                    Datum::Vector(ref mut elements) => {
+                    Datum::List(ref mut elements) => {
                         if let Some(elem) = elements.get(index as usize) {
                             Ok(TCOWrapper::Return(elem.clone()))
                         } else {
-                            // TODO: Index out of bounds
-                            Err(InvalidTypeOfArguments)
+                            panic!("Index out of bounds")
                         }
                     },
                     _ => {
-                        Err(InvalidTypeOfArguments)
+                        panic!("Usage: (list-ref <id> <index>)")
                     }
                 }
             } else {
                 panic!("Definition not found: {}", self.symbol_table.name(key));
             }
         } else {
-            Err(InvalidTypeOfArguments)
+            panic!("Usage: (list-ref <id> <index>)")
         }
     }
 
-    fn eval_sf_vector_set(&mut self, key: Symbol, index: Expression, value: Expression, env_ref: EnvRef) -> TCOResult {
+    fn eval_sf_list_set(&mut self, key: Symbol, index: Expression, value: Expression, env_ref: EnvRef) -> TCOResult {
         let vindex = self.eval(index, env_ref.clone())?;
         let value = self.eval(value, env_ref.clone())?;
 
@@ -306,7 +299,7 @@ impl Evaluator {
 
             if let Some(binding) = env.find_def(&key) {
                 match *binding.borrow_mut() {
-                    Datum::Vector(ref mut elements) => {
+                    Datum::List(ref mut elements) => {
                         if let Some(elem) = elements.get_mut(index as usize) {
                             *elem = value;
                             Ok(TCOWrapper::Return(Datum::Undefined))
@@ -325,12 +318,6 @@ impl Evaluator {
         } else {
             Err(InvalidTypeOfArguments)
         }
-    }
-
-    fn eval_sf_symbol_function_call(&mut self, fun: Symbol, args: Vec<Expression>, env_ref: EnvRef) -> TCOResult {
-        let f = self.eval(Expression::Symbol(fun), env_ref.clone())?;
-        let evaled_args = self.eval_list(args, env_ref);
-        self.apply(f, evaled_args)
     }
 
     fn eval_special_apply(&mut self, args: Vec<Datum>) -> TCOResult {
@@ -360,6 +347,26 @@ impl Evaluator {
         Ok(TCOWrapper::Return(self.eval(preprocessed, env_ref)?))
     }
 
+    // TODO Improve, prevent clones
+    fn eval_special_map(&mut self, args: Vec<Datum>, env_ref: EnvRef) -> TCOResult {
+        let fun = args.get(0).unwrap();
+        let list = args.get(1).unwrap();
+
+        if let Datum::List(ref elems) = *list {
+            let new_elems = elems.into_iter().map(|e|
+                match self.apply(fun.clone(), vec![e.clone()]).unwrap() {
+                    TCOWrapper::Return(result) => result,
+                    TCOWrapper::TailCall(expr, env) => {
+                        self.eval(expr, env).unwrap()
+                    }
+                }
+            ).collect();
+            Ok(TCOWrapper::Return(Datum::List(new_elems)))
+        } else {
+            Err(InvalidTypeOfArguments)
+        }
+    }
+
     pub fn eval(&mut self, expr: Expression, mut env_ref: EnvRef) -> LispResult {
         self.level += 1;
         // println!("Evaling on level {} and env {}", self.level, ienv_ref);
@@ -377,9 +384,9 @@ impl Evaluator {
                     Ok(TCOWrapper::Return(Datum::Undefined))
                 },
                 Expression::Assignment(name, value) => self.eval_sf_assignment(name, *value, env_ref),
-                Expression::VectorPush(name, value) => self.eval_sf_vector_push(name, *value, env_ref),
-                Expression::VectorRef(name, value) => self.eval_sf_vector_ref(name, *value, env_ref),
-                Expression::VectorSet(name, index, value) => self.eval_sf_vector_set(name, *index, *value, env_ref),
+                Expression::ListPush(name, value) => self.eval_sf_list_push(name, *value, env_ref),
+                Expression::ListRef(name, value) => self.eval_sf_list_ref(name, *value, env_ref),
+                Expression::ListSet(name, index, value) => self.eval_sf_list_set(name, *index, *value, env_ref),
                 Expression::Symbol(key) => {
                     let env = env_ref.borrow();
                     match env.find_def(&key) {
@@ -398,13 +405,13 @@ impl Evaluator {
                     let mut evaled_args = self.eval_list(args, env_ref);
                     Ok(TCOWrapper::Return(fun(evaled_args.as_mut_slice())?))
                 },
-                Expression::SymbolFunctionCall(fun, args) => self.eval_sf_symbol_function_call(fun, args, env_ref),
                 Expression::SpecialFunctionCall(fun, args) => {
                     let evaled_args = self.eval_list(args, env_ref.clone());
                     match fun.as_ref() {
                         "apply" => self.eval_special_apply(evaled_args),
                         "eval" => self.eval_special_eval(evaled_args, env_ref),
                         "read" => self.eval_special_read(evaled_args),
+                        "map" => self.eval_special_map(evaled_args, env_ref),
                         _ => panic!("Unknown builtin function: {}", fun)
                     }
                 },

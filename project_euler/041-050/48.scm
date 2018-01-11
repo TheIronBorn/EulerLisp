@@ -2,7 +2,7 @@
 ; Changes: Add bignum multiplication
 
 (defn loop (from to result)
-      (println from)
+      (println "from = " from)
       (if (> from to)
           result
           (loop (inc from) to
@@ -14,4 +14,4 @@
     (take 10)
     reverse
     (apply str)
-    println)
+    (println "Solution: "))

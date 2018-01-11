@@ -23,7 +23,7 @@ use std::fmt;
 use std::cmp::Ordering;
 use std::boxed::Box;
 use std::collections::BTreeMap;
-use std::mem::replace;
+use std::mem;
 
 pub type LispResult = Result<Datum, LispErr>;
 
@@ -172,7 +172,6 @@ pub enum Datum {
     Str(String),
     Symbol(String),
     List(Vec<Datum>),
-    Vector(Vec<Datum>),
     DottedList(Vec<Datum>, Box<Datum>),
     Lambda(Lambda),
     Builtin(LispFn),
@@ -207,7 +206,21 @@ impl Datum {
     }
 
     pub fn take(&mut self) -> Datum {
-        replace(self, Datum::Undefined)
+        mem::replace(self, Datum::Undefined)
+    }
+
+    pub fn replace(&mut self, other: Datum) {
+        mem::replace(self, other);
+    }
+
+    pub fn push(&mut self, value: Datum) {
+        if let Datum::List(ref mut elems) = *self {
+            elems.push(value);
+        } else if self.is_nil() {
+            self.replace(Datum::List(vec![value]));
+        } else {
+            panic!("push! only works on lists and '()");
+        }
     }
 }
 
@@ -226,18 +239,6 @@ impl fmt::Display for Datum {
             Datum::List(ref elems) => {
                 let mut result = String::new();
                 result.push_str("(");
-                for (i, e) in elems.iter().enumerate() {
-                    if i != 0 {
-                        result.push_str(" ");
-                    }
-                    result.push_str(&e.to_string());
-                }
-                result.push_str(")");
-                write!(f, "{}", result)
-            },
-            Datum::Vector(ref elems) => {
-                let mut result = String::new();
-                result.push_str("#(");
                 for (i, e) in elems.iter().enumerate() {
                     if i != 0 {
                         result.push_str(" ");
@@ -284,9 +285,9 @@ pub enum Expression {
     Definition(Symbol, Box<Expression>),
     MacroDefinition(Symbol, Box<Expression>),
     Assignment(Symbol, Box<Expression>),
-    VectorPush(Symbol, Box<Expression>),
-    VectorRef(Symbol, Box<Expression>),
-    VectorSet(Symbol, Box<Expression>, Box<Expression>),
+    ListPush(Symbol, Box<Expression>),
+    ListRef(Symbol, Box<Expression>),
+    ListSet(Symbol, Box<Expression>, Box<Expression>),
     DirectFunctionCall(Symbol, Vec<Expression>),
     BuiltinFunctionCall(fn(&mut [Datum])->LispResult, Vec<Expression>),
     SpecialFunctionCall(String, Vec<Expression>),

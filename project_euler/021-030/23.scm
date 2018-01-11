@@ -7,40 +7,37 @@
 (defn factor-sum (n) (- (sum (factors n)) n))
 (defn abundant? (n) (> (factor-sum n) n))
 
-(def abundants #())
+(def abundants '())
 
-(def abundant-sums (make-vector max-n #f))
-(defn abundant-sum? (n) (vector-ref abundant-sums (dec n)))
+(def abundant-sums (filled-list max-n #f))
+(defn abundant-sum? (n) (list-ref abundant-sums (dec n)))
 
 (defn loop (from to)
       (if (<= from to)
         (do
           (if (abundant? from)
-              (vector-push! abundants from))
+              (push! abundants from))
           (loop (inc from) to))))
 
 (loop 12 max-n)
-(vector-push! abundants 0)
+(push! abundants 0)
 
 (def len (dec (length abundants)))
-(def init (vector-ref abundants 0))
+(def init (list-ref abundants 0))
 
 (defn loop2 (pa pb va vb limit)
-      (if (>= pb len)
-        #t
+      (if (< pb len)
         (if (or (>= pa len)
                 (>= va limit))
-          (let ((next-vb (vector-ref abundants (inc pb))))
+          (let ((next-vb (list-ref abundants (inc pb))))
             (loop2 0 (inc pb)
                    init next-vb
                    (- max-n next-vb)))
           (do
-            (vector-set! abundant-sums (dec (+ va vb)) #t)
+            (set-nth! abundant-sums (dec (+ va vb)) #t)
             (loop2 (inc pa) pb
-                   (vector-ref abundants (inc pa)) vb
+                   (list-ref abundants (inc pa)) vb
                    limit)))))
-
-(println (loop2 0 0 init init (- max-n init)))
 
 (defn loop3 (from to acc)
       (if (> from to)
@@ -50,4 +47,4 @@
                  (if (abundant-sum? from)
                      acc
                      (+ acc from)))))
-(println (loop3 1 max-n 0))
+(println "Solution: " (loop3 1 max-n 0))

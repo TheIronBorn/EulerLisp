@@ -5,11 +5,11 @@
 ; first in `prime-factors`
 
 (defn search (cur streak)
-  (println cur)
+  (println "cur = " cur)
   (cond
     ((= streak 4) (- cur 4))
     ((>= (length (prime-factors cur)) 4)
      (search (inc cur) (inc streak)))
     (else (search (inc cur) 0))))
 
-(println (search 1 0))
+(println "Solution: " (search 1 0))

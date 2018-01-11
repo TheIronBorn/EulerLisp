@@ -23,7 +23,6 @@
       (flatmap digits lst))
 
 (defn solve (n x max-pan)
-  (println (cons n x))
   (let* ((ds (all-digits
              (map (fn (a) (* x a)) (range 1 n)))))
     (if (> (length ds) 9)
@@ -36,4 +35,4 @@
                       (string->number (apply str ds))))
           (solve n (inc x) max-pan)))))
 
-(println (solve 2 1 0))
+(println "Solution: " (solve 2 1 0))

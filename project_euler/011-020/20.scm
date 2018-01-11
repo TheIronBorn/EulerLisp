@@ -10,4 +10,4 @@
 (~> (multiply-n 100 (bignum 1))
     bignum-digits
     sum
-    println)
+    (println "Solution: "))

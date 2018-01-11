@@ -40,4 +40,4 @@
             (solve (+ cur 2) (dec needed) (+ cur acc)))
           (solve (+ cur 2) needed acc))))
 
-(println (solve 11 11 0))
+(println "Solution: " (solve 11 11 0))

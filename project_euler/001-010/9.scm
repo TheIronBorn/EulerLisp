@@ -24,5 +24,6 @@
             (triplet sum))))
 
 (def result (triplet 1000))
-(println result)
-(println (reduce * 1 result))
+
+(println "Triplet: " result)
+(println "Solution: " (reduce * 1 result))

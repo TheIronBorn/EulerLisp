@@ -25,4 +25,4 @@
         (else
          (solve (inc a) b prod))))
 
-(println (solve from from 0))
+(println "Solution: " (solve from from 0))

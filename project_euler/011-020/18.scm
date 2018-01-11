@@ -31,4 +31,4 @@
             (reduce-rows (fst input) (frst input) '())
             (rrst input)))))
 
-(println (reduce-full input))
+(println "Solution: " (reduce-full input))

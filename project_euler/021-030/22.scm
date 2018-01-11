@@ -24,4 +24,4 @@
             (inc index)
             (+ acc (* index (value (fst names)))))))
 
-(println (solve names 1 0))
+(println "Solution: " (solve names 1 0))

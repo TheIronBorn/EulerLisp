@@ -271,7 +271,7 @@ named!(
             identifier  => { |s| Datum::Symbol(s) } |
             list        => { |ds| Datum::List(ds) } |
             dotted_list => { |(ds, d)| Datum::DottedList(ds, Box::new(d)) } |
-            vector      => { |ds| Datum::Vector(ds) } |
+            // vector      => { |ds| Datum::Vector(ds) } |
             quote       => { |q| Datum::List(vec!(make_symbol("quote"), q)) } |
             quasiquote  => { |q| Datum::List(vec!(make_symbol("quasiquote"), q)) } |
             unquote     => { |q| Datum::List(vec!(make_symbol("unquote"), q)) } |

@@ -50,6 +50,7 @@
                 )))))
 
 (println
+  "Solution: "
   (step (list 1 1 1900)
         (list 1 1 2001)
         0

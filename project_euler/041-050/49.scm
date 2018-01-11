@@ -75,4 +75,6 @@
        (ascending?_ b diff))
       (else #f))))
 
-(println (map (fn (x) (apply str x)) (select ascending? all-sequences)))
+(println
+  "Solution: "
+  (map (fn (x) (apply str x)) (select ascending? all-sequences)))

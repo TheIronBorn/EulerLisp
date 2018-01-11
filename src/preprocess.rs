@@ -63,34 +63,34 @@ pub fn preprocess(
                                 Err(InvalidTypeOfArguments)
                             }
                         },
-                        "vector-ref"       => {
+                        "list-ref"       => {
                             check_arity!(args, 2);
                             if let Datum::Symbol(ref a) = args[0] {
                                 let body = args.get(1).unwrap().clone();
-                                Ok(Expression::VectorRef(
+                                Ok(Expression::ListRef(
                                     symbol_table.insert(a),
                                     Box::new(preprocess(body, symbol_table, builtins)?)))
                             } else {
                                 Err(InvalidTypeOfArguments)
                             }
                         },
-                        "vector-push!"       => {
+                        "push!"       => {
                             check_arity!(args, 2);
                             if let Datum::Symbol(ref a) = args[0] {
                                 let body = args.get(1).unwrap().clone();
-                                Ok(Expression::VectorPush(
+                                Ok(Expression::ListPush(
                                     symbol_table.insert(a),
                                     Box::new(preprocess(body, symbol_table, builtins)?)))
                             } else {
                                 Err(InvalidTypeOfArguments)
                             }
                         },
-                        "vector-set!"       => {
+                        "set-nth!"       => {
                             check_arity!(args, 3);
                             if let Datum::Symbol(ref a) = args[0] {
                                 let index = args.get(1).unwrap().clone();
                                 let value = args.get(2).unwrap().clone();
-                                Ok(Expression::VectorSet(
+                                Ok(Expression::ListSet(
                                     symbol_table.insert(a),
                                     Box::new(preprocess(index, symbol_table, builtins)?),
                                     Box::new(preprocess(value, symbol_table, builtins)?)))
@@ -327,7 +327,7 @@ pub fn preprocess(
                         // "force"     => self.sf_force(args, env_ref),
                         // TODO: Not sure how to handle these,
                         // they can't go into `builtin` because the need access to the evaluator
-                        v @ "read" | v @ "apply" | v @ "eval" => {
+                        v @ "read" | v @ "apply" | v @ "eval" | v @ "map" => {
                             let exprs: Result<Vec<Expression>, LispErr> = args.into_iter()
                                 .map( |arg| preprocess(arg.clone(), symbol_table, builtins) ).collect();
                             Ok(Expression::SpecialFunctionCall(v.to_string(), exprs?))
@@ -343,7 +343,10 @@ pub fn preprocess(
                                 },
                                 None => {
                                     let fun = symbol_table.insert(&other.to_string());
-                                    Ok(Expression::SymbolFunctionCall(fun, exprs))
+                                    Ok(Expression::FunctionCall(
+                                        Box::new(Expression::Symbol(fun)),
+                                        exprs
+                                    ))
                                 }
                             }
                         }

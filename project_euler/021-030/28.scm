@@ -17,4 +17,4 @@
 (def n 1001)
 (def size (inc (/ n 2)))
 
-(println (solve 0 0 size))
+(println "Solution: " (solve 0 0 size))

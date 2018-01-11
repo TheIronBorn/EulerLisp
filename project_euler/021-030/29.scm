@@ -18,4 +18,4 @@
       (dedup_ (rst arr) (fst arr) (cons (fst arr) acc))
       )))
 
-(~> result sort dedup length println)
+(~> result sort dedup length (println "Solution: "))

@@ -3,10 +3,10 @@
 ;  * add `str` function (like in clojure)
 ;  * make `length` work for strings
 
-(def single #("one" "two" "three" "four" "five" "six" "seven" "eight" "nine"))
-(def teens #("ten" "eleven" "twelve" "thirteen" "fourteen" "fifteen" "sixteen"
+(def single '("one" "two" "three" "four" "five" "six" "seven" "eight" "nine"))
+(def teens '("ten" "eleven" "twelve" "thirteen" "fourteen" "fifteen" "sixteen"
             "seventeen" "eighteen" "nineteen"))
-(def tens #("twenty" "thirty" "fourty" "fifty" "sixty" "seventy" "eighty" "ninety"))
+(def tens '("twenty" "thirty" "fourty" "fifty" "sixty" "seventy" "eighty" "ninety"))
 
 (defn format-ten (n)
     (cond
@@ -48,4 +48,4 @@
             (+ acc
                (length (format from))))))
 
-(println (solve 1 1000 0))
+(println "Solution: " (solve 1 1000 0))

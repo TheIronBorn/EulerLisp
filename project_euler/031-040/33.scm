@@ -50,4 +50,4 @@
   (reduce fraction* (cons 1 1))
   simplify
   rst
-  println)
+  (println "Solution: "))

@@ -18,4 +18,4 @@
       (sum_even_fib_ limit a_ b_ c_ (+ sum a)))
       sum))
 
-(println (sum_even_fib 4000000))
+(println "Solution: " (sum_even_fib 4000000))

@@ -1,32 +1,10 @@
 ; Solved 1.1
+; Changes:
+;  9.1, use bignum
 
-(def digits #(1))
+(defn double (remaining acc)
+  (if (zero? remaining)
+      acc
+      (double (dec remaining) (bignum+ acc acc))))
 
-(defn double () (double-helper 0 (length digits) 0))
-
-(defn double-helper (from to carry)
-    (if (= from to)
-        (if (> carry 0)
-          (do
-            (vector-push! digits (% carry 10))
-            (double-helper from to (/ carry 10))))
-        (let ((cur (+ (* 1024 (nth from digits)) carry)))
-             (vector-set! digits from (% cur 10))
-             (double-helper (inc from) to (/ cur 10)))))
-
-(defn double-n (n)
-      (if (> n 0)
-          (do
-            (double)
-            (double-n (dec n)))))
-
-(defn vector-sum (from to acc)
-      (if (= from to)
-          acc
-          (vector-sum
-            (inc from)
-            to
-            (+ acc (nth from digits)))))
-
-(double-n (/ 1000 10))
-(println (vector-sum 0 (length digits) 0))
+(println "Solution: " (sum (bignum-digits (double 1000 (bignum 1)))))

@@ -15,4 +15,4 @@
               (nth-prime_ (dec n) (+ cur 2)))
           (nth-prime_ n (+ cur 2))))
 
-(println (nth-prime 10001))
+(println "Solution: " (nth-prime 10001))

@@ -36,8 +36,6 @@
                  ((= x (dec n)) #t)
                  (else (subloop (dec times) x n))))))
 
-; (defn prime? (n) (miller-rabin n 10))
-
 (defn nth-prime (n) (nth-prime_ (- n 3) 5))
 (defn nth-prime_ (n cur)
       (println n)
@@ -51,5 +49,4 @@
           (nth-prime_ n (+ cur 2))))
 
 
-(println (nth-prime 10001))
-; (println (nth-prime 50000))
+(println "Solution: " (nth-prime 10001))

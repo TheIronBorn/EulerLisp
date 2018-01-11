@@ -23,4 +23,4 @@
 (def max-n (* 6 (pow 9 5)))
 
 ; 1^5 is not a sum
-(println (loop 2 max-n 0))
+(println "Solution: " (loop 2 max-n 0))

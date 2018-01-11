@@ -23,7 +23,7 @@
            (cons
              (cons k1 (max v1 v2))
              (merge (rst a1) (rst a2))))
-          ((> k1 k2)
+          ((< k1 k2)
            (cons
              (cons k1 v1)
              (merge (rst a1) a2)))
@@ -33,9 +33,12 @@
              (merge a1 (rst a2)))))))))
 
 (def factors_ (map prime-factors (range from to)))
-(def max_factors (reduce merge '() factors_))
+(def max-factors (reduce merge '() factors_))
+
+(println "Max. factors: " max-factors)
 
 (println
+  "Solution: "
   (reduce (fn (factor acc)
               (* acc (pow (fst factor) (rst factor))))
-          1 max_factors))
+          1 max-factors))

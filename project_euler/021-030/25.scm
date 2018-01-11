@@ -17,11 +17,11 @@
 
 (defn solve (n)
       (if (>= (bignum-num-digits a) 1000)
-          (println n)
+          n
           (do
              (let ((new_a b) (new_b (bignum+ a b)))
                   (set! a new_a)
                   (set! b new_b))
              (solve (inc n)))))
 
-(solve 1)
+(println "Solution: " (solve 1))

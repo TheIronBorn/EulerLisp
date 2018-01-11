@@ -9,4 +9,4 @@
       sum))
 (defn sum_to (n) (sum_to_ n 1 0))
 
-(println (sum_to 1000))
+(println "Solution: " (sum_to 1000))
