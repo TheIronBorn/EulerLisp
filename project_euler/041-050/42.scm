@@ -19,10 +19,9 @@
 
 (defn triangle?_ (n m acc)
   (cond
-    ((< n acc) #f)
-    ((= n acc) #t)
-    (else
-      (triangle?_ n (inc m) (+ m acc)))))
+    (< n acc) #f
+    (= n acc) #t
+    else (triangle?_ n (inc m) (+ m acc))))
 
 (defn solve (names index acc)
       (if (empty? names)

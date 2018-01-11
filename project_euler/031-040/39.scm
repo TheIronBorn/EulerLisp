@@ -10,10 +10,10 @@
          (* 2 (- a p))))
 
 (defn has-solution? (p a)
-  (let* ((b (calc-b p a))
-         (c (- p (+ a b))))
-         (= (+ (* a a) (* b b))
-            (* c c))))
+  (let* (b (calc-b p a)
+         c (- p (+ a b)))
+        (= (+ (* a a) (* b b))
+           (* c c))))
 
 (defn count-solutions (p a solutions)
   (if (>= a (/ p 3))
@@ -25,7 +25,7 @@
 (defn solve (p max-p max-solutions)
   (if (> p 1000)
       (cons max-p max-solutions)
-      (let ((solutions (count-solutions p 1 0)))
+      (let (solutions (count-solutions p 1 0))
         (if (> solutions max-solutions)
             (solve (+ p 2) p solutions)
             (solve (+ p 2) max-p max-solutions)))))

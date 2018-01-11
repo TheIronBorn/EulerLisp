@@ -26,7 +26,7 @@
       (println "from = " from)
       (if (> from to)
           max-n
-          (let ((cur-len (collatz-length from)))
+          (let (cur-len (collatz-length from))
             (push! known cur-len)
             (set! known-len (inc known-len))
             (if (> cur-len max-len)

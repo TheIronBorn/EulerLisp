@@ -2,9 +2,9 @@
 
 (defn member? (e lst)
   (cond
-    ((nil? list) #f)
-    ((= (fst lst) e) #t)
-    (else (member? e (rst lst)))))
+    (nil? list) #f
+    (= (fst lst) e) #t
+    else (member? e (rst lst))))
 
 
 (defn pandigital? (lst)
@@ -15,8 +15,7 @@
       (flatmap digits lst))
 
 (defn solve (n x max-pan)
-  (let* ((ds (all-digits
-             (map (fn (a) (* x a)) (range 1 n)))))
+  (let* ((ds (all-digits (map (fn (a) (* x a)) (range 1 n)))))
     (if (> (length ds) 9)
       (if (= n 9)
           max-pan

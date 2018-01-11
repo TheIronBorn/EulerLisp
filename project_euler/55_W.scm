@@ -1,5 +1,4 @@
 ; Solved 11.1
-; Changes: make print & println variadic
 
 (defn digit-sum (n)
   (~> n bignum-digits sum))

@@ -22,12 +22,11 @@
   (if (> a b)
       (paths b a)
       (cond
-        ((= a 1) (inc b))
-        ((< (index a b) (length known))
-         (list-ref known (index a b)))
-        (else
-          (+ (paths (dec a) b)
-             (paths a (dec b)))))))
+        (= a 1) (inc b)
+        (< (index a b) (length known))
+        (list-ref known (index a b))
+        else (+ (paths (dec a) b)
+                (paths a (dec b))))))
 
 (iterate 1 1 20 20)
 (println "Solution: " (nth (index 20 20) known))

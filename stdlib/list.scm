@@ -49,15 +49,15 @@
 
 (defn select (pred arr)
   (cond
-    ((nil? arr) '())
-    ((pred (fst arr)) (cons (fst arr) (select pred (rst arr))))
-    (else (select pred (rst arr)))))
+    (nil? arr) '()
+    (pred (fst arr)) (cons (fst arr) (select pred (rst arr)))
+    else (select pred (rst arr))))
 
 (defn reject (pred arr)
   (cond
-    ((nil? arr) '())
-    ((pred (fst arr)) (reject pred (rst arr)))
-    (else (cons (fst arr) (reject pred (rst arr))))))
+    (nil? arr) '()
+    (pred (fst arr)) (reject pred (rst arr))
+    else (cons (fst arr) (reject pred (rst arr)))))
 
 (defn reduce (f acc arr)
   (if (nil? arr)
@@ -66,15 +66,15 @@
 
 (defn any? (pred arr)
   (cond
-    ((nil? arr) #f)
-    ((pred (fst arr)) #t)
-    (else (any? pred (rst arr)))))
+    (nil? arr) #f
+    (pred (fst arr)) #t
+    else (any? pred (rst arr))))
 
 (defn all? (pred arr)
   (cond
-    ((nil? arr) #t)
-    ((pred (fst arr)) (all? pred (rst arr)))
-    (else #f)))
+    (nil? arr) #t
+    (pred (fst arr)) (all? pred (rst arr))
+    else #f))
 
 (defn zip lists
       (if (any? nil? lists)
@@ -86,7 +86,7 @@
 (defn sum (lst) (reduce + 0 lst))
 
 (defn take (n lst)
-      (if (zero? n)
+      (if (or (zero? n) (nil? lst))
           '()
           (cons (fst lst) (take (dec n) (rst lst)))))
 

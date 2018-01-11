@@ -12,9 +12,9 @@
 (defn sum_even_fib_ (limit a b c sum)
   (if (< a limit)
     (let*
-      ((a_ (+ b c))
-       (b_ (+ c a_))
-       (c_ (+ a_ b_)))
+      (a_ (+ b c)
+       b_ (+ c a_)
+       c_ (+ a_ b_))
       (sum_even_fib_ limit a_ b_ c_ (+ sum a)))
       sum))
 

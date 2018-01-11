@@ -5,9 +5,9 @@
 
 (defn goldbach?_ (n sq)
   (cond
-    ((< n (* 2 sq sq)) #f)
-    ((prime? (- n (* 2 sq sq))) #t)
-    (else (goldbach?_ n (inc sq)))))
+    (< n (* 2 sq sq)) #f
+    (prime? (- n (* 2 sq sq))) #t
+    else (goldbach?_ n (inc sq))))
 
 
 (defn loop (cur)

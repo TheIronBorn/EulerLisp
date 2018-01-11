@@ -13,15 +13,14 @@
       (find-bracket_ (- n (fst ranges)) (inc cur) (rst ranges))))
 
 (defn find-digit (range rest)
-    (let* (
-           (real-rest (+ rest (* range (pow 10 (dec range)))))
-           (position (dec (- range (% real-rest range)))))
+    (let* (real-rest (+ rest (* range (pow 10 (dec range))))
+           position (dec (- range (% real-rest range))))
          (% (/ (/ real-rest range) (pow 10 position)) 10)))
 
 (defn digit (n)
   (if (<= n 9)
       n
-      (let ((bracket (find-bracket (dec n))))
+      (let (bracket (find-bracket (dec n)))
         (find-digit (fst bracket) (rst bracket))
         )))
 

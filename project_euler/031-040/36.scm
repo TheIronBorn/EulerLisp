@@ -13,10 +13,10 @@
                 (digits2 (/ n 2)))))
 
 (defn palindromic10? (n)
-      (let ((ds (digits10 n)))
+      (let (ds (digits10 n))
         (= ds (reverse ds))))
 (defn palindromic2? (n)
-      (let ((ds (digits2 n)))
+      (let (ds (digits2 n))
         (= ds (reverse ds))))
 
 (defn palindromic? (n)

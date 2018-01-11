@@ -2,10 +2,10 @@
 
 (defn leap-year? (n)
   (cond
-    ((divides? 400 n) #t)
-    ((divides? 100 n) #f)
-    ((divides? 4 n) #t)
-    (else #f)))
+    (divides? 400 n) #t
+    (divides? 100 n) #f
+    (divides? 4 n) #t
+    else #f))
 
 (defn month-days (month year)
   (case month
@@ -23,9 +23,9 @@
     (12 31)))
 
 (defn next-date (date)
-    (let ((day (fst date))
-          (month (frst date))
-          (year (frrst date)))
+    (let (day (fst date)
+          month (frst date)
+          year (frrst date))
       (if (= day (month-days month year))
           (if (= month 12)
             (list 1 1 (inc year))
@@ -35,9 +35,9 @@
 (defn step (from to wday acc)
       (if (= from to)
           acc
-          (let ((day (fst from))
-                (month (frst from))
-                (year (frrst from)))
+          (let (day (fst from)
+                month (frst from)
+                year (frrst from))
                (step
                  (next-date from)
                  to

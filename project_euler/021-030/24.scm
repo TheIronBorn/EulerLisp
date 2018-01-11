@@ -3,9 +3,9 @@
 (defn permutation (index candidates)
       (if (empty? candidates)
           '()
-      (let* ((len (length candidates))
-             (f (fac (dec len)))
-             (first (/ index f)))
+      (let* (len (length candidates)
+             f (fac (dec len))
+             first (/ index f))
         (cons (nth first candidates)
               (permutation
                 (% index f)

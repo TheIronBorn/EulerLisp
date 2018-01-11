@@ -5,7 +5,7 @@
 (defn loop (from to result)
       (if (>= from to)
         result
-        (let ((perm (string->number (apply str (vector-ref ps from)))))
+        (let (perm (string->number (apply str (vector-ref ps from))))
           (if (substring-divisible? perm)
             (loop (inc from) to (+ perm result))
             (loop (inc from) to result)

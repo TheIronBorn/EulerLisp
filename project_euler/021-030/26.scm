@@ -42,10 +42,10 @@
       (if (> from to)
         max-n
         (let*
-          ((f (make-stepper from))
-           (len (cycle-len f)))
+          (f (make-stepper from)
+           len (cycle-len f))
           (if (> len max-len)
               (loop (inc from) to from len)
               (loop (inc from) to max-n max-len)))))
 
-(println (loop 2 1000 0 0))
+(println "Solution: " (loop 2 1000 0 0))

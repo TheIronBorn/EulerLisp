@@ -12,10 +12,8 @@
 
 (defn dedup_ (arr last acc)
   (cond
-    ((nil? arr) acc)
-    ((= last (fst arr)) (dedup_ (rst arr) last acc))
-    (else 
-      (dedup_ (rst arr) (fst arr) (cons (fst arr) acc))
-      )))
+    (nil? arr) acc
+    (= last (fst arr)) (dedup_ (rst arr) last acc)
+    else (dedup_ (rst arr) (fst arr) (cons (fst arr) acc))))
 
 (~> result sort dedup length (println "Solution: "))

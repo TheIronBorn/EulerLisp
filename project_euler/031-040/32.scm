@@ -2,9 +2,9 @@
 
 (defn member? (e lst)
   (cond
-    ((nil? list) #f)
-    ((= (fst lst) e) #t)
-    (else (member? e (rst lst)))))
+    (nil? list) #f
+    (= (fst lst) e) #t
+    else (member? e (rst lst))))
 
 (defn pandigital? (a b c)
   (= (sort (append (append (digits a) (digits b)) (digits c)))
@@ -20,25 +20,23 @@
 
 (defn find-pandigital_ (ra rb ra-backup acc)
   (cond
-    ((nil? rb) acc)
-    ((nil? ra)
-     (find-pandigital_ ra-backup (rst rb) ra-backup acc))
-    (else
-      (let* ((a (fst ra)) (b (fst rb)) (c (* a b)))
-        (if (pandigital? a b c)
-          (find-pandigital_ (rst ra) rb ra-backup (cons c acc))
-          (find-pandigital_ (rst ra) rb ra-backup acc))))))
+    (nil? rb) acc
+    (nil? ra) (find-pandigital_ ra-backup (rst rb) ra-backup acc)
+    else (let* (a (fst ra)
+                  b (fst rb)
+                  c (* a b))
+           (if (pandigital? a b c)
+             (find-pandigital_ (rst ra) rb ra-backup (cons c acc))
+             (find-pandigital_ (rst ra) rb ra-backup acc)))))
 
 (defn dedup (arr)
       (dedup_ arr -1 '()))
 
 (defn dedup_ (arr last acc)
-  (cond
-    ((nil? arr) acc)
-    ((= last (fst arr)) (dedup_ (rst arr) last acc))
-    (else 
-      (dedup_ (rst arr) (fst arr) (cons (fst arr) acc))
-      )))
+      (cond
+        (nil? arr) acc
+        (= last (fst arr)) (dedup_ (rst arr) last acc)
+        else (dedup_ (rst arr) (fst arr) (cons (fst arr) acc))))
 
 ; The product of a n-digit number and a m-digit number
 ; is either n+m-1 and n+m digits long,

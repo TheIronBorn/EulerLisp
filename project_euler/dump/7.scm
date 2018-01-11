@@ -18,8 +18,8 @@
 (defn witness-loop (n r d k)
       (if (zero? k)
           #t
-          (let* ((a (rand 2 (- n 2))) 
-                 (x (powmod a d n)))
+          (let* (a (rand 2 (- n 2)) 
+                 x (powmod a d n))
             (if (or (= x 1) (= x (dec n)))
                 (witness-loop n r d (dec k))
                 (if (subloop (dec r) x n)
@@ -30,11 +30,11 @@
 (defn subloop (times x n)
       (if (zero? times)
           #f
-          (let ((x (% (* x x) n)))
+          (let (x (% (* x x) n))
                (cond
-                 ((= x 1) #f)
-                 ((= x (dec n)) #t)
-                 (else (subloop (dec times) x n))))))
+                 (= x 1) #f
+                 (= x (dec n)) #t
+                 else (subloop (dec times) x n)))))
 
 (defn nth-prime (n) (nth-prime_ (- n 3) 5))
 (defn nth-prime_ (n cur)

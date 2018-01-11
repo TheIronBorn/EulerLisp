@@ -3,9 +3,9 @@
 (defn permutation (index candidates acc)
       (if (empty? candidates)
           acc
-      (let* ((len (length candidates))
-             (f (fac (dec len)))
-             (first (/ index f)))
+      (let* (len (length candidates)
+             f (fac (dec len))
+             first (/ index f))
           (permutation
             (% index f)
             (delete-nth first candidates)
@@ -16,7 +16,7 @@
 (defn loop (range from to result)
       (if (>= from to)
           result
-          (let ((perm (permutation from range 0)))
+          (let (perm (permutation from range 0))
             (if (prime? perm)
               (loop range (inc from) to (max perm result))
               (loop range (inc from) to result)

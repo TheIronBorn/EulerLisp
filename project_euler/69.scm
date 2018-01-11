@@ -17,7 +17,7 @@
 ; => solution = product of first few primes that is < 1.000.000
 
 (defn solve (limit acc ps)
-  (let ((next (* acc (fst ps))))
+  (let (next (* acc (fst ps)))
     (if (> next limit)
         acc
         (solve limit next (rst ps)))))

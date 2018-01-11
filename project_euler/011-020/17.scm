@@ -10,19 +10,16 @@
 
 (defn format-ten (n)
     (cond
-      ((< n 10)
-       (nth (dec n) single))
-      ((< n 20)
-       (nth (- n 10) teens))
-      (else
-       (if (zero? (% n 10))
-           (nth (- (/ n 10) 2) tens)
-           (str
+      (< n 10) (nth (dec n) single)
+      (< n 20) (nth (- n 10) teens)
+      else (if (zero? (% n 10))
              (nth (- (/ n 10) 2) tens)
-             (nth (dec (% n 10)) single))))))
+             (str
+               (nth (- (/ n 10) 2) tens)
+               (nth (dec (% n 10)) single)))))
 
 (defn format-hundred (n)
-    (if (zero? (% n 100))
+      (if (zero? (% n 100))
         (str
           (nth (dec (/ n 100)) single)
           "hundred")
@@ -31,21 +28,21 @@
           "hundred"
           "and"
           (format-ten (% n 100)))
-      ))
+        ))
 
 (defn format (n)
-  (cond
-    ((< n 100) (format-ten n))
-    ((< n 1000) (format-hundred n))
-    (else "onethousand")))
+      (cond
+        (< n 100) (format-ten n)
+        (< n 1000) (format-hundred n)
+        else "onethousand"))
 
 (defn solve (from to acc)
       (if (> from to)
-          acc
-          (solve
-            (inc from)
-            to
-            (+ acc
-               (length (format from))))))
+        acc
+        (solve
+          (inc from)
+          to
+          (+ acc
+             (length (format from))))))
 
 (println "Solution: " (solve 1 1000 0))

@@ -10,11 +10,10 @@
 
 (defn solve (a b prod)
       (cond
-        ((> a b) (solve from (inc b) prod))
-        ((> b to) prod)
-        ((and (> (* a b) prod) (palindrome? (digits (* a b))))
-         (solve (inc a) b (* a b)))
-        (else
-         (solve (inc a) b prod))))
+        (> a b) (solve from (inc b) prod)
+        (> b to) prod
+        (and (> (* a b) prod) (palindrome? (digits (* a b))))
+        (solve (inc a) b (* a b))
+        else (solve (inc a) b prod)))
 
 (println "Solution: " (solve from from 0))

@@ -67,13 +67,12 @@ fn desugar_let(args: &[Datum]) -> Datum {
     let mut values: Vec<Datum> = Vec::new();
 
     if let Datum::List(ref elements) = *bindings {
-        for binding in elements.iter() {
-            if let Datum::List(ref varval) = *binding {
-                variables.push(varval.get(0).expect("No binding variable").clone());
-                values.push(varval.get(1).expect("No binding value").clone());
-            } else {
-                panic!("Each let binding must be a list")
-            }
+        if elements.len() % 2 == 1 {
+            panic!("The bindings of let must have an even length")
+        }
+        for varval in elements.chunks(2) {
+            variables.push(varval[0].clone());
+            values.push(varval[1].clone());
         }
     } else {
         panic!("First argument of let must be a list")
@@ -106,24 +105,22 @@ fn desugar_let_star(args: &[Datum]) -> Datum {
     let mut values: Vec<Datum> = Vec::new();
 
     if let Datum::List(ref elements) = *bindings {
-        for binding in elements.iter() {
-            if let Datum::List(ref varval) = *binding {
-                variables.push(varval.get(0).expect("No binding variable").clone());
-                values.push(varval.get(1).expect("No binding value").clone());
-            } else {
-                panic!("Each let binding must be a list")
-            }
+        if elements.len() % 2 == 1 {
+            panic!("The bindings of let* must have an even length")
+        }
+        for varval in elements.chunks(2) {
+            variables.push(varval[0].clone());
+            values.push(varval[1].clone());
         }
     } else {
-        panic!("First argument of let must be a list")
+        panic!("First argument of let* must be a list")
     }
 
     let mut result: Datum = Datum::List(new_body);
     for (key, value) in variables.into_iter().zip(values.into_iter()).rev() {
-        let binding = Datum::List(vec![key, value]);
         let new = Datum::List(vec![
             Datum::Symbol("let".to_string()),
-            Datum::List(vec![binding]),
+            Datum::List(vec![key, value]),
             result
         ]);
         result = new;

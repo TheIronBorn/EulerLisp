@@ -163,12 +163,11 @@ pub fn preprocess(
                             let mut else_case = Expression::SelfEvaluating(Box::new(Datum::Nil));
                             let mut conditions: Vec<(Expression, Expression)> = Vec::new();
 
-                            for arg in args.into_iter() {
-                                if let Datum::List(ref elems) = *arg {
-                                    if elems.len() != 2 {
-                                        return Err(InvalidTypeOfArguments);
-                                    }
+                            if args.len() % 2 == 1 {
+                                panic!("cond takes an even number of arguments");
+                            }
 
+                            for elems in args.chunks(2).into_iter() {
                                     let cond = elems.get(0).unwrap();
                                     let cons = elems.get(1).unwrap();
 
@@ -183,9 +182,6 @@ pub fn preprocess(
                                          );
                                         conditions.push(condition);
                                     }
-                                } else {
-                                    return Err(InvalidTypeOfArguments);
-                                }
                             }
 
                             let mut cur = else_case;
