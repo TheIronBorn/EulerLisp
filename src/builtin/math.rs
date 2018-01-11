@@ -375,6 +375,58 @@ fn factors(vs: &mut [Datum]) -> LispResult {
     Err(InvalidTypeOfArguments)
 }
 
+fn primes(vs: &mut [Datum]) -> LispResult {
+    if let Datum::Number(a) = vs[0] {
+        if a < 1 {
+            panic!("Can't take a negative number of primes");
+        }
+
+        let to = a as usize;
+        if to > PRIMES.len() {
+            panic!("There are only {} precalculated primes", PRIMES.len());
+        }
+
+        let primes = PRIMES[0..to].to_vec().iter().map(|p|
+            Datum::Number(*p)
+        ).collect();
+        return Ok(Datum::List(primes));
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn digits(vs: &mut [Datum]) -> LispResult {
+    if let Datum::Number(mut a) = vs[0] {
+        let mut result = Vec::new();
+
+        while a != 0 {
+            result.push(Datum::Number(a % 10));
+            a /= 10;
+        }
+
+        return Ok(Datum::List(result))
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn digits_to_number(vs: &mut [Datum]) -> LispResult {
+    if let Datum::List(ref digits) = vs[0] {
+        let mut pow = 1;
+        let mut result = 0;
+
+        for digit in digits {
+            if let Datum::Number(n) = *digit {
+                result += n * pow;
+                pow *= 10;
+            } else {
+                panic!("digits->number only works for lists of numbers")
+            }
+        }
+
+        return Ok(Datum::Number(result))
+    }
+    Err(InvalidTypeOfArguments)
+}
+
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "prime?", prime_questionmark, Arity::Exact(1));
     register(hm, "+", add, Arity::Min(2));
@@ -401,4 +453,7 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "rand", rand, Arity::Exact(2));
     register(hm, "factors", factors, Arity::Exact(1));
     register(hm, "prime-factors", prime_factors, Arity::Exact(1));
+    register(hm, "primes", primes, Arity::Exact(1));
+    register(hm, "digits", digits, Arity::Exact(1));
+    register(hm, "digits->number", digits_to_number, Arity::Exact(1));
 }

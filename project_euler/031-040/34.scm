@@ -1,20 +1,19 @@
 ; Solved 6.1
 
-(def facs #())
-(map (fn (x) (vector-push! facs (fac x))) (range 0 9))
+(def facs '())
+(map (fn (x) (push! facs (fac x))) (range 0 9))
 
-(defn digits (n) (digits_ n 0))
-(defn digits_ (n acc)
+(defn digit-sum (n) (digit-sum_ n 0))
+(defn digit-sum_ (n acc)
   (if (= n 0)
       acc
-      (digits_ (/ n 10)
-               (+ acc (vector-ref facs (% n 10))))))
+      (digit-sum_ (/ n 10)
+               (+ acc (list-ref facs (% n 10))))))
 
 (def max-n (* 7 (fac 9)))
 
-
 (defn digit-fac? (n)
-      (= n (digits n)))
+      (= n (digit-sum n)))
 
 (defn solve (cur acc)
   (if (<= cur max-n)

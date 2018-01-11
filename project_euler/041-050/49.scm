@@ -1,39 +1,23 @@
 ; Solved 8.1
 ; Changes: Add bignum multiplication
 
-(defn digits (n) (digits_ n '()))
-(defn digits_ (n acc)
-  (if (= n 0)
-      acc
-      (let ((digit (% n 10))
-            (n (/ n 10)))
-        (digits_ n (cons digit acc)))))
-
-(defn digits->number (ds)
-  (string->number (apply str ds)))
-
-(def primes #())
-
-(defn loop (from)
-      (if (< from 9999)
-          (do
-            (if (prime? from)
-                (vector-push! primes (digits from)))
-            (loop (inc from)))))
-(loop 1000)
+(def myprimes (~>
+                (range 1000 9999)
+                (select prime?)
+                (map digits)))
 
 (defn find-permutations (a)
-  (let ((elem (vector-ref primes a)))
+  (let ((elem (list-ref myprimes a)))
     (find-permutations_
       (sort elem)
       (inc a)
-      (length primes)
+      (length myprimes)
       (list elem))))
 
 (defn find-permutations_ (sds b max-b acc)
   (if (>= b max-b)
-      (reverse acc)
-      (let* ((elem (vector-ref primes b))
+      acc
+      (let* ((elem (list-ref myprimes b))
              (sds_ (sort elem)))
         (if (= sds sds_)
             (find-permutations_ sds (inc b) max-b (cons elem acc))
@@ -60,7 +44,7 @@
           (solve (inc from) to acc)
           ))))
 
-(def sequences (solve 0 (length primes) '()))
+(def sequences (solve 0 (length myprimes) '()))
 (def all-sequences (flatmap (fn (x) (subsequences x 3)) sequences))
 
 (defn ascending? (seq)
@@ -76,5 +60,6 @@
       (else #f))))
 
 (println
-  "Solution: "
-  (map (fn (x) (apply str x)) (select ascending? all-sequences)))
+  "Solutions: "
+  (map (fn (x) (apply str x))
+       (~> all-sequences (map sort) (select ascending?))))

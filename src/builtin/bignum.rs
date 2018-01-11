@@ -50,6 +50,37 @@ fn bignum_digits(vs: &mut [Datum]) -> LispResult {
     }
     Err(InvalidTypeOfArguments)
 }
+
+fn bignum_chunks(vs: &mut [Datum]) -> LispResult {
+    if let Datum::Bignum(a) = vs[0].take() {
+        let digits = a.chunks();
+        return Ok(Datum::List(
+                digits.into_iter().map(|d| Datum::Number(d)).collect()
+        ));
+    }
+    Err(InvalidTypeOfArguments)
+}
+
+fn bignum_from_chunks(vs: &mut [Datum]) -> LispResult {
+    if let Datum::List(chunks) = vs[0].take() {
+        let mut result = Vec::new();
+
+        for chunk in chunks {
+            if let Datum::Number(n) = chunk {
+                result.push(n as usize);
+            } else {
+                panic!("The argument of bignum-from-chunks must be a list of numbers");
+            }
+        }
+
+        Ok(Datum::Bignum(
+            Bignum::from_chunks(result)
+        ))
+    } else {
+        Err(InvalidTypeOfArguments)
+    }
+}
+
 // fn bg_subtract(vs: &mut [Datum]) -> LispResult {
 //     if let Datum::Number(a) = vs[0] {
 //         if let Datum::Number(b) = vs[1] {
@@ -75,4 +106,6 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "bignum", number_to_bignum, Arity::Exact(1));
     register(hm, "bignum-num-digits", bignum_num_digits, Arity::Exact(1));
     register(hm, "bignum-digits", bignum_digits, Arity::Exact(1));
+    register(hm, "bignum-chunks", bignum_chunks, Arity::Exact(1));
+    register(hm, "bignum-from-chunks", bignum_from_chunks, Arity::Exact(1));
 }

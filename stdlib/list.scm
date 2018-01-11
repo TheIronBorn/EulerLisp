@@ -64,9 +64,6 @@
       acc
       (reduce f (f (fst arr) acc) (rst arr))))
 
-(defn empty? (lst)
-      (zero? (length lst)))
-
 (defn any? (pred arr)
   (cond
     ((nil? arr) #f)

@@ -15,7 +15,7 @@ const CHUNK: usize = 1000000000;
 impl Bignum {
     pub fn new(value: isize) -> Self {
         if value == 0 {
-            return Bignum { sign: false, data: Vec::new() }
+            return Self { sign: false, data: Vec::new() }
         }
 
         let sign;
@@ -34,10 +34,14 @@ impl Bignum {
             uvalue /= CHUNK;
         }
 
-        Bignum {
+        Self {
             sign: sign,
             data: data
         }
+    }
+
+    pub fn from_chunks(chunks: Vec<usize>) -> Self {
+        return Self { sign: false, data: chunks }
     }
 
     pub fn to_isize(&self) -> isize {
@@ -75,8 +79,12 @@ impl Bignum {
                     cur /= 10;
                 }
             }
-            result.into_iter().rev().collect()
+            result
         }
+    }
+
+    pub fn chunks(&self) -> Vec<isize> {
+        self.data.iter().map(|x| *x as isize).collect()
     }
 }
 

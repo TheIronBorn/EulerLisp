@@ -13,11 +13,11 @@
                 (digits2 (/ n 2)))))
 
 (defn palindromic10? (n)
-      (let ((digits (digits10 n)))
-        (= digits (reverse digits))))
+      (let ((ds (digits10 n)))
+        (= ds (reverse ds))))
 (defn palindromic2? (n)
-      (let ((digits (digits2 n)))
-        (= digits (reverse digits))))
+      (let ((ds (digits2 n)))
+        (= ds (reverse ds))))
 
 (defn palindromic? (n)
       (and (palindromic2? n) (palindromic10? n)))
@@ -26,9 +26,9 @@
       (if (>= from to)
         acc
         (do 
-          (println from)
+          (println "Palindromic prime: " from)
           (if (palindromic? from)
               (loop (inc from) to (+ acc from))
               (loop (inc from) to acc)))))
 
-(println (loop 1 1000000 0))
+(println "Solution: " (loop 1 1000000 0))

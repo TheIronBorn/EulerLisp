@@ -1,13 +1,5 @@
 ; Solved 6.1
 
-(defn digits (n) (digits_ n '()))
-(defn digits_ (n acc)
-  (if (= n 0)
-      acc
-      (let ((digit (% n 10))
-            (n (/ n 10)))
-        (digits_ n (cons digit acc)))))
-
 (defn member? (e lst)
   (cond
     ((nil? list) #f)

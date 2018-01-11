@@ -61,7 +61,11 @@ fn rst(vs: &mut [Datum]) -> LispResult {
 }
 
 fn list(vs: &mut [Datum]) -> LispResult {
-    Ok(Datum::List(vs.to_vec()))
+    if vs.len() == 0 {
+        Ok(Datum::Nil)
+    } else {
+        Ok(Datum::List(vs.to_vec()))
+    }
 }
 
 fn make_list(vs: &mut [Datum]) -> LispResult {

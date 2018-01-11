@@ -352,18 +352,20 @@ impl Evaluator {
         let fun = args.get(0).unwrap();
         let list = args.get(1).unwrap();
 
-        if let Datum::List(ref elems) = *list {
-            let new_elems = elems.into_iter().map(|e|
-                match self.apply(fun.clone(), vec![e.clone()]).unwrap() {
-                    TCOWrapper::Return(result) => result,
-                    TCOWrapper::TailCall(expr, env) => {
-                        self.eval(expr, env).unwrap()
+        match *list {
+            Datum::List(ref elems) => {
+                let new_elems = elems.into_iter().map(|e|
+                    match self.apply(fun.clone(), vec![e.clone()]).unwrap() {
+                        TCOWrapper::Return(result) => result,
+                        TCOWrapper::TailCall(expr, env) => {
+                            self.eval(expr, env).unwrap()
+                        }
                     }
-                }
-            ).collect();
-            Ok(TCOWrapper::Return(Datum::List(new_elems)))
-        } else {
-            Err(InvalidTypeOfArguments)
+                ).collect();
+                Ok(TCOWrapper::Return(Datum::List(new_elems)))
+            },
+            Datum::Nil => Ok(TCOWrapper::Return(Datum::Nil)),
+            _ => Err(InvalidTypeOfArguments)
         }
     }
 

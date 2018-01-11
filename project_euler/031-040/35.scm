@@ -41,7 +41,7 @@
       acc
       (if (rotatable-prime? cur)
           (do
-            (println cur)
+            (println "Rotatable prime: " cur)
             (solve (+ cur 2) (inc acc)))
           (solve (+ cur 2) acc))))
 

@@ -1,11 +1,5 @@
 ; Solved 6.1
 
-(defn digits (n)
-      (if (= n 0)
-          '()
-          (cons (% n 10)
-                (digits (/ n 10)))))
-
 (defn digit-power? (n)
       (= n
          (sum (map (fn (x) (pow x 5)) (digits n)))))
