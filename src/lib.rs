@@ -133,6 +133,7 @@ pub enum LambdaType {
 pub struct Lambda {
     env: EnvRef,
     params: Vec<Symbol>,
+    defaults: Vec<Datum>,
     body: Box<Expression>,
     kind: LambdaType
 }
@@ -277,7 +278,7 @@ pub type Symbol = usize;
 #[derive(Clone)]
 pub enum Expression {
     If(Box<Expression>, Box<Expression>, Box<Expression>),
-    LambdaDef(Vec<Symbol>, Box<Expression>, LambdaType),
+    LambdaDef(Vec<Symbol>, Vec<Datum>, Box<Expression>, LambdaType),
     Do(Vec<Expression>, Box<Expression>),
     Quote(Box<Datum>),
     Case(Box<Expression>, BTreeMap<Datum, Expression>, Box<Expression>),

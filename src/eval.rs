@@ -145,20 +145,50 @@ impl Evaluator {
 
                 match lambda.kind {
                     LambdaType::List => {
-                        if evaled_args.len() != lambda.params.len() {
+                        let given = evaled_args.len();
+                        let takes = lambda.params.len();
+                        let defaults = lambda.defaults.len();
+                        let missing = (takes - given);
+
+                        if missing > defaults {
                             return Err(InvalidNumberOfArguments);
                         } else {
-                            child_env.extend(lambda.params, evaled_args);
+                            evaled_args.extend(
+                                lambda.defaults.iter().cloned().skip(defaults - missing)
+                            );
+                            child_env.extend(
+                                lambda.params,
+                                evaled_args
+                            );
                         }
                     },
                     LambdaType::DottedList => {
-                        let normals = lambda.params.len() - 1;
-                        if evaled_args.len() < normals {
-                            return Err(InvalidNumberOfArguments);
-                        } else {
-                            let rest = evaled_args.split_off(normals);
+                        let given = evaled_args.len();
+                        let takes = lambda.params.len() - 1;
+
+                        if given > takes {
+                            let rest = evaled_args.split_off(takes);
                             evaled_args.push(Datum::List(rest));
-                            child_env.extend(lambda.params, evaled_args);
+                            child_env.extend(
+                                lambda.params,
+                                evaled_args
+                            );
+                        } else {
+                            let defaults = lambda.defaults.len();
+                            let missing = takes - given;
+
+                            if missing > defaults {
+                                return Err(InvalidNumberOfArguments);
+                            } else {
+                                evaled_args.extend(
+                                    lambda.defaults.iter().cloned().skip(defaults - missing)
+                                );
+                                evaled_args.push(Datum::List(vec!()));
+                                child_env.extend(
+                                    lambda.params,
+                                    evaled_args
+                                );
+                            }
                         }
                     }
                 }
@@ -409,8 +439,16 @@ impl Evaluator {
                         _ => panic!("Unknown builtin function: {}", fun)
                     }
                 },
-                Expression::LambdaDef(args, body, lambda_type) => {
-                    Ok(TCOWrapper::Return(Datum::Lambda(Lambda{ env: env_ref, params: args, body: body, kind: lambda_type })))
+                Expression::LambdaDef(params, defaults, body, lambda_type) => {
+                    Ok(TCOWrapper::Return(Datum::Lambda(
+                        Lambda{
+                            env: env_ref,
+                            params: params,
+                            defaults: defaults,
+                            body: body,
+                            kind: lambda_type
+                        }
+                    )))
                 },
                 Expression::SelfEvaluating(v) => Ok(TCOWrapper::Return(*v)),
                 _ => panic!("Expression not valid in this context")

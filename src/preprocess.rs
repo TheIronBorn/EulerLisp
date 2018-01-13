@@ -11,6 +11,39 @@ use symbol_table::SymbolTable;
 
 use std::collections::BTreeMap;
 
+fn process_params(params: &Vec<Datum>, symbol_table: &mut SymbolTable) -> (Vec<Symbol>, Vec<Datum>) {
+    let mut names = Vec::new();
+    let mut defaults = Vec::new();
+    let mut had_default = false;
+
+    for param in params {
+        match *param {
+            Datum::Symbol(ref v) => {
+                if had_default {
+                    panic!("All params after one with a default must have defaults");
+                }
+                names.push(symbol_table.insert(v));
+            }, 
+            Datum::List(ref elems) => {
+                let name = elems.get(0).unwrap();
+                let default = elems.get(1).unwrap_or(&Datum::Nil);
+                had_default = true;
+
+                if let Datum::Symbol(ref v) = *name {
+                    names.push(symbol_table.insert(v));
+                } else {
+                    panic!("Function parameters with defaults must have the form (name default)");
+                }
+
+                defaults.push(default.clone());
+            }, 
+            _ => panic!("Function parameters must have the form `name` or `(name default)`")
+        }
+    }
+
+    (names, defaults)
+}
+
 pub fn preprocess(
     datum: Datum,
     symbol_table: &mut SymbolTable,
@@ -98,33 +131,33 @@ pub fn preprocess(
                                 Err(InvalidTypeOfArguments)
                             }
                         },
+                        // TODO: Refactor & clean up
+                        // TODO: I'm not sure how to handle default args in
+                        // in combination with dotted list lambdas.
+                        // For now, the `. rest` can't have a default
                         "fn"        => {
                             check_arity!(args, 2);
 
-                            let mut params: Vec<Symbol> = Vec::new();
+                            let mut names;
+                            let defaults;
                             let lambda_type: LambdaType;
 
                             match args[0] {
                                 Datum::List(ref elems) => {
-                                    for a in elems {
-                                        if let Datum::Symbol(ref v) = *a {
-                                            params.push(symbol_table.insert(v));
-                                        } else {
-                                            return Err(InvalidTypeOfArguments);
-                                        }
-                                    };
+                                    let res = process_params(elems, symbol_table);
+                                    names = res.0;
+                                    defaults = res.1;
                                     lambda_type = LambdaType::List;
                                 },
                                 Datum::DottedList(ref elems, ref tail) => {
-                                    for a in elems {
-                                        if let Datum::Symbol(ref v) = *a {
-                                            params.push(symbol_table.insert(v));
-                                        } else {
-                                            return Err(InvalidTypeOfArguments);
-                                        }
-                                    }
+                                    let res = process_params(elems, symbol_table);
+                                    names = res.0;
+                                    defaults = res.1;
+
                                     if let Datum::Symbol(ref v) = **tail {
-                                        params.push(symbol_table.insert(v));
+                                        names.push(symbol_table.insert(v));
+                                    } else {
+                                        panic!("Dotted lambda `. rest` must be a symbol")
                                     }
                                     lambda_type = LambdaType::DottedList;
                                 },
@@ -134,7 +167,7 @@ pub fn preprocess(
                             }
 
                             let body = preprocess(args.get(1).unwrap().clone(), symbol_table, builtins)?;
-                            Ok(Expression::LambdaDef(params, Box::new(body), lambda_type))
+                            Ok(Expression::LambdaDef(names, defaults, Box::new(body), lambda_type))
                         },
                         "if"        => {
                             let cond = args.get(0).unwrap().clone();
