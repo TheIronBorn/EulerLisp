@@ -125,7 +125,6 @@ impl Ord for Promise {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LambdaType {
-    Var,
     List,
     DottedList,
 }

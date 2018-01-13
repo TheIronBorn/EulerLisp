@@ -144,9 +144,6 @@ impl Evaluator {
                 let mut child_env = Env::new(Some(lambda.env));
 
                 match lambda.kind {
-                    LambdaType::Var => {
-                        child_env.define(lambda.params[0], Datum::List(evaled_args));
-                    },
                     LambdaType::List => {
                         if evaled_args.len() != lambda.params.len() {
                             return Err(InvalidNumberOfArguments);
@@ -154,20 +151,15 @@ impl Evaluator {
                             child_env.extend(lambda.params, evaled_args);
                         }
                     },
-
                     LambdaType::DottedList => {
-                        panic!("This syntax is not supported jet");
-                    //     // The last param can be a list of 0... args
-                    //     if evaled_args.len() < (params.len() - 1) {
-                    //         return Err(InvalidNumberOfArguments);
-                    //     } else {
-                    //         for (p, value) in params[0..(params.len() - 1)].iter().zip(evaled_args.clone()) {
-                    //             self.envs.define(child_env, p.clone(), value);
-                    //         }
-                    //         self.envs.extend(child_env, params[0..(params.len() - 1)].iter().collect(), evaled_args);
-                    //         let rest: Vec<Datum> = evaled_args.iter().skip(params.len() - 1).cloned().collect();
-                    //         self.envs.define(child_env, params[params.len() - 1].clone(), Datum::List(evaled_args));
-                    //     }
+                        let normals = lambda.params.len() - 1;
+                        if evaled_args.len() < normals {
+                            return Err(InvalidNumberOfArguments);
+                        } else {
+                            let rest = evaled_args.split_off(normals);
+                            evaled_args.push(Datum::List(rest));
+                            child_env.extend(lambda.params, evaled_args);
+                        }
                     }
                 }
 

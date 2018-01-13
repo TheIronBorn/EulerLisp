@@ -1,15 +1,26 @@
-; Solved 11.1
+; TODO: cur must be a bignum,
+; otherwise it would overflow
 
-(defn digit-sum (n)
-  (~> n bignum-digits sum))
+(defn number-reverse (n)
+  (~> n
+      digits
+      reverse
+      digits->number))
 
-(defn loop (a b max-ds)
-  (println "a = " a)
-  (cond
-    (>= b 100) (loop (inc a) 1 max-ds)
-    (>= a 100) max-ds
-    else (loop a (inc b)
-               (max max-ds
-                    (digit-sum (bigpow (bignum a) b))))))
+(defn palindromic? (n)
+      (let (ds (digits n))
+        (= ds (reverse ds))))
 
-(println "Solution: " (loop 1 1 0))
+(defn lychrel (cur n)
+  (if (zero? n)
+      #t
+      (let* (cur-rev (number-reverse cur)
+             sum_ (bignum+ cur cur-rev))
+        (println sum_)
+        (if (palindromic? sum_)
+            #f
+            (lychrel sum_ (dec n))))))
+
+(println (lychrel (bignum 47) 50))
+(println (lychrel (bignum 349) 50))
+(println (lychrel (bignum 196) 50))

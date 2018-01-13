@@ -1,3 +1,3 @@
 (defn curry (f arg)
-      (fn args
+      (fn (. args)
           (apply f (cons arg args))))

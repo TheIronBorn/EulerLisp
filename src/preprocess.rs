@@ -105,10 +105,6 @@ pub fn preprocess(
                             let lambda_type: LambdaType;
 
                             match args[0] {
-                                Datum::Symbol(ref name) => {
-                                    params.push(symbol_table.insert(name));
-                                    lambda_type = LambdaType::Var;
-                                },
                                 Datum::List(ref elems) => {
                                     for a in elems {
                                         if let Datum::Symbol(ref v) = *a {
@@ -132,7 +128,9 @@ pub fn preprocess(
                                     }
                                     lambda_type = LambdaType::DottedList;
                                 },
-                                _ => return Err(InvalidTypeOfArguments),
+                                ref other => {
+                                    panic!("Lambda parameters must be (a b ...) or (a b ... . c), found {}", other);
+                                }
                             }
 
                             let body = preprocess(args.get(1).unwrap().clone(), symbol_table, builtins)?;

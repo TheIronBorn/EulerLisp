@@ -235,7 +235,7 @@ named!(
     dotted_list<(Vec<Datum>, Datum)>,
     do_parse!(
         lbracket >>
-        datums: many1!(datum) >>
+        datums: many0!(datum) >>
         dot >>
         datum: datum >>
         rbracket >>

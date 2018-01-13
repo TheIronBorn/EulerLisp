@@ -76,7 +76,7 @@
     (pred (fst arr)) (all? pred (rst arr))
     else #f))
 
-(defn zip lists
+(defn zip (. lists)
       (if (any? nil? lists)
           '()
           (cons (map fst lists)
