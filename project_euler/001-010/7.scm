@@ -7,12 +7,11 @@
 ;  * add builtin (powmod base exponend mod) function
 ;  * add builtin bitshift
 
-(defn nth-prime (n) (nth-prime_ (- n 2) 3))
-(defn nth-prime_ (n cur)
+(defn nth-prime (n (cur 3))
       (if (prime? cur)
           (if (zero? n)
               cur
-              (nth-prime_ (dec n) (+ cur 2)))
-          (nth-prime_ n (+ cur 2))))
+              (nth-prime (dec n) (+ cur 2)))
+          (nth-prime n (+ cur 2))))
 
-(println "Solution: " (nth-prime 10001))
+(println "Solution: " (nth-prime (- 10001 2)))

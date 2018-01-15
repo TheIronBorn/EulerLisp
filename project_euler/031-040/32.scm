@@ -29,15 +29,6 @@
              (find-pandigital_ (rst ra) rb ra-backup (cons c acc))
              (find-pandigital_ (rst ra) rb ra-backup acc)))))
 
-(defn dedup (arr)
-      (dedup_ arr -1 '()))
-
-(defn dedup_ (arr last acc)
-      (cond
-        (nil? arr) acc
-        (= last (fst arr)) (dedup_ (rst arr) last acc)
-        else (dedup_ (rst arr) (fst arr) (cons (fst arr) acc))))
-
 ; The product of a n-digit number and a m-digit number
 ; is either n+m-1 and n+m digits long,
 ; so the only possible combinations (with n <= m) are
@@ -48,6 +39,6 @@
   (find-pandigital range1 range4)
   (append (find-pandigital range2 range3))
   sort
-  dedup
+  uniq
   sum
   (println "Solution: "))

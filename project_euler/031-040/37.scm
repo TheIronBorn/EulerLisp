@@ -31,7 +31,7 @@
        (all? prime? (truncations n))))
 
 ; This is based on the assumption that all 11 trunc primes are < 1000000
-(defn solve (cur needed acc)
+(defn solve (cur needed (acc 0))
   (if (zero? needed)
       acc
       (if (truncatable-prime? cur)
@@ -40,4 +40,4 @@
             (solve (+ cur 2) (dec needed) (+ cur acc)))
           (solve (+ cur 2) needed acc))))
 
-(println "Solution: " (solve 11 11 0))
+(println "Solution: " (solve 11 11))

@@ -11,8 +11,6 @@
     (even? e) (bigpow (bignum* b b) (/ e 2))
     else (bignum* b (bigpow b (dec e)))))
 
-(defn fac (n) (fac_ n 1))
-
-(defn fac_ (n acc)
+(defn fac (n (acc 1))
   (if (zero? n) acc
-      (fac_ (dec n) (* acc n))))
+      (fac (dec n) (* acc n))))

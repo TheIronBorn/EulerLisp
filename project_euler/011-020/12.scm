@@ -2,10 +2,10 @@
 ; Changes:
 ;  * add builtin `factors` method (although it seems like cheating)
 
-(defn solve (number n)
+(defn solve ((number 1) (n 2))
   (let (npf (length (factors number)))
     (if (> npf 500)
       number
       (solve (+ number n) (inc n)))))
 
-(println "Solution: " (solve 1 2))
+(println "Solution: " (solve))

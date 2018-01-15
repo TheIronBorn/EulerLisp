@@ -11,7 +11,7 @@
           reverse
           rst)))
 
-(defn reduce-rows (a b acc)
+(defn reduce-rows (a b (acc '()))
   (if (nil? b)
       (reverse acc)
       (reduce-rows
@@ -28,7 +28,7 @@
         (ffst input)
         (reduce-full
           (cons
-            (reduce-rows (fst input) (frst input) '())
+            (reduce-rows (fst input) (frst input))
             (rrst input)))))
 
 (println "Solution: " (reduce-full input))

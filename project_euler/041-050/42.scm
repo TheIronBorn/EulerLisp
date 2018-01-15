@@ -14,16 +14,13 @@
                      0))
           (string-bytes name))))
 
-(defn triangle? (n)
-      (triangle?_ n 2 1))
-
-(defn triangle?_ (n m acc)
+(defn triangle? (n (m 2) (acc 1))
   (cond
     (< n acc) #f
     (= n acc) #t
-    else (triangle?_ n (inc m) (+ m acc))))
+    else (triangle? n (inc m) (+ m acc))))
 
-(defn solve (names index acc)
+(defn solve (names (index 1) (acc 0))
       (if (empty? names)
           acc
           (if (~> names fst value triangle?)
@@ -37,4 +34,4 @@
                 acc)
             )))
 
-(println "Solution: " (solve names 1 0))
+(println "Solution: " (solve names))

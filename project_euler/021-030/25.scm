@@ -15,7 +15,7 @@
 (def a (bignum 1))
 (def b (bignum 1))
 
-(defn solve (n)
+(defn solve ((n 1))
       (if (>= (bignum-num-digits a) 1000)
           n
           (do
@@ -25,4 +25,4 @@
                   (set! b new_b))
              (solve (inc n)))))
 
-(println "Solution: " (solve 1))
+(println "Solution: " (solve))

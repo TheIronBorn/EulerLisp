@@ -8,7 +8,7 @@
 (def from 100)
 (def to 999)
 
-(defn solve (a b prod)
+(defn solve (a b (prod 0))
       (cond
         (> a b) (solve from (inc b) prod)
         (> b to) prod
@@ -16,4 +16,4 @@
         (solve (inc a) b (* a b))
         else (solve (inc a) b prod)))
 
-(println "Solution: " (solve from from 0))
+(println "Solution: " (solve from from))

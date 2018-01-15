@@ -1,15 +1,6 @@
 ; Solved 8.1
 
-(def ps (list->vector (permutations (range 0 9))))
-
-(defn loop (from to result)
-      (if (>= from to)
-        result
-        (let (perm (string->number (apply str (vector-ref ps from))))
-          (if (substring-divisible? perm)
-            (loop (inc from) to (+ perm result))
-            (loop (inc from) to result)
-            ))))
+(def ps (permutations (range 0 9)))
 
 (defn substring (n offset)
       (% (/ n (pow 10 (- 7 offset))) 1000))
@@ -24,4 +15,13 @@
         (divides?  3 (substring n 2))
         (divides?  2 (substring n 1))))
 
-(println "Solution: " (loop 0 (fac 10) 0))
+(defn loop (from to (result 0))
+      (if (>= from to)
+        result
+        (let (perm (string->number (apply str (list-ref ps from))))
+          (if (substring-divisible? perm)
+            (loop (inc from) to (+ perm result))
+            (loop (inc from) to result)
+            ))))
+
+(println "Solution: " (loop 0 (fac 10)))

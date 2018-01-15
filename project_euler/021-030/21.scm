@@ -9,14 +9,13 @@
              (!= n fsum)
              (= n (factor-sum fsum)))))
 
-(defn solve (from to acc)
-      (if (> from to)
+(defn solve ((from 1) (acc 0))
+      (if (> from 10000)
         acc
         (solve
           (inc from)
-          to
           (if (amicable? from)
             (+ acc from)
             acc))))
 
-(println "Solution: " (solve 1 10000 0))
+(println "Solution: " (solve))

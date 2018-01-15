@@ -16,7 +16,7 @@
                      0))
           (string-bytes name))))
 
-(defn solve (names index acc)
+(defn solve (names (index 1) (acc 0))
       (if (empty? names)
           acc
           (solve
@@ -24,4 +24,4 @@
             (inc index)
             (+ acc (* index (value (fst names)))))))
 
-(println "Solution: " (solve names 1 0))
+(println "Solution: " (solve names))

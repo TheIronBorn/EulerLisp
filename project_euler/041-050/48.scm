@@ -1,14 +1,15 @@
 ; Solved 5.1
 ; Changes: Add bignum multiplication
 
-(defn loop (from to result)
+(defn solve (from result)
       (println "from = " from)
-      (if (> from to)
+      (if (> from 1000)
           result
-          (loop (inc from) to
-                (bignum+ result (bigpow (bignum from) from)))))
+          (solve
+            (inc from)
+            (bignum+ result (bigpow (bignum from) from)))))
 
-(~> (loop 1 1000 (bignum 0))
+(~> (solve 1 (bignum 0))
     bignum-digits
     reverse
     (take 10)

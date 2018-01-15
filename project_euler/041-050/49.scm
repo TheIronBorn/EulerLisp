@@ -35,7 +35,7 @@
           (fn (x) (cons (fst seq) x))
           (subsequences (rst seq) (dec len))))))
 
-(defn solve (from to acc)
+(defn solve (from to (acc '()))
   (if (>= from to)
       acc
       (let (perm (find-permutations from))
@@ -44,7 +44,7 @@
           (solve (inc from) to acc)
           ))))
 
-(def sequences (solve 0 (length myprimes) '()))
+(def sequences (solve 0 (length myprimes)))
 (def all-sequences (flatmap (fn (x) (subsequences x 3)) sequences))
 
 (defn ascending? (seq)

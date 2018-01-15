@@ -1,18 +1,14 @@
 ; Solved 8.1
 
-(defn goldbach? (n)
-      (goldbach?_ n 1))
-
-(defn goldbach?_ (n sq)
+(defn goldbach? (n (sq 1))
   (cond
     (< n (* 2 sq sq)) #f
     (prime? (- n (* 2 sq sq))) #t
-    else (goldbach?_ n (inc sq))))
+    else (goldbach? n (inc sq))))
 
-
-(defn loop (cur)
+(defn solve (cur)
   (if (or (prime? cur) (goldbach? cur))
-      (loop (+ cur 2))
-      (println cur)))
+      (solve (+ cur 2))
+      cur))
 
-(loop 9)
+(println "Solution: " (solve 9))

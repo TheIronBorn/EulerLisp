@@ -36,7 +36,7 @@
        (all? prime? (rotations n))))
 
 ; This is based on the assumption that all 11 trunc primes are < 1000000
-(defn solve (cur acc)
+(defn solve (cur (acc 1))
   (if (>= cur 1000000)
       acc
       (if (rotatable-prime? cur)
@@ -45,4 +45,4 @@
             (solve (+ cur 2) (inc acc)))
           (solve (+ cur 2) acc))))
 
-(println "Solution: " (solve 3 1))
+(println "Solution: " (solve 3))

@@ -20,7 +20,7 @@
            (!= b 0)
            (fraction= f (cons a c))))))
 
-(defn solve (d n acc)
+(defn solve (d n (acc '()))
   (cond
     (>= n d) (solve (inc d) 10 acc)
     (> d 99) acc
@@ -46,7 +46,7 @@
           (/ (rst f) g))))
 
 (~>
-  (solve 11 10 '())
+  (solve 11 10)
   (reduce fraction* (cons 1 1))
   simplify
   rst

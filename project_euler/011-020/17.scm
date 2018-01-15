@@ -6,7 +6,7 @@
 (def single '("one" "two" "three" "four" "five" "six" "seven" "eight" "nine"))
 (def teens '("ten" "eleven" "twelve" "thirteen" "fourteen" "fifteen" "sixteen"
             "seventeen" "eighteen" "nineteen"))
-(def tens '("twenty" "thirty" "fourty" "fifty" "sixty" "seventy" "eighty" "ninety"))
+(def tens '("twenty" "thirty" "forty" "fifty" "sixty" "seventy" "eighty" "ninety"))
 
 (defn format-ten (n)
     (cond
@@ -36,13 +36,12 @@
         (< n 1000) (format-hundred n)
         else "onethousand"))
 
-(defn solve (from to acc)
-      (if (> from to)
+(defn solve ((from 1) (acc 0))
+      (if (> from 1000)
         acc
         (solve
           (inc from)
-          to
           (+ acc
              (length (format from))))))
 
-(println "Solution: " (solve 1 1000 0))
+(println "Solution: " (solve))

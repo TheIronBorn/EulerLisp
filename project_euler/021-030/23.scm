@@ -39,12 +39,14 @@
                    (list-ref abundants (inc pa)) vb
                    limit)))))
 
-(defn loop3 (from to acc)
-      (if (> from to)
+(loop2 0 0 init init (- max-n init))
+
+(defn loop3 ((from 1) (acc 0))
+      (if (> from max-n)
           acc
           (loop3 (inc from)
-                 to
                  (if (abundant-sum? from)
                      acc
                      (+ acc from)))))
-(println "Solution: " (loop3 1 max-n 0))
+
+(println "Solution: " (loop3))

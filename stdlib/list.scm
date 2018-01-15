@@ -64,6 +64,18 @@
       acc
       (reduce f (f (fst arr) acc) (rst arr))))
 
+(defn reduce-sum (f arr)
+  (reduce (fn (x acc)
+              (+ acc (f x)))
+          0
+          arr))
+
+(defn reduce-product (f arr)
+  (reduce (fn (x acc)
+              (* acc (f x)))
+          1
+          arr))
+
 (defn any? (pred arr)
   (cond
     (nil? arr) #f
@@ -95,3 +107,10 @@
           '()
           (cons (take size lst)
                 (chunks size (rst lst)))))
+
+(defn uniq (arr (last -1) (acc '()))
+  (cond
+    (nil? arr) acc
+    (= last (fst arr)) (uniq (rst arr) last acc)
+    else (uniq (rst arr) (fst arr) (cons (fst arr) acc))))
+

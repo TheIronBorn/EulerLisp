@@ -12,4 +12,8 @@
                 (delete-nth first candidates))))))
 
 ; Permutations are 0-indexed
-(println "Solution: " (apply str (permutation 999999 (list 0 1 2 3 4 5 6 7 8 9))))
+(~>
+  (range 0 9)
+  (permutation 999999)
+  (apply str)
+  (println "Solution: "))

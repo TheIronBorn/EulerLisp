@@ -32,7 +32,7 @@
             (list 1 (inc month) year))
           (list (inc day) month year))))
 
-(defn step (from to wday acc)
+(defn step (from to wday (acc 0))
       (if (= from to)
           acc
           (let (day (fst from)
@@ -53,5 +53,4 @@
   "Solution: "
   (step (list 1 1 1900)
         (list 1 1 2001)
-        0
         0))
