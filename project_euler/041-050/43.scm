@@ -15,13 +15,9 @@
         (divides?  3 (substring n 2))
         (divides?  2 (substring n 1))))
 
-(defn loop (from to (result 0))
-      (if (>= from to)
-        result
-        (let (perm (string->number (apply str (list-ref ps from))))
-          (if (substring-divisible? perm)
-            (loop (inc from) to (+ perm result))
-            (loop (inc from) to result)
-            ))))
-
-(println "Solution: " (loop 0 (fac 10)))
+(~>
+  (range~ 0 (dec (fac 10)))
+  (map~ (fn (x) (digits->number (list-ref ps x))))
+  (select~ substring-divisible?)
+  sum~
+  (println "Solution: "))

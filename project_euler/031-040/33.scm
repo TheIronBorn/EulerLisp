@@ -1,4 +1,6 @@
 ; Solved 6.1
+; We can't use the builtin fractions here,
+; because they are simplified on creation
 
 (defn fraction= (a b)
   (= (* (fst a) (rst b))

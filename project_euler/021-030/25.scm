@@ -6,12 +6,6 @@
           a
           (fib (dec n) b (bignum+ a b))))
 
-(defn for (from to fun)
-      (if (<= from to)
-        (do (fun from)
-            (for (inc from) to fun))))
-
-
 (def a (bignum 1))
 (def b (bignum 1))
 

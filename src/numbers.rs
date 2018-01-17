@@ -11,8 +11,8 @@ use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Rational {
-    num: isize,
-    denom: isize // Not needed but makes calculations easier
+    pub num: isize,
+    pub denom: isize // Not needed but makes calculations easier
 }
 
 impl Rational {

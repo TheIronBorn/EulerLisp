@@ -1,4 +1,6 @@
 ; Solved 5.1
+; Changes:
+;   * use streams
 
 ; The Problem descriptions contains a different limit,
 ; but the one below is more accurate
@@ -7,23 +9,18 @@
 (defn factor-sum (n) (- (sum (factors n)) n))
 (defn abundant? (n) (> (factor-sum n) n))
 
-(def abundants '())
-
 (def abundant-sums (filled-list max-n #f))
 (defn abundant-sum? (n) (list-ref abundant-sums (dec n)))
 
-(defn loop (from to)
-      (if (<= from to)
-        (do
-          (if (abundant? from)
-              (push! abundants from))
-          (loop (inc from) to))))
-
-(loop 12 max-n)
-(push! abundants 0)
+(def abundants
+  (~> (range~ 12 (inc max-n))
+      (select~ abundant?)
+      collect))
 
 (def len (dec (length abundants)))
 (def init (list-ref abundants 0))
+
+(push! abundants 0)
 
 (defn loop2 (pa pb va vb limit)
       (if (< pb len)
@@ -38,8 +35,11 @@
             (loop2 (inc pa) pb
                    (list-ref abundants (inc pa)) vb
                    limit)))))
-
 (loop2 0 0 init init (- max-n init))
+; (~> (range~ 1 max-n)
+;     (select~ (fn (x) (not (abundant-sum? x))))
+;     sum~
+;     (println "Solution: "))
 
 (defn loop3 ((from 1) (acc 0))
       (if (> from max-n)

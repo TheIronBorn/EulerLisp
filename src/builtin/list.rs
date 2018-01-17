@@ -1,14 +1,18 @@
 use std::collections::HashMap;
+use std::cmp::Ordering;
 
 use ::LispFn;
 use ::Datum;
+use ::LispErr;
 use ::LispErr::*;
 use ::LispResult;
 use ::Arity;
 
+use ::eval::Evaluator;
+use ::EnvRef;
 use ::builtin::register;
 
-fn cons(vs: &mut[Datum]) -> LispResult {
+fn cons(vs: &mut[Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     let fst = vs[0].take();
     let rst = vs[1].take();
 
@@ -26,7 +30,7 @@ fn cons(vs: &mut[Datum]) -> LispResult {
     }
 }
 
-fn fst(vs: &mut [Datum]) -> LispResult {
+fn fst(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     match vs[0].take() {
         Datum::DottedList(mut elems, _) => {
             Ok(elems[0].take())
@@ -38,7 +42,7 @@ fn fst(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn rst(vs: &mut [Datum]) -> LispResult {
+fn rst(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     match vs[0].take() {
         Datum::DottedList(elems, tail) => {
             if elems.len() == 1 {
@@ -60,7 +64,7 @@ fn rst(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn list(vs: &mut [Datum]) -> LispResult {
+fn list(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if vs.len() == 0 {
         Ok(Datum::Nil)
     } else {
@@ -68,7 +72,7 @@ fn list(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn make_list(vs: &mut [Datum]) -> LispResult {
+fn make_list(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Integer(len) = vs[0] {
         let default = vs[1].take();
         let vector = vec![default; len as usize];
@@ -78,7 +82,7 @@ fn make_list(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn nth(vs: &mut [Datum]) -> LispResult {
+fn nth(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Integer(n) = vs[0] {
         match vs[1].take() {
             Datum::List(mut elems) => {
@@ -93,7 +97,7 @@ fn nth(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn length(vs: &mut [Datum]) -> LispResult {
+fn length(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     match vs[0] {
         Datum::Nil => Ok(Datum::Integer(0)),
         Datum::List(ref elems) => {
@@ -106,7 +110,7 @@ fn length(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn append(vs: &mut [Datum]) -> LispResult {
+fn append(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     match vs[0].take() {
         Datum::Nil => {
             Ok(vs[1].take())
@@ -133,7 +137,7 @@ fn append(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn push(vs: &mut [Datum]) -> LispResult {
+fn push(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     match vs[0].take() {
         Datum::Nil => {
             Ok(Datum::List(vec!(vs[1].take())))
@@ -146,7 +150,7 @@ fn push(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn reverse(vs: &mut [Datum]) -> LispResult {
+fn reverse(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     match vs[0].take() {
         Datum::List(mut elems) => {
             elems.reverse();
@@ -156,17 +160,81 @@ fn reverse(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn sort(vs: &mut [Datum]) -> LispResult {
+fn sort(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     match vs[0].take() {
         Datum::List(mut elems) => {
-            elems.sort();
-            Ok(Datum::List(elems))
+            let mut es = elems.as_mut_slice();
+            let len = es.len();
+            quicksort_helper(es, 0, (len - 1) as isize).unwrap();
+            Ok(Datum::List(es.to_vec()))
         },
         _ => Err(InvalidTypeOfArguments),
     }
 }
 
-fn permutations(vs: &mut [Datum]) -> LispResult {
+fn quicksort_helper (arr: &mut [Datum], left: isize, right: isize) -> Result<bool, LispErr> {
+    if right <= left {
+        return Ok(true);
+    }
+
+    let mut i: isize = left - 1;
+    let mut j: isize = right;
+    let mut p: isize = i;
+    let mut q: isize = j;
+    unsafe {
+        let v: *mut Datum = &mut arr[right as usize];
+        loop {
+            i += 1;
+            while (&arr[i as usize]).compare(&*v).unwrap() == Ordering::Less {
+                i += 1
+            }
+            j -= 1;
+            while (&*v).compare(&arr[j as usize]).unwrap() == Ordering::Less {
+                if j == left {
+                    break
+                }
+                j -= 1;
+            }
+            if i >= j {
+                break
+            }
+            arr.swap(i as usize, j as usize);
+            if (&arr[i as usize]).compare(&*v).unwrap() == Ordering::Equal {
+                p += 1;
+                arr.swap(p as usize, i as usize)
+            }
+            if (&*v).compare(&arr[j as usize]).unwrap() == Ordering::Equal {
+                q -= 1;
+                arr.swap(j as usize, q as usize)
+            }
+        }
+    }
+
+    arr.swap(i as usize, right as usize);
+    j = i - 1;
+    i += 1;
+    let mut k: isize = left;
+    while k < p {
+        arr.swap(k as usize, j as usize);
+        k += 1;
+        j -= 1;
+        assert!(k < arr.len() as isize);
+    }
+    k = right - 1;
+    while k > q {
+        arr.swap(i as usize, k as usize);
+        k -= 1;
+        i += 1;
+        assert!(k != 0);
+    }
+
+    quicksort_helper(arr, left, j);
+    quicksort_helper(arr, i, right);
+
+    Ok(true)
+}
+
+fn permutations(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::List(mut elems) = vs[0].take() {
         let mut result: Vec<Datum> = Vec::new();
 
@@ -198,7 +266,7 @@ fn permutations(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn combinations(vs: &mut [Datum]) -> LispResult {
+fn combinations(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Integer(len) = vs[0].take() {
         if let Datum::List(mut elems) = vs[1].take() {
             let max = elems.len();
@@ -235,6 +303,22 @@ fn combinations(vs: &mut [Datum]) -> LispResult {
     }
 }
 
+fn map(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    let fun = vs.get(0).unwrap();
+    let list = vs.get(1).unwrap();
+
+    match *list {
+        Datum::List(ref elems) => {
+            let new_elems = elems.into_iter().map(|e|
+                eval.full_apply(fun.clone(), vec![e.clone()], env_ref.clone())
+            ).collect();
+            Ok(Datum::List(new_elems))
+        },
+        Datum::Nil => Ok(Datum::Nil),
+        _ => Err(InvalidTypeOfArguments)
+    }
+}
+
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "cons", cons, Arity::Exact(2));
     register(hm, "fst", fst, Arity::Exact(1));
@@ -249,4 +333,5 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "sort", sort, Arity::Exact(1));
     register(hm, "permutations", permutations, Arity::Exact(1));
     register(hm, "combinations", combinations, Arity::Exact(2));
+    register(hm, "map", map, Arity::Exact(2));
 }

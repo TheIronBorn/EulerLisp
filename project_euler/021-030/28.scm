@@ -7,11 +7,8 @@
         (- (* 4 (square (inc (* 2 i))))
            (* i 12))))
 
-(defn solve (n size (acc 0))
-      (if (= n size)
-          acc
-          (solve (inc n)
-                 size
-                 (+ acc (ring-sum n)))))
-
-(println "Solution: " (solve 0 (inc (div 1001 2))))
+(~>
+  (range~ 0 (div 1001 2))
+  (map~ ring-sum)
+  sum~
+  (println "Solution: "))

@@ -32,7 +32,7 @@
 (defn range (from to)
       (range_ from to '()))
 (defn range_ (from to acc)
-      (if (> from to) acc
+      (if (< to from) acc
           (range_ from (dec to) (cons to acc))))
 
 (defn flatmap (f arr)
@@ -96,6 +96,9 @@
 
 (defn product (lst) (reduce * 1 lst))
 (defn sum (lst) (reduce + 0 lst))
+
+(defn product~ (lst) (reduce~ * 1 lst))
+(defn sum~ (lst) (reduce~ + 0 lst))
 
 (defn take (n lst)
       (if (or (zero? n) (nil? lst))

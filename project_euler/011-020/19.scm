@@ -8,19 +8,19 @@
     else #f))
 
 (defn month-days (month year)
-  (case month
-    (1 31)
-    (2 (if (leap-year? year) 29 28))
-    (3 31)
-    (4 30)
-    (5 31)
-    (6 30)
-    (7 31)
-    (8 31)
-    (9 30)
-    (10 31)
-    (11 30)
-    (12 31)))
+  (cond
+    (= month 1) 31
+    (= month 2) (if (leap-year? year) 29 28)
+    (= month 3) 31
+    (= month 4) 30
+    (= month 5) 31
+    (= month 6) 30
+    (= month 7) 31
+    (= month 8) 31
+    (= month 9) 30
+    (= month 10) 31
+    (= month 11) 30
+    (= month 12) 31))
 
 (defn next-date (date)
     (let (day (fst date)

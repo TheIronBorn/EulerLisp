@@ -35,6 +35,124 @@ use std::ops::Rem;
 
 use numbers::Rational;
 
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum Stream {
+    Range(RangeStream),
+    Step(StepStream),
+    Map(MapStream),
+    Select(SelectStream)
+}
+
+impl Stream {
+    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
+        match self {
+            &mut Stream::Range(ref mut rs) => rs.next(eval, env_ref),
+            &mut Stream::Step(ref mut rs) => rs.next(eval, env_ref),
+            &mut Stream::Map(ref mut rs) => rs.next(eval, env_ref),
+            &mut Stream::Select(ref mut rs) => rs.next(eval, env_ref)
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct RangeStream {
+    from: isize,
+    to: isize,
+    step: isize,
+    current: isize
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct StepStream {
+    from: isize,
+    step: isize,
+    current: isize
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct MapStream {
+    source: Box<Stream>,
+    fun: Box<Datum>,
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct SelectStream {
+    source: Box<Stream>,
+    fun: Box<Datum>,
+}
+
+trait LispIterator {
+    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum>;
+}
+
+impl RangeStream {
+    pub fn new(from: isize, to: isize, step: isize) -> RangeStream {
+        RangeStream {
+            from: from,
+            to: to,
+            step: step,
+            current: from
+        }
+    }
+}
+
+impl LispIterator for RangeStream {
+    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
+        if self.current > self.to {
+            None
+        } else {
+            let ret = self.current;
+            self.current += self.step;
+            Some(Datum::Integer(ret))
+        }
+    }
+}
+
+impl StepStream {
+    pub fn new(from: isize, step: isize) -> StepStream {
+        StepStream {
+            from: from,
+            step: step,
+            current: from
+        }
+    }
+}
+
+impl LispIterator for StepStream {
+    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
+        let ret = self.current;
+        self.current += self.step;
+        Some(Datum::Integer(ret))
+    }
+}
+
+impl LispIterator for MapStream {
+    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
+        let next = self.source.next(eval, env_ref.clone());
+
+        match next {
+            Some(v) => Some(eval.full_apply((*self.fun).clone(), vec![v], env_ref)),
+            None => None
+        }
+    }
+}
+
+impl LispIterator for SelectStream {
+    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
+        loop {
+            let next = self.source.next(eval, env_ref.clone());
+            match next {
+                Some(v) => {
+                    if let Datum::Bool(true) = eval.full_apply((*self.fun).clone(), vec![v.clone()], env_ref.clone()) {
+                        return Some(v);
+                    }
+                },
+                None => return None
+            }
+        }
+    }
+}
+
 pub type LispResult = Result<Datum, LispErr>;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -58,7 +176,7 @@ impl fmt::Display for LispErr {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Arity {
     Exact(usize),
     Range(usize, usize),
@@ -88,23 +206,11 @@ impl Arity {
 }
 
 #[derive(Clone)]
-pub struct LispFn(fn(&mut [Datum]) -> LispResult, Arity);
+pub struct LispFn(fn(&mut [Datum], &mut eval::Evaluator, EnvRef) -> LispResult, Arity);
 
 impl fmt::Debug for LispFn {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "LispFn with arity {:?}", self.1)
-    }
-}
-
-impl PartialOrd for LispFn {
-    fn partial_cmp(&self, _: &LispFn) -> Option<Ordering> {
-        None
-    }
-}
-
-impl Ord for LispFn {
-    fn cmp(&self, _: &LispFn) -> Ordering {
-        Ordering::Equal
     }
 }
 
@@ -121,19 +227,7 @@ pub enum Promise {
     Result(Box<Datum>),
 }
 
-impl PartialOrd for Promise {
-    fn partial_cmp(&self, _: &Promise) -> Option<Ordering> {
-        None
-    }
-}
-
-impl Ord for Promise {
-    fn cmp(&self, _: &Promise) -> Ordering {
-        Ordering::Equal
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LambdaType {
     List,
     DottedList,
@@ -155,6 +249,7 @@ impl fmt::Debug for Lambda {
         write!(f, "Lambda({:?})", self.params)
     }
 }
+
 impl PartialEq for Lambda {
     fn eq(&self, _other: &Lambda) -> bool {
         false
@@ -162,19 +257,7 @@ impl PartialEq for Lambda {
 }
 impl Eq for Lambda {}
 
-impl PartialOrd for Lambda {
-    fn partial_cmp(&self, _: &Lambda) -> Option<Ordering> {
-        None
-    }
-}
-
-impl Ord for Lambda {
-    fn cmp(&self, _: &Lambda) -> Ordering {
-        Ordering::Equal
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Datum {
     Bool(bool),
     Integer(isize),
@@ -188,6 +271,7 @@ pub enum Datum {
     Lambda(Lambda),
     Builtin(LispFn),
     Promise(Promise),
+    Stream(Stream),
     Undefined,
     Nil,
 }
@@ -324,13 +408,6 @@ impl Datum {
         }
     }
 
-    fn is_list(&self) -> bool {
-        match *self {
-          Datum::List(_) => true,
-          _ => false,
-        }
-    }
-
     fn take(&mut self) -> Datum {
         mem::replace(self, Datum::Undefined)
     }
@@ -346,6 +423,13 @@ impl Datum {
             self.replace(Datum::List(vec![value]));
         } else {
             panic!("push! only works on lists and '()");
+        }
+    }
+
+    fn compare(&self, other: &Datum) -> Result<Ordering, LispErr> {
+        match (self, other) {
+            (&Datum::Integer(ref a), &Datum::Integer(ref b)) => Ok(a.cmp(b)),
+            (_, _) => Err(LispErr::InvalidTypeOfArguments)
         }
     }
 }
@@ -394,6 +478,7 @@ impl fmt::Display for Datum {
             Datum::Undefined => write!(f, "undefined"),
             Datum::Lambda(_) => write!(f, "<lambda>"),
             Datum::Builtin(_) => write!(f, "<builtin>"),
+            Datum::Stream(_) => write!(f, "<stream>"),
             Datum::Promise(Promise::Delayed(_, _)) => write!(f, "promise(?)"),
             Datum::Promise(Promise::Result(ref r)) => write!(f, "promise({})", r),
         }
@@ -408,7 +493,7 @@ pub enum Expression {
     LambdaDef(Vec<Symbol>, Vec<Datum>, Box<Expression>, LambdaType),
     Do(Vec<Expression>, Box<Expression>),
     Quote(Box<Datum>),
-    Case(Box<Expression>, BTreeMap<Datum, Expression>, Box<Expression>),
+    // Case(Box<Expression>, BTreeMap<Datum, Expression>, Box<Expression>),
     Definition(Symbol, Box<Expression>),
     MacroDefinition(Symbol, Box<Expression>),
     Assignment(Symbol, Box<Expression>),
@@ -416,8 +501,7 @@ pub enum Expression {
     ListRef(Symbol, Box<Expression>),
     ListSet(Symbol, Box<Expression>, Box<Expression>),
     DirectFunctionCall(Symbol, Vec<Expression>),
-    BuiltinFunctionCall(fn(&mut [Datum])->LispResult, Vec<Expression>),
-    SpecialFunctionCall(String, Vec<Expression>),
+    BuiltinFunctionCall(fn(&mut [Datum], &mut eval::Evaluator, EnvRef)->LispResult, Vec<Expression>),
     SymbolFunctionCall(Symbol, Vec<Expression>),
     FunctionCall(Box<Expression>, Vec<Expression>),
     SelfEvaluating(Box<Datum>),

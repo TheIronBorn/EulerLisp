@@ -14,11 +14,12 @@
 (defn collatz-length (n (len 1))
   (if (<= n known-len)
       (+ len (list-ref known n))
-      (case (% n 4)
-        (0 (collatz-length (div n 4) (+ len 2)))
-        (1 (collatz-length (+ (* 3 (div n 4)) 1) (+ len 3)))
-        (2 (collatz-length (+ (* 3 (div n 4)) 2) (+ len 3)))
-        (3 (collatz-length (+ (* 9 (div n 4)) 8) (+ len 4))))))
+      (let (rest (% n 4))
+      (cond
+        (= rest 0) (collatz-length (div n 4) (+ len 2))
+        (= rest 1) (collatz-length (+ (* 3 (div n 4)) 1) (+ len 3))
+        (= rest 2) (collatz-length (+ (* 3 (div n 4)) 2) (+ len 3))
+        (= rest 3) (collatz-length (+ (* 9 (div n 4)) 8) (+ len 4))))))
 
 ; We can be pretty sure that the number with the max length will be odd
 (defn solve (from (max-n 0) (max-len 0))

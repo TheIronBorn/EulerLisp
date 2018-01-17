@@ -5,13 +5,15 @@ use ::LispFn;
 use ::LispResult;
 use ::Arity;
 
+use ::eval::Evaluator;
+use ::EnvRef;
 use ::builtin::register;
 
-fn pair_questionmark(vs: &mut [Datum]) -> LispResult {
+fn pair_questionmark(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     Ok(Datum::Bool(vs[0].is_pair()))
 }
 
-fn list_questionmark(vs: &mut [Datum]) -> LispResult {
+fn list_questionmark(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Bool(_) = vs[0] {
         Ok(Datum::Bool(true))
     } else {
@@ -19,7 +21,7 @@ fn list_questionmark(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn nil_questionmark(vs: &mut [Datum]) -> LispResult {
+fn nil_questionmark(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Nil = vs[0] {
         Ok(Datum::Bool(true))
     } else {
@@ -27,7 +29,7 @@ fn nil_questionmark(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn integer_questionmark(vs: &mut [Datum]) -> LispResult {
+fn integer_questionmark(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Integer(_) = vs[0] {
         Ok(Datum::Bool(true))
     } else {
@@ -35,7 +37,7 @@ fn integer_questionmark(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn rational_questionmark(vs: &mut [Datum]) -> LispResult {
+fn rational_questionmark(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Rational(_) = vs[0] {
         Ok(Datum::Bool(true))
     } else {
@@ -43,7 +45,7 @@ fn rational_questionmark(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-fn bignum_questionmark(vs: &mut [Datum]) -> LispResult {
+fn bignum_questionmark(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Bignum(_) = vs[0] {
         Ok(Datum::Bool(true))
     } else {

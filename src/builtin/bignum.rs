@@ -8,8 +8,10 @@ use ::Arity;
 
 use ::builtin::register;
 use ::bignum::Bignum;
+use ::eval::Evaluator;
+use ::EnvRef;
 
-fn bg_add(vs: &mut [Datum]) -> LispResult {
+fn bg_add(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Bignum(a) = vs[0].take() {
         if let Datum::Bignum(b) = vs[1].take() {
             return Ok(Datum::Bignum(a + b));
@@ -18,7 +20,7 @@ fn bg_add(vs: &mut [Datum]) -> LispResult {
     Err(InvalidTypeOfArguments)
 }
 
-fn bg_mul(vs: &mut [Datum]) -> LispResult {
+fn bg_mul(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Bignum(a) = vs[0].take() {
         if let Datum::Bignum(b) = vs[1].take() {
             return Ok(Datum::Bignum(a * b));
@@ -27,21 +29,21 @@ fn bg_mul(vs: &mut [Datum]) -> LispResult {
     Err(InvalidTypeOfArguments)
 }
 
-fn number_to_bignum(vs: &mut [Datum]) -> LispResult {
+fn number_to_bignum(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Integer(a) = vs[0] {
         return Ok(Datum::Bignum(Bignum::new(a)))
     }
     Err(InvalidTypeOfArguments)
 }
 
-fn bignum_num_digits(vs: &mut [Datum]) -> LispResult {
+fn bignum_num_digits(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Bignum(a) = vs[0].take() {
         return Ok(Datum::Integer(a.num_digits()))
     }
     Err(InvalidTypeOfArguments)
 }
 
-fn bignum_digits(vs: &mut [Datum]) -> LispResult {
+fn bignum_digits(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Bignum(a) = vs[0].take() {
         let digits = a.digits();
         return Ok(Datum::List(
@@ -51,7 +53,7 @@ fn bignum_digits(vs: &mut [Datum]) -> LispResult {
     Err(InvalidTypeOfArguments)
 }
 
-fn bignum_chunks(vs: &mut [Datum]) -> LispResult {
+fn bignum_chunks(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::Bignum(a) = vs[0].take() {
         let digits = a.chunks();
         return Ok(Datum::List(
@@ -61,7 +63,7 @@ fn bignum_chunks(vs: &mut [Datum]) -> LispResult {
     Err(InvalidTypeOfArguments)
 }
 
-fn bignum_from_chunks(vs: &mut [Datum]) -> LispResult {
+fn bignum_from_chunks(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     if let Datum::List(chunks) = vs[0].take() {
         let mut result = Vec::new();
 
@@ -81,7 +83,7 @@ fn bignum_from_chunks(vs: &mut [Datum]) -> LispResult {
     }
 }
 
-// fn bg_subtract(vs: &mut [Datum]) -> LispResult {
+// fn bg_subtract(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
 //     if let Datum::Number(a) = vs[0] {
 //         if let Datum::Number(b) = vs[1] {
 //             return Ok(Datum::Number(a - b));
@@ -90,7 +92,7 @@ fn bignum_from_chunks(vs: &mut [Datum]) -> LispResult {
 //     Err(InvalidTypeOfArguments)
 // }
 
-// fn bg_mult(vs: &mut [Datum]) -> LispResult {
+// fn bg_mult(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
 //     if let Datum::Number(a) = vs[0] {
 //         if let Datum::Number(b) = vs[1] {
 //             return Ok(Datum::Number(a * b));

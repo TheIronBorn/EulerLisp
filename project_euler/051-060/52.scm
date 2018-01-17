@@ -11,9 +11,8 @@
          (sorted-digits (* 5 n))
          (sorted-digits (* 6 n))))
 
-(defn loop (from)
-  (if (matches? from)
-      from
-      (loop (inc from))))
-
-(println "Solution: " (loop 1))
+(~>
+  (step~ 1)
+  (select~ matches?)
+  (nth~ 0)
+  (println "Solution: "))

@@ -82,14 +82,14 @@ impl Evaluator {
         ev
     }
 
-    fn eval_sf_case(&mut self, expr: Expression, cases: BTreeMap<Datum, Expression>, else_case: Expression, env_ref: EnvRef) -> TCOResult {
-        let res = self.eval(expr, env_ref.clone())?;
-        if let Some(cons) = cases.get(&res) {
-            Ok(TCOWrapper::TailCall(cons.clone(), env_ref))
-        } else {
-            Ok(TCOWrapper::TailCall(else_case, env_ref))
-        }
-    }
+    // fn eval_sf_case(&mut self, expr: Expression, cases: BTreeMap<Datum, Expression>, else_case: Expression, env_ref: EnvRef) -> TCOResult {
+    //     let res = self.eval(expr, env_ref.clone())?;
+    //     if let Some(cons) = cases.get(&res) {
+    //         Ok(TCOWrapper::TailCall(cons.clone(), env_ref))
+    //     } else {
+    //         Ok(TCOWrapper::TailCall(else_case, env_ref))
+    //     }
+    // }
 
     // fn sf_load(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
     //     check_arity!(args, 1);
@@ -138,7 +138,7 @@ impl Evaluator {
     //     }
     // }
 
-    pub fn apply(&mut self, f: Datum, mut evaled_args: Vec<Datum>) -> TCOResult {
+    pub fn apply(&mut self, f: Datum, mut evaled_args: Vec<Datum>, env_ref: EnvRef) -> TCOResult {
         match f {
             Datum::Lambda(lambda) => {
                 let mut child_env = Env::new(Some(lambda.env));
@@ -197,7 +197,7 @@ impl Evaluator {
             },
             Datum::Builtin(LispFn(fun, arity)) => {
                 arity.check(evaled_args.len());
-                Ok(TCOWrapper::Return(fun(evaled_args.as_mut_slice())?))
+                Ok(TCOWrapper::Return(fun(evaled_args.as_mut_slice(), self, env_ref)?))
             },
             _ => Err(InvalidTypeOfArguments),
         } 
@@ -342,52 +342,18 @@ impl Evaluator {
         }
     }
 
-    fn eval_special_apply(&mut self, args: Vec<Datum>) -> TCOResult {
-        let f = args.get(0).unwrap();
-        let argslist = args.get(1).unwrap();
-        if let Datum::List(ref args_) = *argslist {
-            self.apply(f.clone(), args_.clone())
-        } else {
-            Err(InvalidTypeOfArguments)
-        }
-    }
-
-    fn eval_special_read(&mut self, args: Vec<Datum>) -> TCOResult {
-        let arg = args.get(0).unwrap();
-        if let Datum::Str(ref input) = *arg {
-            let result = parser::parse_datum(input.as_ref());
-            Ok(TCOWrapper::Return(result))
-        } else {
-            Err(InvalidTypeOfArguments)
-        }
-    }
-
-    fn eval_special_eval(&mut self, args: Vec<Datum>, env_ref: EnvRef) -> TCOResult {
-        let arg = args.get(0).unwrap();
-        let desugared = desugar::desugar(arg);
+    pub fn eval_datum(&mut self, datum: Datum, env_ref: EnvRef) -> LispResult {
+        let desugared = desugar::desugar(&datum);
         let preprocessed = preprocess::preprocess(desugared, &mut self.symbol_table, &self.builtins)?;
-        Ok(TCOWrapper::Return(self.eval(preprocessed, env_ref)?))
+        self.eval(preprocessed, env_ref)
     }
 
-    // TODO Improve, prevent clones
-    fn eval_special_map(&mut self, args: Vec<Datum>, env_ref: EnvRef) -> TCOResult {
-        let fun = args.get(0).unwrap();
-        let list = args.get(1).unwrap();
-
-        match *list {
-            Datum::List(ref elems) => {
-                let new_elems = elems.into_iter().map(|e|
-                    match self.apply(fun.clone(), vec![e.clone()]).unwrap() {
-                        TCOWrapper::Return(result) => result,
-                        TCOWrapper::TailCall(expr, env) => {
-                            self.eval(expr, env).unwrap()
-                        }
-                    }
-                ).collect();
-                Ok(TCOWrapper::Return(Datum::List(new_elems)))
-            },
-            Datum::Nil => Ok(TCOWrapper::Return(Datum::Nil)),
-            _ => Err(InvalidTypeOfArguments)
+    pub fn full_apply(&mut self, fun: Datum, mut evaled_args: Vec<Datum>, env_ref: EnvRef) -> Datum {
+        match self.apply(fun, evaled_args, env_ref.clone()).unwrap() {
+            TCOWrapper::Return(result) => result,
+            TCOWrapper::TailCall(expr, env) => {
+                self.eval(expr, env).unwrap()
+            }
         }
     }
 
@@ -400,7 +366,7 @@ impl Evaluator {
             let res = match e {
                 Expression::If(cond, cons, alt) => self.eval_sf_if(*cond, *cons, *alt, env_ref),
                 Expression::Do(es, last) => self.eval_sf_do(es, *last, env_ref),
-                Expression::Case(e, cases, else_case) => self.eval_sf_case(*e, cases, *else_case, env_ref),
+                // Expression::Case(e, cases, else_case) => self.eval_sf_case(*e, cases, *else_case, env_ref),
                 Expression::Quote(datum) => Ok(TCOWrapper::Return(*datum)),
                 Expression::Definition(name, value) => self.eval_sf_definition(name, *value, env_ref),
                 Expression::MacroDefinition(name, value) => {
@@ -422,22 +388,12 @@ impl Evaluator {
                 },
                 Expression::FunctionCall(fun, args) => {
                     let f = self.eval(*fun, env_ref.clone())?;
-                    let evaled_args = self.eval_list(args, env_ref);
-                    self.apply(f, evaled_args)
+                    let evaled_args = self.eval_list(args, env_ref.clone());
+                    self.apply(f, evaled_args, env_ref)
                 },
                 Expression::BuiltinFunctionCall(fun, args) => {
-                    let mut evaled_args = self.eval_list(args, env_ref);
-                    Ok(TCOWrapper::Return(fun(evaled_args.as_mut_slice())?))
-                },
-                Expression::SpecialFunctionCall(fun, args) => {
-                    let evaled_args = self.eval_list(args, env_ref.clone());
-                    match fun.as_ref() {
-                        "apply" => self.eval_special_apply(evaled_args),
-                        "eval" => self.eval_special_eval(evaled_args, env_ref),
-                        "read" => self.eval_special_read(evaled_args),
-                        "map" => self.eval_special_map(evaled_args, env_ref),
-                        _ => panic!("Unknown builtin function: {}", fun)
-                    }
+                    let mut evaled_args = self.eval_list(args, env_ref.clone());
+                    Ok(TCOWrapper::Return(fun(evaled_args.as_mut_slice(), self, env_ref)?))
                 },
                 Expression::LambdaDef(params, defaults, body, lambda_type) => {
                     Ok(TCOWrapper::Return(Datum::Lambda(

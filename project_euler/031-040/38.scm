@@ -6,7 +6,6 @@
     (= (fst lst) e) #t
     else (member? e (rst lst))))
 
-
 (defn pandigital? (lst)
   (= (sort lst)
      (list 1 2 3 4 5 6 7 8 9)))

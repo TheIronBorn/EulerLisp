@@ -6,9 +6,11 @@
     (prime? (- n (* 2 sq sq))) #t
     else (goldbach? n (inc sq))))
 
-(defn solve (cur)
-  (if (or (prime? cur) (goldbach? cur))
-      (solve (+ cur 2))
-      cur))
 
-(println "Solution: " (solve 9))
+(~>
+  (step~ 9 2)
+  (select~
+    (fn (x) (not (or (prime? x)
+                     (goldbach? x)))))
+  (nth~ 0)
+  (println "Solution: "))

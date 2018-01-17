@@ -4,6 +4,8 @@ use ::Datum;
 use ::LispFn;
 use ::LispResult;
 use ::Arity;
+use ::eval::Evaluator;
+use ::EnvRef;
 
 mod list;
 mod primes;
@@ -13,6 +15,7 @@ mod types;
 mod comparison;
 mod string;
 mod bignum;
+mod stream;
 
 // The difference between builtins and special forms is
 // that special forms choose if they want to eval their arguments themselves,
@@ -21,7 +24,7 @@ mod bignum;
 pub fn register(
     hm: &mut HashMap<String, LispFn>,
     name: &str,
-    f: fn(&mut [Datum]) -> LispResult,
+    f: fn(&mut [Datum], &mut Evaluator, EnvRef) -> LispResult,
     arity: Arity
 ) {
     hm.insert(name.to_string(), LispFn(f, arity));
@@ -35,4 +38,5 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     types::load(hm);
     comparison::load(hm);
     bignum::load(hm);
+    stream::load(hm);
 }
