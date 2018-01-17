@@ -69,7 +69,7 @@ fn list(vs: &mut [Datum]) -> LispResult {
 }
 
 fn make_list(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(len) = vs[0] {
+    if let Datum::Integer(len) = vs[0] {
         let default = vs[1].take();
         let vector = vec![default; len as usize];
         Ok(Datum::List(vector))
@@ -79,7 +79,7 @@ fn make_list(vs: &mut [Datum]) -> LispResult {
 }
 
 fn nth(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(n) = vs[0] {
+    if let Datum::Integer(n) = vs[0] {
         match vs[1].take() {
             Datum::List(mut elems) => {
                 Ok(elems.get_mut(n as usize).expect("Index out of bounds").take())
@@ -95,12 +95,12 @@ fn nth(vs: &mut [Datum]) -> LispResult {
 
 fn length(vs: &mut [Datum]) -> LispResult {
     match vs[0] {
-        Datum::Nil => Ok(Datum::Number(0)),
+        Datum::Nil => Ok(Datum::Integer(0)),
         Datum::List(ref elems) => {
-            Ok(Datum::Number(elems.len() as isize))
+            Ok(Datum::from(&elems.len()))
         },
         Datum::Str(ref s) => {
-            Ok(Datum::Number(s.len() as isize))
+            Ok(Datum::from(&s.len()))
         },
         _ => Err(InvalidTypeOfArguments)
     }
@@ -198,6 +198,43 @@ fn permutations(vs: &mut [Datum]) -> LispResult {
     }
 }
 
+fn combinations(vs: &mut [Datum]) -> LispResult {
+    if let Datum::Integer(len) = vs[0].take() {
+        if let Datum::List(mut elems) = vs[1].take() {
+            let max = elems.len();
+            let mut counters = vec![0; len as usize];
+            let mut result: Vec<Datum> = Vec::new();
+            let mut done = false;
+
+            let len = len as usize;
+
+            while !done {
+                let cur : Vec<Datum> = counters.iter().map(|c| elems[*c].clone()).collect();
+                result.push(Datum::List(cur));
+
+                for i in (0..len) {
+                    let new = counters[i] + 1;
+                    if new >= max {
+                        counters[i] = 0;
+                        if i == (len - 1) {
+                            done = true;
+                        }
+                    } else {
+                        counters[i] = new;
+                        break;
+                    }
+                }
+            }
+
+            Ok(Datum::List(result))
+        } else {
+            Err(InvalidTypeOfArguments)
+        }
+    } else {
+        Err(InvalidTypeOfArguments)
+    }
+}
+
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "cons", cons, Arity::Exact(2));
     register(hm, "fst", fst, Arity::Exact(1));
@@ -211,4 +248,5 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "reverse", reverse, Arity::Exact(1));
     register(hm, "sort", sort, Arity::Exact(1));
     register(hm, "permutations", permutations, Arity::Exact(1));
+    register(hm, "combinations", combinations, Arity::Exact(2));
 }

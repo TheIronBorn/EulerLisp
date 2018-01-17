@@ -6,7 +6,7 @@
 ; instead of guessed
 
 (defn calc-b (p a)
-      (/ (- (* 2 p a) (* p p))
+      (div (- (* 2 p a) (* p p))
          (* 2 (- a p))))
 
 (defn has-solution? (p a)
@@ -16,7 +16,7 @@
            (* c c))))
 
 (defn count-solutions (p a solutions)
-  (if (>= a (/ p 3))
+  (if (>= a (div p 3))
       solutions
       (if (has-solution? p a)
           (count-solutions p (inc a) (inc solutions))

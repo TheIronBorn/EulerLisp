@@ -6,7 +6,7 @@
 (defn index (a b)
     (dec
       (+
-        (/ (* b (dec b)) 2)
+        (div (* b (dec b)) 2)
         a)))
 
 (defn iterate (a b maxa maxb)

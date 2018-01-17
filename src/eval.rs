@@ -1,3 +1,10 @@
+use std::fs;
+use std::fs::File;
+use std::io::Read;
+use std::collections::{HashMap, BTreeMap};
+use std::rc::Rc;
+use std::cell::RefCell;
+
 use ::Datum;
 use ::LispFn;
 use ::LispResult;
@@ -8,15 +15,8 @@ use ::LambdaType;
 use ::Expression;
 use ::Symbol;
 use ::LispErr::*;
+
 use symbol_table::SymbolTable;
-
-use std::fs;
-use std::fs::File;
-use std::io::Read;
-use std::collections::{HashMap, BTreeMap};
-use std::rc::Rc;
-use std::cell::RefCell;
-
 use env::{Env, EnvRef};
 use parser;
 use desugar;
@@ -288,7 +288,7 @@ impl Evaluator {
 
     fn eval_sf_list_ref(&mut self, key: Symbol, index: Expression, env_ref: EnvRef) -> TCOResult {
         let vindex = self.eval(index, env_ref.clone())?;
-        if let Datum::Number(index) = vindex {
+        if let Datum::Integer(index) = vindex {
             let env = env_ref.borrow();
 
             if let Some(binding) = env.find_def(&key) {
@@ -316,7 +316,7 @@ impl Evaluator {
         let vindex = self.eval(index, env_ref.clone())?;
         let value = self.eval(value, env_ref.clone())?;
 
-        if let Datum::Number(index) = vindex {
+        if let Datum::Integer(index) = vindex {
             let env = env_ref.borrow();
 
             if let Some(binding) = env.find_def(&key) {

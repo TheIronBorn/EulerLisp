@@ -16,6 +16,7 @@ mod desugar;
 mod symbol_table;
 mod preprocess;
 mod bignum;
+mod numbers;
 
 use env::EnvRef;
 
@@ -24,6 +25,15 @@ use std::cmp::Ordering;
 use std::boxed::Box;
 use std::collections::BTreeMap;
 use std::mem;
+
+use std::ops::Add;
+use std::ops::Sub;
+use std::ops::Neg;
+use std::ops::Div;
+use std::ops::Mul;
+use std::ops::Rem;
+
+use numbers::Rational;
 
 pub type LispResult = Result<Datum, LispErr>;
 
@@ -167,7 +177,9 @@ impl Ord for Lambda {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Datum {
     Bool(bool),
-    Number(isize),
+    Integer(isize),
+    Rational(numbers::Rational),
+    Bignum(bignum::Bignum),
     Character(char),
     Str(String),
     Symbol(String),
@@ -178,12 +190,126 @@ pub enum Datum {
     Promise(Promise),
     Undefined,
     Nil,
-    Bignum(bignum::Bignum)
+}
+
+impl Add for Datum {
+    type Output = Datum;
+
+    fn add(self, other: Datum) -> Datum {
+        match (self, other) {
+            (Datum::Integer(a), Datum::Integer(b)) => Datum::Integer(a + b),
+            (Datum::Rational(a), Datum::Integer(b)) => (a + b).reduce(),
+            (Datum::Integer(a), Datum::Rational(b)) => (a + b).reduce(),
+            (Datum::Rational(a), Datum::Rational(b)) => (a + b).reduce(),
+            (a, b) => panic!("Addition not implemented for {} and {}", a, b)
+        }
+    }
+}
+
+impl Sub for Datum {
+    type Output = Datum;
+
+    fn sub(self, other: Datum) -> Datum {
+        match (self, other) {
+            (Datum::Integer(a), Datum::Integer(b)) => Datum::Integer(a - b),
+            (Datum::Rational(a), Datum::Integer(b)) => (a - b).reduce(),
+            (Datum::Integer(a), Datum::Rational(b)) => (a - b).reduce(),
+            (Datum::Rational(a), Datum::Rational(b)) => (a - b).reduce(),
+            (a, b) => panic!("Subtraction not implemented for {} and {}", a, b)
+        }
+    }
+}
+
+impl Neg for Datum {
+    type Output = Datum;
+
+    fn neg(self) -> Datum {
+        match self {
+            Datum::Integer(a) => Datum::Integer(-a),
+            a => panic!("Negation not implemented for {}", a)
+        }
+    }
+}
+
+impl Mul for Datum {
+    type Output = Datum;
+
+    fn mul(self, other: Datum) -> Datum {
+        match (self, other) {
+            (Datum::Integer(a), Datum::Integer(b)) => Datum::Integer(a * b),
+            (Datum::Integer(a), Datum::Rational(b)) => (a * b).reduce(),
+            (Datum::Rational(a), Datum::Integer(b)) => (a * b).reduce(),
+            (Datum::Rational(a), Datum::Rational(b)) => (a * b).reduce(),
+            (a, b) => panic!("Multiplication not implemented for {} and {}", a, b)
+        }
+    }
+}
+
+impl Div for Datum {
+    type Output = Datum;
+
+    fn div(self, other: Datum) -> Datum {
+        match (self, other) {
+            (Datum::Integer(a), Datum::Integer(b)) => {
+                if a % b == 0 {
+                    Datum::Integer(a / b)
+                } else {
+                    Datum::Rational(Rational::new(a, b))
+                }
+            },
+            (Datum::Integer(a), Datum::Rational(b)) => (a / b).reduce(),
+            (Datum::Rational(a), Datum::Integer(b)) => (a / b).reduce(),
+            (Datum::Rational(a), Datum::Rational(b)) => (a / b).reduce(),
+            (a, b) => panic!("Division not implemented for {} and {}", a, b)
+        }
+    }
+}
+
+impl Rem for Datum {
+    type Output = Datum;
+
+    fn rem(self, other: Datum) -> Datum {
+        match (self, other) {
+            (Datum::Integer(a), Datum::Integer(b)) => Datum::Integer(a % b),
+            (a, b) => panic!("Remainder not implemented for {} and {}", a, b)
+        }
+    }
+}
+
+impl Rem<isize> for Datum {
+    type Output = isize;
+
+    fn rem(self, other: isize) -> isize {
+        match (self, other) {
+            (Datum::Integer(a), b) => a % b,
+            (a, b) => panic!("Remainder not implemented for {} and {}", a, b)
+        }
+    }
+}
+
+trait ToDatum {
+    fn to_datum(&self) -> Datum;
+}
+
+impl ToDatum for isize {
+    fn to_datum(&self) -> Datum {
+        Datum::Integer(*self)
+    }
+}
+
+impl ToDatum for usize {
+    fn to_datum(&self) -> Datum {
+        Datum::Integer(*self as isize)
+    }
 }
 
 // TODO: Fix this
 impl Datum {
-    pub fn is_pair(&self) -> bool {
+    fn from(other: &ToDatum) -> Datum {
+        other.to_datum()
+    }
+
+    fn is_pair(&self) -> bool {
         match *self {
           Datum::DottedList(_, _) => true,
           Datum::List(_) => true,
@@ -191,29 +317,29 @@ impl Datum {
         }
     }
 
-    pub fn is_nil(&self) -> bool {
+    fn is_nil(&self) -> bool {
         match *self {
           Datum::Nil => true,
           _ => false,
         }
     }
 
-    pub fn is_list(&self) -> bool {
+    fn is_list(&self) -> bool {
         match *self {
           Datum::List(_) => true,
           _ => false,
         }
     }
 
-    pub fn take(&mut self) -> Datum {
+    fn take(&mut self) -> Datum {
         mem::replace(self, Datum::Undefined)
     }
 
-    pub fn replace(&mut self, other: Datum) {
+    fn replace(&mut self, other: Datum) {
         mem::replace(self, other);
     }
 
-    pub fn push(&mut self, value: Datum) {
+    fn push(&mut self, value: Datum) {
         if let Datum::List(ref mut elems) = *self {
             elems.push(value);
         } else if self.is_nil() {
@@ -260,7 +386,8 @@ impl fmt::Display for Datum {
                 result.push_str(")");
                 write!(f, "{}", result)
             },
-            Datum::Number(x) => write!(f, "{}", x),
+            Datum::Integer(x) => write!(f, "{}", x),
+            Datum::Rational(ref x) => write!(f, "{}", x),
             Datum::Bignum(ref x) => write!(f, "{}", x),
             Datum::Str(ref s) => write!(f, "\"{}\"", s),
             Datum::Nil => write!(f, "'()"),

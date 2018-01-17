@@ -1,7 +1,7 @@
 ; Solved: 13.1.18
 
 (defn triangle (n)
-      (/ (* n (inc n)) 2))
+      (div (* n (inc n)) 2))
 
 ; Use the same idea as for problem 44
 (defn pentagonal? (n)

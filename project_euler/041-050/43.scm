@@ -3,7 +3,7 @@
 (def ps (permutations (range 0 9)))
 
 (defn substring (n offset)
-      (% (/ n (pow 10 (- 7 offset))) 1000))
+      (% (div n (pow 10 (- 7 offset))) 1000))
 
 (defn substring-divisible? (n)
       (and

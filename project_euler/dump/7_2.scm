@@ -16,7 +16,7 @@
 (defn mymodexp_ (base ex mod acc)
   (cond
     (zero? ex) acc
-    (even? ex) (mymodexp_ (% (* base base) mod) (/ ex 2) mod acc)
+    (even? ex) (mymodexp_ (% (* base base) mod) (div ex 2) mod acc)
     else (mymodexp_ base (dec ex) mod (% (* acc base) mod))))
 
 ; Write n as 2^r * d, d odd

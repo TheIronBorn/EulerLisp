@@ -2,7 +2,7 @@
 
 (defn choose (n r)
   (let (other (max r (- n r)))
-    (/ (fac-from (+ other 1) n)
+    (div (fac-from (+ other 1) n)
        (fac (- n other)))
       ))
 

@@ -5,7 +5,7 @@
           acc
       (let* (len (length candidates)
              f (fac (dec len))
-             first (/ index f))
+             first (div index f))
           (permutation
             (% index f)
             (delete-nth first candidates)

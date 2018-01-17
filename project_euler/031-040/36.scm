@@ -4,7 +4,7 @@
       (if (= n 0)
           '()
           (cons (% n 2)
-                (digits2 (/ n 2)))))
+                (digits2 (div n 2)))))
 
 (defn palindromic10? (n)
       (let (ds (digits n))

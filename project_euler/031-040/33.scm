@@ -5,9 +5,9 @@
      (* (rst a) (fst b))))
 
 (defn digit-cancelling? (f)
-  (let (a (/ (fst f) 10)
+  (let (a (div (fst f) 10)
         b (% (fst f) 10)
-        c (/ (rst f) 10)
+        c (div (rst f) 10)
         d (% (rst f) 10))
     (or
       (and (= a d)
@@ -42,8 +42,8 @@
 
 (defn simplify (f)
   (let (g (gcd (fst f) (rst f)))
-    (cons (/ (fst f) g)
-          (/ (rst f) g))))
+    (cons (div (fst f) g)
+          (div (rst f) g))))
 
 (~>
   (solve 11 10)

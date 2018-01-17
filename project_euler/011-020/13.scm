@@ -17,7 +17,7 @@
 
 (defn cut (n)
   (if (> n 9999999999)
-      (cut (/ n 10))
+      (cut (div n 10))
       n))
 
 ; This makes sure the number doesn't get to big,
@@ -31,7 +31,7 @@
         (cur-sum (sum (map fst numbers))
          next-sum (+ acc (* cur-sum (pow 10 p))))
         (if (> next-sum 9999999999)
-            (solve (map rst numbers) (/ next-sum 10) p)
+            (solve (map rst numbers) (div next-sum 10) p)
             (solve (map rst numbers) next-sum (inc p))))))
 
 (println "Solution: " (solve numbers 0 0))

@@ -11,7 +11,7 @@ use ::builtin::register;
 fn string_bytes(vs: &mut [Datum]) -> LispResult {
     if let Datum::Str(ref string) = vs[0] {
         let bytes = string.as_bytes().iter().map(
-            |b| Datum::Number(*b as isize)
+            |b| Datum::Integer(*b as isize)
             ).collect();
         return Ok(Datum::List(bytes));
     }
@@ -20,7 +20,7 @@ fn string_bytes(vs: &mut [Datum]) -> LispResult {
 
 fn string_length(vs: &mut [Datum]) -> LispResult {
     if let Datum::Str(ref string) = vs[0] {
-        return Ok(Datum::Number(string.len() as isize));
+        return Ok(Datum::Integer(string.len() as isize));
     }
     Err(InvalidTypeOfArguments)
 }
@@ -29,7 +29,7 @@ fn string_to_number(vs: &mut [Datum]) -> LispResult {
     if let Datum::Str(ref string) = vs[0] {
         match string.parse::<isize>() {
             Ok(i) => {
-                return Ok(Datum::Number(i));
+                return Ok(Datum::Integer(i));
             },
             Err(_) => {
                 return Err(InvalidTypeOfArguments)

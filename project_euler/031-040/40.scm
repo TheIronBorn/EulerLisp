@@ -15,7 +15,7 @@
 (defn find-digit (range rest)
     (let* (real-rest (+ rest (* range (pow 10 (dec range))))
            position (dec (- range (% real-rest range))))
-         (% (/ (/ real-rest range) (pow 10 position)) 10)))
+         (% (div (div real-rest range) (pow 10 position)) 10)))
 
 (defn digit (n)
   (if (<= n 9)

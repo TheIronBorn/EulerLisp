@@ -1,7 +1,7 @@
 ; Solved: 13.1.18
 
 (defn pentagonal (n)
-      (/ (* n (dec (* 3 n))) 2))
+      (div (* n (dec (* 3 n))) 2))
 
 
 ; P_n = (n * (3n - 1)) / 2

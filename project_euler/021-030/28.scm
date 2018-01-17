@@ -14,4 +14,4 @@
                  size
                  (+ acc (ring-sum n)))))
 
-(println "Solution: " (solve 0 (inc (/ 1001 2))))
+(println "Solution: " (solve 0 (inc (div 1001 2))))

@@ -10,7 +10,7 @@
       (fn (x) (coin-sums
                 (- n (* x (fst coins)))
                 (rst coins)))
-      (range 0 (/ n (fst coins))))))
+      (range 0 (div n (fst coins))))))
 
 (def ps (primes 100))
 

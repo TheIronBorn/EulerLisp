@@ -76,144 +76,106 @@ fn det_miller_rabin(n: isize) -> bool {
 }
 
 fn prime_questionmark(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(n) = vs[0] {
+    if let Datum::Integer(n) = vs[0] {
         return Ok(Datum::Bool(det_miller_rabin(n)));
     }
     Err(InvalidTypeOfArguments)
 }
 
 fn add(vs: &mut [Datum]) -> LispResult {
-    let mut res = 0;
-    for v in vs {
-        if let Datum::Number(a) = *v {
-            res += a;
-        } else {
-            return Err(InvalidTypeOfArguments);
-        }
+    let mut res = vs[0].take();
+
+    for v in &mut vs[1..] {
+        res = res + v.take();
     }
-    Ok(Datum::Number(res))
+    Ok(res)
 }
 
 fn subtract(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
-        if vs.len() == 2 {
-            if let Datum::Number(b) = vs[1] {
-                return Ok(Datum::Number(a - b));
-            } else {
-                return Ok(Datum::Number(-a));
-            }
-        }
+    if vs.len() == 1 {
+        Ok(-vs[0].take())
+    } else {
+        Ok(vs[0].take() - vs[1].take())
     }
-    Err(InvalidTypeOfArguments)
 }
 
 fn mult(vs: &mut [Datum]) -> LispResult {
-    let mut res = 1;
-    for v in vs {
-        if let Datum::Number(a) = *v {
-            res *= a;
-        } else {
-            return Err(InvalidTypeOfArguments);
-        }
+    let mut res = vs[0].take();
+
+    for v in &mut vs[1..] {
+        res = res * v.take();
     }
-    Ok(Datum::Number(res))
+    Ok(res)
 }
 
 fn fx_add(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
-        if let Datum::Number(b) = vs[1] {
-            return Ok(Datum::Number(a + b));
+    if let Datum::Integer(a) = vs[0] {
+        if let Datum::Integer(b) = vs[1] {
+            return Ok(Datum::Integer(a + b));
         }
     }
     Err(InvalidTypeOfArguments)
 }
 
 fn fx_subtract(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
-        if let Datum::Number(b) = vs[1] {
-            return Ok(Datum::Number(a - b));
+    if let Datum::Integer(a) = vs[0] {
+        if let Datum::Integer(b) = vs[1] {
+            return Ok(Datum::Integer(a - b));
         }
     }
     Err(InvalidTypeOfArguments)
 }
 
 fn fx_mult(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
-        if let Datum::Number(b) = vs[1] {
-            return Ok(Datum::Number(a * b));
+    if let Datum::Integer(a) = vs[0] {
+        if let Datum::Integer(b) = vs[1] {
+            return Ok(Datum::Integer(a * b));
         }
     }
     Err(InvalidTypeOfArguments)
 }
 
-fn max(vs: &mut [Datum]) -> LispResult {
-    let first = vs.get(0).unwrap();
-    if let Datum::Number(mut res) = *first {
-        for v in vs.iter().skip(1) {
-            if let Datum::Number(a) = *v {
-                if a > res {
-                    res = a;
-                }
-            } else {
-                return Err(InvalidTypeOfArguments);
-            }
+fn fx_div(vs: &mut [Datum]) -> LispResult {
+    if let Datum::Integer(a) = vs[0] {
+        if let Datum::Integer(b) = vs[1] {
+            return Ok(Datum::Integer(a / b));
         }
-        Ok(Datum::Number(res))
-    } else {
-        return Err(InvalidTypeOfArguments);
     }
-}
-
-fn min(vs: &mut [Datum]) -> LispResult {
-    let first = vs.get(0).unwrap();
-    if let Datum::Number(mut res) = *first {
-        for v in vs.iter().skip(1) {
-            if let Datum::Number(a) = *v {
-                if a < res {
-                    res = a;
-                }
-            } else {
-                return Err(InvalidTypeOfArguments);
-            }
-        }
-        Ok(Datum::Number(res))
-    } else {
-        return Err(InvalidTypeOfArguments);
-    }
+    Err(InvalidTypeOfArguments)
 }
 
 fn isqrt(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
+    if let Datum::Integer(a) = vs[0] {
         let res = (a as f64).sqrt() as isize;
-        return Ok(Datum::Number(res));
+        return Ok(Datum::from(&res));
     }
     Err(InvalidTypeOfArguments)
 }
 
 fn inc(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
-        return Ok(Datum::Number(a + 1));
+    if let Datum::Integer(a) = vs[0] {
+        return Ok(Datum::from(&(a + 1)));
     }
     Err(InvalidTypeOfArguments)
 }
 
 fn dec(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
-        return Ok(Datum::Number(a - 1));
+    if let Datum::Integer(a) = vs[0] {
+        return Ok(Datum::from(&(a - 1)));
     }
     Err(InvalidTypeOfArguments)
 }
 
 fn zero_questionmark(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
+    if let Datum::Integer(a) = vs[0] {
         return Ok(Datum::Bool(a == 0));
     }
     Err(InvalidTypeOfArguments)
 }
 
 fn divides_questionmark(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
-        if let Datum::Number(b) = vs[1] {
+    if let Datum::Integer(a) = vs[0] {
+        if let Datum::Integer(b) = vs[1] {
             return Ok(Datum::Bool((b % a) == 0));
         }
     }
@@ -221,61 +183,33 @@ fn divides_questionmark(vs: &mut [Datum]) -> LispResult {
 }
 
 fn even_questionmark(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
+    if let Datum::Integer(a) = vs[0] {
         return Ok(Datum::Bool((a % 2) == 0));
     }
     Err(InvalidTypeOfArguments)
 }
 
 fn odd_questionmark(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
+    if let Datum::Integer(a) = vs[0] {
         return Ok(Datum::Bool((a % 2) == 1));
     }
     Err(InvalidTypeOfArguments)
 }
 
 fn div(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
-        if let Datum::Number(b) = vs[1] {
-            return Ok(Datum::Number(a / b));
-        }
-    }
-    Err(InvalidTypeOfArguments)
-}
-
-fn shift_left(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
-        if let Datum::Number(b) = vs[1] {
-            return Ok(Datum::Number(a >> b));
-        }
-    }
-    Err(InvalidTypeOfArguments)
-}
-
-fn shift_right(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
-        if let Datum::Number(b) = vs[1] {
-            return Ok(Datum::Number(a << b));
-        }
-    }
-    Err(InvalidTypeOfArguments)
+    Ok(vs[0].take() / vs[1].take())
 }
 
 fn modulo(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
-        if let Datum::Number(b) = vs[1] {
-            return Ok(Datum::Number(a % b));
-        }
-    }
-    Err(InvalidTypeOfArguments)
+    Ok(vs[0].take() % vs[1].take())
 }
 
 fn divmod(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
-        if let Datum::Number(b) = vs[1] {
+    if let Datum::Integer(a) = vs[0] {
+        if let Datum::Integer(b) = vs[1] {
             return Ok(Datum::DottedList(
-                vec![Datum::Number(a / b)],
-                Box::new(Datum::Number(a % b)),
+                vec![Datum::Integer(a / b)],
+                Box::new(Datum::Integer(a % b)),
             ));
         }
     }
@@ -283,10 +217,10 @@ fn divmod(vs: &mut [Datum]) -> LispResult {
 }
 
 fn builtin_modexp(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(b) = vs[0] {
-        if let Datum::Number(e) = vs[1] {
-            if let Datum::Number(m) = vs[2] {
-                return Ok(Datum::Number(modexp(b, e, m)));
+    if let Datum::Integer(b) = vs[0] {
+        if let Datum::Integer(e) = vs[1] {
+            if let Datum::Integer(m) = vs[2] {
+                return Ok(Datum::Integer(modexp(b, e, m)));
             }
         }
     }
@@ -294,16 +228,16 @@ fn builtin_modexp(vs: &mut [Datum]) -> LispResult {
 }
 
 fn rand(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
-        if let Datum::Number(b) = vs[1] {
-            return Ok(Datum::Number(thread_rng().gen_range(a, b + 1)));
+    if let Datum::Integer(a) = vs[0] {
+        if let Datum::Integer(b) = vs[1] {
+            return Ok(Datum::from(&thread_rng().gen_range(a, b + 1)));
         }
     }
     Err(InvalidTypeOfArguments)
 }
 
 fn prime_factors(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(mut a) = vs[0] {
+    if let Datum::Integer(mut a) = vs[0] {
         let mut result = Vec::new();
         if a < 2 {
             return Ok(Datum::List(result));
@@ -317,8 +251,8 @@ fn prime_factors(vs: &mut [Datum]) -> LispResult {
                     count += 1;
                 }
                 result.push(Datum::DottedList(
-                    vec![Datum::Number(*i)],
-                    Box::new(Datum::Number(count))
+                    vec![Datum::Integer(*i)],
+                    Box::new(Datum::Integer(count))
                 ));
             }
             if *i > a {
@@ -336,8 +270,8 @@ fn prime_factors(vs: &mut [Datum]) -> LispResult {
                         count += 1;
                     }
                     result.push(Datum::DottedList(
-                        vec![Datum::Number(i)],
-                        Box::new(Datum::Number(count))
+                        vec![Datum::Integer(i)],
+                        Box::new(Datum::Integer(count))
                     ));
                 }
                 i += 1;
@@ -352,20 +286,20 @@ fn prime_factors(vs: &mut [Datum]) -> LispResult {
 }
 
 fn factors(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
+    if let Datum::Integer(a) = vs[0] {
         let mut result = Vec::new();
         let root = (a as f64).sqrt() as isize;
 
-        result.push(Datum::Number(1));
+        result.push(Datum::Integer(1));
         if a > 1 {
-            result.push(Datum::Number(a));
+            result.push(Datum::Integer(a));
         }
         if a > 2 {
             for i in 2..(root + 1) {
                 if a % i == 0 {
-                    result.push(Datum::Number(i));
+                    result.push(Datum::Integer(i));
                     if (a / i) != i {
-                        result.push(Datum::Number(a / i));
+                        result.push(Datum::Integer(a / i));
                     }
                 }
             }
@@ -376,7 +310,7 @@ fn factors(vs: &mut [Datum]) -> LispResult {
 }
 
 fn primes(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
+    if let Datum::Integer(a) = vs[0] {
         if a < 1 {
             panic!("Can't take a negative number of primes");
         }
@@ -387,7 +321,7 @@ fn primes(vs: &mut [Datum]) -> LispResult {
         }
 
         let primes = PRIMES[0..to].to_vec().iter().map(|p|
-            Datum::Number(*p)
+            Datum::from(p)
         ).collect();
         return Ok(Datum::List(primes));
     }
@@ -395,11 +329,11 @@ fn primes(vs: &mut [Datum]) -> LispResult {
 }
 
 fn digits(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(mut a) = vs[0] {
+    if let Datum::Integer(mut a) = vs[0] {
         let mut result = Vec::new();
 
         while a != 0 {
-            result.push(Datum::Number(a % 10));
+            result.push(Datum::from(&(a % 10)));
             a /= 10;
         }
 
@@ -414,7 +348,7 @@ fn digits_to_number(vs: &mut [Datum]) -> LispResult {
         let mut result = 0;
 
         for digit in digits {
-            if let Datum::Number(n) = *digit {
+            if let Datum::Integer(n) = *digit {
                 result += n * pow;
                 pow *= 10;
             } else {
@@ -422,7 +356,7 @@ fn digits_to_number(vs: &mut [Datum]) -> LispResult {
             }
         }
 
-        return Ok(Datum::Number(result))
+        return Ok(Datum::from(&result))
     }
     Err(InvalidTypeOfArguments)
 }
@@ -435,8 +369,6 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "fx+", fx_add, Arity::Exact(2));
     register(hm, "fx-", fx_subtract, Arity::Exact(2));
     register(hm, "fx*", fx_mult, Arity::Exact(2));
-    register(hm, "max", max, Arity::Min(2));
-    register(hm, "min", min, Arity::Min(2));
     register(hm, "isqrt", isqrt, Arity::Exact(1));
     register(hm, "inc", inc, Arity::Exact(1));
     register(hm, "dec", dec, Arity::Exact(1));
@@ -445,9 +377,8 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "even?", even_questionmark, Arity::Exact(1));
     register(hm, "odd?", odd_questionmark, Arity::Exact(1));
     register(hm, "/", div, Arity::Exact(2));
-    register(hm, ">>", shift_left, Arity::Exact(2));
-    register(hm, "<<", shift_right, Arity::Exact(2));
     register(hm, "%", modulo, Arity::Exact(2));
+    register(hm, "div", fx_div, Arity::Exact(2));
     register(hm, "divmod", divmod, Arity::Exact(2));
     register(hm, "modexp", builtin_modexp, Arity::Exact(3));
     register(hm, "rand", rand, Arity::Exact(2));

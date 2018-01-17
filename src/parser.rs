@@ -265,7 +265,7 @@ named!(
         alt!(
             tag!("'()") => { |_| Datum::Nil } |
             boolean     => { |b| Datum::Bool(b) } |
-            integer     => { |n| Datum::Number(n) } |
+            integer     => { |n| Datum::Integer(n) } |
             character   => { |c| Datum::Character(c) } |
             string      => { |s| Datum::Str(s) } |
             identifier  => { |s| Datum::Symbol(s) } |
@@ -311,39 +311,3 @@ macro_rules! assert_parsed_fully {
         assert_eq!($parser($input.as_bytes()), nom::IResult::Done(&b""[..], $result));
     } 
 }
-
-// #[test]
-// fn test_boolean() {
-//     assert_parsed_fully!(boolean, "#t", true);
-//     assert_parsed_fully!(boolean, "#f", false);
-// }
-
-// #[test]
-// fn test_character() {
-//     assert_parsed_fully!(character, "#\\space", ' ');
-//     assert_parsed_fully!(character, "#\\newline", '\n');
-//     assert_parsed_fully!(character, "#\\ ", ' ');
-//     assert_parsed_fully!(character, "#\\X", 'X');
-// }
-
-// #[test]
-// fn test_integer() {
-//     assert_parsed_fully!(integer, "1", 1);
-//     assert_parsed_fully!(integer, "#d+1", 1);
-//     assert_parsed_fully!(integer, "-1", -1);
-//     assert_parsed_fully!(integer, "#b010101", 21);
-//     assert_parsed_fully!(integer, "#o77", 63);
-//     assert_parsed_fully!(integer, "#xFF", 255);
-//     assert_parsed_fully!(integer, "#x-ff", -255);
-// }
-
-// #[test]
-// fn test_token() {
-//     assert_parsed_fully!(token, "1", Token::Number(1));
-//     assert_parsed_fully!(token, "else", Token::Keyword(SyntacticKeyword::Else));
-//     assert_parsed_fully!(token, "lambda", Token::Keyword(
-//         SyntacticKeyword::Ex	pression(ExpressionKeyword::Lambda))
-//     );
-//     assert_parsed_fully!(token, "#\\space", Token::Character(' '));
-//     // ...
-// }

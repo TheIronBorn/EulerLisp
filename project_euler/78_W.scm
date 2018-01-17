@@ -14,7 +14,7 @@
                                          (min (- n limit) limit)))))))
 
 (defn index (n limit)
-  (dec (+ limit (/ (* n (dec n)) 2))))
+  (dec (+ limit (div (* n (dec n)) 2))))
 
 (defn first-partitions (n limit)
   (cond

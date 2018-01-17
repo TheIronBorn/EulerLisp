@@ -6,7 +6,7 @@
 (defn digit-sum (n (acc 0))
   (if (= n 0)
       acc
-      (digit-sum (/ n 10)
+      (digit-sum (div n 10)
                (+ acc (list-ref facs (% n 10))))))
 
 (def max-n (* 7 (fac 9)))

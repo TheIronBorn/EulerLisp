@@ -8,7 +8,7 @@
 (defn digit-squares (n (acc 0))
   (if (zero? n)
       acc
-      (digit-squares (/ n 10)
+      (digit-squares (div n 10)
                      (+ acc (square (% n 10))))))
 
 (defn trace (n)
@@ -37,7 +37,7 @@
 
 (def base (fac 7))
 (defn number-of-permutations (dcs)
-  (/ base (reduce-product fac dcs)))
+  (div base (reduce-product fac dcs)))
 
 (defn perm-digit-squares (perm (d 0) (acc 0))
       (if (nil? perm)

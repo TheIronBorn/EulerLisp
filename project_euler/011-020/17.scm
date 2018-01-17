@@ -13,18 +13,18 @@
       (< n 10) (nth (dec n) single)
       (< n 20) (nth (- n 10) teens)
       else (if (zero? (% n 10))
-             (nth (- (/ n 10) 2) tens)
+             (nth (- (div n 10) 2) tens)
              (str
-               (nth (- (/ n 10) 2) tens)
+               (nth (- (div n 10) 2) tens)
                (nth (dec (% n 10)) single)))))
 
 (defn format-hundred (n)
       (if (zero? (% n 100))
         (str
-          (nth (dec (/ n 100)) single)
+          (nth (dec (div n 100)) single)
           "hundred")
         (str
-          (nth (dec (/ n 100)) single)
+          (nth (dec (div n 100)) single)
           "hundred"
           "and"
           (format-ten (% n 100)))

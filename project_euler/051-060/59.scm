@@ -35,7 +35,7 @@
 (defn number->bits (n (remaining 8) (acc '()))
       (if (zero? remaining)
         acc
-        (number->bits (/ n 2)
+        (number->bits (div n 2)
                       (dec remaining)
                       (cons (% n 2) acc))))
 

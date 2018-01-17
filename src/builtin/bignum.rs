@@ -28,7 +28,7 @@ fn bg_mul(vs: &mut [Datum]) -> LispResult {
 }
 
 fn number_to_bignum(vs: &mut [Datum]) -> LispResult {
-    if let Datum::Number(a) = vs[0] {
+    if let Datum::Integer(a) = vs[0] {
         return Ok(Datum::Bignum(Bignum::new(a)))
     }
     Err(InvalidTypeOfArguments)
@@ -36,7 +36,7 @@ fn number_to_bignum(vs: &mut [Datum]) -> LispResult {
 
 fn bignum_num_digits(vs: &mut [Datum]) -> LispResult {
     if let Datum::Bignum(a) = vs[0].take() {
-        return Ok(Datum::Number(a.num_digits()))
+        return Ok(Datum::Integer(a.num_digits()))
     }
     Err(InvalidTypeOfArguments)
 }
@@ -45,7 +45,7 @@ fn bignum_digits(vs: &mut [Datum]) -> LispResult {
     if let Datum::Bignum(a) = vs[0].take() {
         let digits = a.digits();
         return Ok(Datum::List(
-                digits.into_iter().map(|d| Datum::Number(d)).collect()
+                digits.into_iter().map(|d| Datum::Integer(d)).collect()
         ));
     }
     Err(InvalidTypeOfArguments)
@@ -55,7 +55,7 @@ fn bignum_chunks(vs: &mut [Datum]) -> LispResult {
     if let Datum::Bignum(a) = vs[0].take() {
         let digits = a.chunks();
         return Ok(Datum::List(
-                digits.into_iter().map(|d| Datum::Number(d)).collect()
+                digits.into_iter().map(|d| Datum::Integer(d)).collect()
         ));
     }
     Err(InvalidTypeOfArguments)
@@ -66,7 +66,7 @@ fn bignum_from_chunks(vs: &mut [Datum]) -> LispResult {
         let mut result = Vec::new();
 
         for chunk in chunks {
-            if let Datum::Number(n) = chunk {
+            if let Datum::Integer(n) = chunk {
                 result.push(n as usize);
             } else {
                 panic!("The argument of bignum-from-chunks must be a list of numbers");
