@@ -71,7 +71,7 @@ fn apply(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult 
     if let Datum::List(ref args_) = *argslist {
         Ok(eval.full_apply(f.clone(), args_.clone(), env_ref))
     } else {
-        Err(InvalidTypeOfArguments)
+        panic!("Usage: (apply fun (arg1 arg2 arg3 ...))")
     }
 }
 

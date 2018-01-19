@@ -38,7 +38,7 @@ fn fst(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
         Datum::List(mut elems) => {
             Ok(elems[0].take())
         },
-        _ => Err(InvalidTypeOfArguments)
+        _ => panic!("fst only works on pairs")
     }
 }
 
@@ -60,7 +60,7 @@ fn rst(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
                 Ok(Datum::List(rest))
             }
         },
-        _ => Err(InvalidTypeOfArguments)
+        _ => panic!("fst only works on pairs")
     }
 }
 

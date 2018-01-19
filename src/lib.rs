@@ -12,7 +12,6 @@ pub mod eval;
 mod builtin;
 mod parser;
 mod env;
-mod desugar;
 mod symbol_table;
 mod preprocess;
 mod bignum;
@@ -35,7 +34,9 @@ use std::ops::Rem;
 
 use numbers::Rational;
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+pub type Fsize = f64;
+
+#[derive(PartialEq, Debug, Clone)]
 pub enum Stream {
     Range(RangeStream),
     Step(StepStream),
@@ -54,7 +55,7 @@ impl Stream {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct RangeStream {
     from: isize,
     to: isize,
@@ -62,20 +63,20 @@ pub struct RangeStream {
     current: isize
 }
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct StepStream {
     from: isize,
     step: isize,
     current: isize
 }
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct MapStream {
     source: Box<Stream>,
     fun: Box<Datum>,
 }
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct SelectStream {
     source: Box<Stream>,
     fun: Box<Datum>,
@@ -155,13 +156,14 @@ impl LispIterator for SelectStream {
 
 pub type LispResult = Result<Datum, LispErr>;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum LispErr {
     InvalidNumberOfArguments,
     InvalidTypeOfArguments,
     DefinitionAlreadyDefined,
     DefinitionNotFound,
     IOError,
+    TypeError(&'static str, &'static str, Datum)
 }
 
 impl fmt::Display for LispErr {
@@ -172,6 +174,9 @@ impl fmt::Display for LispErr {
             LispErr::DefinitionNotFound => write!(f, "Definition not found"),
             LispErr::DefinitionAlreadyDefined => write!(f, "Definition is already defined"),
             LispErr::IOError => write!(f, "IO Error"),
+            LispErr::TypeError(fun, expected, ref got) => {
+                write!(f, "Type error evaluating {}: expected {}, got {:?}", fun, expected, got)
+            }
         }
     }
 }
@@ -221,7 +226,7 @@ impl PartialEq for LispFn {
 }
 impl Eq for LispFn {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Promise {
     Delayed(EnvRef, Box<Datum>),
     Result(Box<Datum>),
@@ -257,11 +262,12 @@ impl PartialEq for Lambda {
 }
 impl Eq for Lambda {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Datum {
     Bool(bool),
     Integer(isize),
     Rational(numbers::Rational),
+    Float(Fsize),
     Bignum(bignum::Bignum),
     Character(char),
     Str(String),
@@ -279,12 +285,15 @@ pub enum Datum {
 impl Add for Datum {
     type Output = Datum;
 
+    // TODO: Allow these to return errors
     fn add(self, other: Datum) -> Datum {
         match (self, other) {
             (Datum::Integer(a), Datum::Integer(b)) => Datum::Integer(a + b),
             (Datum::Rational(a), Datum::Integer(b)) => (a + b).reduce(),
             (Datum::Integer(a), Datum::Rational(b)) => (a + b).reduce(),
             (Datum::Rational(a), Datum::Rational(b)) => (a + b).reduce(),
+            (Datum::Float(f), other) => Datum::Float(f + other.to_float().unwrap()),
+            (other, Datum::Float(f)) => Datum::Float(f + other.to_float().unwrap()),
             (a, b) => panic!("Addition not implemented for {} and {}", a, b)
         }
     }
@@ -299,6 +308,8 @@ impl Sub for Datum {
             (Datum::Rational(a), Datum::Integer(b)) => (a - b).reduce(),
             (Datum::Integer(a), Datum::Rational(b)) => (a - b).reduce(),
             (Datum::Rational(a), Datum::Rational(b)) => (a - b).reduce(),
+            (Datum::Float(f), other) => Datum::Float(f - other.to_float().unwrap()),
+            (other, Datum::Float(f)) => Datum::Float(other.to_float().unwrap() - f),
             (a, b) => panic!("Subtraction not implemented for {} and {}", a, b)
         }
     }
@@ -310,6 +321,8 @@ impl Neg for Datum {
     fn neg(self) -> Datum {
         match self {
             Datum::Integer(a) => Datum::Integer(-a),
+            Datum::Float(a) => Datum::Float(-a),
+            Datum::Rational(a) => Datum::Rational(-a),
             a => panic!("Negation not implemented for {}", a)
         }
     }
@@ -324,6 +337,8 @@ impl Mul for Datum {
             (Datum::Integer(a), Datum::Rational(b)) => (a * b).reduce(),
             (Datum::Rational(a), Datum::Integer(b)) => (a * b).reduce(),
             (Datum::Rational(a), Datum::Rational(b)) => (a * b).reduce(),
+            (Datum::Float(f), other) => Datum::Float(f * other.to_float().unwrap()),
+            (other, Datum::Float(f)) => Datum::Float(f * other.to_float().unwrap()),
             (a, b) => panic!("Multiplication not implemented for {} and {}", a, b)
         }
     }
@@ -344,6 +359,8 @@ impl Div for Datum {
             (Datum::Integer(a), Datum::Rational(b)) => (a / b).reduce(),
             (Datum::Rational(a), Datum::Integer(b)) => (a / b).reduce(),
             (Datum::Rational(a), Datum::Rational(b)) => (a / b).reduce(),
+            (Datum::Float(f), other) => Datum::Float(f / other.to_float().unwrap()),
+            (other, Datum::Float(f)) => Datum::Float(other.to_float().unwrap() / f),
             (a, b) => panic!("Division not implemented for {} and {}", a, b)
         }
     }
@@ -426,10 +443,29 @@ impl Datum {
         }
     }
 
+    fn to_float(&self) -> Result<Fsize, LispErr> {
+        match self {
+            &Datum::Integer(n) => Ok(n as Fsize),
+            &Datum::Rational(ref r) => Ok((r.num as Fsize) / (r.denom as Fsize)),
+            &Datum::Float(r) => Ok(r),
+            a => panic!("Can't convert {} to float", a)
+        }
+    }
+
+    // TODO: Better error handling
     fn compare(&self, other: &Datum) -> Result<Ordering, LispErr> {
         match (self, other) {
             (&Datum::Integer(ref a), &Datum::Integer(ref b)) => Ok(a.cmp(b)),
-            (_, _) => Err(LispErr::InvalidTypeOfArguments)
+            (&Datum::Rational(ref a), &Datum::Rational(ref b)) => Ok(
+                (a.num * b.denom).cmp(&(b.num * a.denom))
+            ),
+            (ref other, &Datum::Float(ref b)) => {
+                Ok((other.to_float()?).partial_cmp(b).unwrap())
+            },
+            (&Datum::Float(ref b), ref other) => {
+                Ok(b.partial_cmp(&other.to_float()?).unwrap())
+            },
+            (a, b) => panic!("Can't compare {} and {}", a, b)
         }
     }
 }
@@ -473,6 +509,7 @@ impl fmt::Display for Datum {
             Datum::Integer(x) => write!(f, "{}", x),
             Datum::Rational(ref x) => write!(f, "{}", x),
             Datum::Bignum(ref x) => write!(f, "{}", x),
+            Datum::Float(x) => write!(f, "{}", x),
             Datum::Str(ref s) => write!(f, "\"{}\"", s),
             Datum::Nil => write!(f, "'()"),
             Datum::Undefined => write!(f, "undefined"),
@@ -507,4 +544,26 @@ pub enum Expression {
     SelfEvaluating(Box<Datum>),
     Symbol(Symbol),
     DottedList(Vec<Datum>, Box<Datum>),
+}
+
+impl Expression {
+    pub fn make_self_evaluating(datum: Datum) -> Expression {
+        Expression::SelfEvaluating(Box::new(datum))
+    }
+
+    pub fn make_if(cond: Expression, cons: Expression, alt: Expression) -> Expression {
+        Expression::If(Box::new(cond), Box::new(cons), Box::new(alt))
+    }
+
+    pub fn datum_nil() -> Expression {
+        Expression::SelfEvaluating(Box::new(Datum::Nil))
+    }
+
+    pub fn datum_true() -> Expression {
+        Expression::SelfEvaluating(Box::new(Datum::Bool(true)))
+    }
+
+    pub fn datum_false() -> Expression {
+        Expression::SelfEvaluating(Box::new(Datum::Bool(false)))
+    }
 }

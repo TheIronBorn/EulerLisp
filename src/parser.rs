@@ -151,7 +151,7 @@ named!(
 
 named!(letter<char>, one_of!("abcdefghijklmnopqrstuvwxyz"));
 named!(single_digit<char>, one_of!("0123456789"));
-named!(special_initial<char>, one_of!("!$%&*/:<=>?^_~"));
+named!(special_initial<char>, one_of!("!$%&*/:<=>?^_~-"));
 named!(special_subsequent<char>, one_of!("+-.@"));
 
 named!(initial<char>, alt!(letter | special_initial));
@@ -167,7 +167,7 @@ named!(peculiar_identifier, alt!(tag!("+") | tag!("-") | tag!("...")));
 named!(
     identifier<String>,
     map!(
-        alt!(peculiar_identifier | common_identifier),
+        alt_complete!(common_identifier | peculiar_identifier),
         |s| String::from_utf8_lossy(s).into_owned()
     )
 );

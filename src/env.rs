@@ -9,18 +9,12 @@ use ::Symbol;
 pub type EnvRef = Rc<RefCell<Env>>;
 pub type Binding = Rc<RefCell<Datum>>;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Env(HashMap<usize, Binding>);
 
 impl PartialOrd for Env {
     fn partial_cmp(&self, _: &Env) -> Option<Ordering> {
         None
-    }
-}
-
-impl Ord for Env {
-    fn cmp(&self, _: &Env) -> Ordering {
-        Ordering::Equal
     }
 }
 

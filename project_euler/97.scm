@@ -4,7 +4,7 @@
   (~> n
       bignum-chunks
       (take 2)
-      bignum-from-chunks))
+      chunks->bignum))
 
 (defn resizing-bigpow (b e)
   (cond

@@ -64,6 +64,12 @@
       acc
       (reduce f (f (fst arr) acc) (rst arr))))
 
+(defn count (pred arr (acc 0))
+  (cond
+    (nil? arr) acc
+    (pred (fst arr)) (count pred (rst arr) (inc acc))
+    else (count pred (rst arr) acc)))
+
 (defn reduce-sum (f arr)
   (reduce (fn (x acc)
               (+ acc (f x)))

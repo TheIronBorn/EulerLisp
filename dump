@@ -27,3 +27,104 @@
     // }
 
 
+    // "case"      => {
+    //     let mut else_case = Expression::SelfEvaluating(Box::new(Datum::Nil));
+    //     let mut cases: Vec<(Datum, Expression)> = Vec::new();
+
+    //     let expr_ = args.get(0).unwrap();
+    //     let expr = preprocess(expr_.clone(), symbol_table, builtins)?;
+
+    //     for arg in args.into_iter().skip(1) {
+    //         if let Datum::List(ref elems) = *arg {
+    //             if elems.len() != 2 {
+    //                 return Err(InvalidTypeOfArguments);
+    //             }
+
+    //             let cond = elems.get(0).unwrap();
+    //             let cons = elems.get(1).unwrap();
+
+    //             // TODO this does not check if "else" comes last
+    //             if *cond == Datum::Symbol("else".to_string()) {
+    //                 else_case = preprocess(cons.clone(), symbol_table, builtins)?;
+    //                 break;
+    //             } else {
+    //                 cases.push((
+    //                     cond.clone(),
+    //                     preprocess(cons.clone(), symbol_table, builtins)?,
+    //                 ));
+    //             }
+    //         } else {
+    //             return Err(InvalidTypeOfArguments);
+    //         }
+    //     }
+
+    //     let mut cur = else_case;
+    //     let mut eq = symbol_table.insert(&String::from("="));
+
+    //     for (case, cons) in cases.into_iter().rev() {
+    //         cur = Expression::If(
+    //             Box::new(Expression::BuiltinFunctionCall(builtins.get("="))),
+    //             Box::new(cons),
+    //             Box::new(cur)
+    //         );
+    //     }
+
+    //     Ok(Expression::Case(Box::new(expr), cases, Box::new(else_case)))
+    // },
+
+    // fn eval_sf_case(&mut self, expr: Expression, cases: BTreeMap<Datum, Expression>, else_case: Expression, env_ref: EnvRef) -> TCOResult {
+    //     let res = self.eval(expr, env_ref.clone())?;
+    //     if let Some(cons) = cases.get(&res) {
+    //         Ok(TCOWrapper::TailCall(cons.clone(), env_ref))
+    //     } else {
+    //         Ok(TCOWrapper::TailCall(else_case, env_ref))
+    //     }
+    // }
+
+    // fn sf_load(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+    //     check_arity!(args, 1);
+
+    //     if let Datum::Str(ref path) = self.eval(&args[0], env_ref)? {
+    //         Ok(TCOWrapper::Return(self.eval_file(path, env_ref)?))
+    //     } else {
+    //         Err(InvalidTypeOfArguments)
+    //     }
+    // }
+
+    // fn sf_delay(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+    //     check_arity!(args, 1);
+    //     Ok(TCOWrapper::Return(Datum::Promise(Promise::Delayed(env_ref, Box::new(args[0].clone())))))
+    // }
+
+    // fn sf_force(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
+    //     check_arity!(args, 1);
+
+    //     match args[0] {
+    //         Datum::Symbol(ref name) => {
+    //             let val = self.envs.get(env_ref, name).clone();
+    //             match val {
+    //                 Datum::Promise(ref p) => {
+    //                     let res = self.force_promise(p, env_ref)?;
+    //                     let new = Datum::Promise(Promise::Result(Box::new(res.clone())));
+    //                     self.envs.set(env_ref, name, new);
+    //                     Ok(TCOWrapper::Return(res))
+    //                 },
+    //                 ref other => Ok(TCOWrapper::Return(self.eval(other, env_ref)?)),
+    //             }
+    //         },
+    //         ref other => {
+    //             match self.eval(other, env_ref)? {
+    //                 Datum::Promise(ref p) => Ok(TCOWrapper::Return(self.force_promise(p, env_ref)?)),
+    //                 ref other_ => Ok(TCOWrapper::Return(other_.clone())),
+    //             }
+    //         }
+    //     }
+    // }
+
+    // fn force_promise(&mut self, p: &Promise, env_ref: EnvRef) -> LispResult {
+    //     match *p {
+    //         Promise::Result(ref r) => Ok(*r.clone()),
+    //         Promise::Delayed(env_ref_, ref r) => self.eval(&(*r.clone()), env_ref_),
+    //     }
+    // }
+

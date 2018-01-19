@@ -4,6 +4,7 @@ use rand::{thread_rng, Rng};
 use LispFn;
 use Datum;
 use LispErr::*;
+use LispErr;
 use LispResult;
 use Arity;
 
@@ -11,6 +12,7 @@ use builtin::primes::PRIMES;
 use builtin::register;
 use ::eval::Evaluator;
 use ::EnvRef;
+use ::Fsize;
 
 const WITNESSES: [(isize, &[isize]); 7] = [
     (2_047, &[2]),
@@ -379,6 +381,36 @@ fn denominator(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispR
     }
 }
 
+fn to_float(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    Ok(Datum::Float(vs[0].to_float()?))
+}
+
+fn log10(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    let a = vs[0].to_float()?;
+    Ok(Datum::Float(a.log10()))
+}
+
+fn log2(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    let a = vs[0].to_float()?;
+    Ok(Datum::Float(a.log2()))
+}
+
+fn ln(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    let a = vs[0].to_float()?;
+    Ok(Datum::Float(a.ln()))
+}
+
+fn log(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    let a = vs[0].to_float()?;
+    let b = vs[1].to_float()?;
+    Ok(Datum::Float(a.log(b)))
+}
+
+fn sqrt(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    let a = vs[0].to_float()?;
+    Ok(Datum::Float(a.sqrt()))
+}
+
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "prime?", prime_questionmark, Arity::Exact(1));
     register(hm, "+", add, Arity::Min(2));
@@ -407,4 +439,10 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "digits->number", digits_to_number, Arity::Exact(1));
     register(hm, "numerator", numerator, Arity::Exact(1));
     register(hm, "denominator", denominator, Arity::Exact(1));
+    register(hm, "->float", to_float, Arity::Exact(1));
+    register(hm, "log10", log10, Arity::Exact(1));
+    register(hm, "log2", log2, Arity::Exact(1));
+    register(hm, "ln", ln, Arity::Exact(1));
+    register(hm, "log", log, Arity::Exact(2));
+    register(hm, "sqrt", sqrt, Arity::Exact(1));
 }

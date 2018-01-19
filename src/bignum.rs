@@ -10,7 +10,8 @@ pub struct Bignum {
 }
 
 // 10^9, this way the product of the sum of two parts still fits inside a u64
-const CHUNK: usize = 1000000000;
+pub const CHUNK: usize = 1000000000;
+pub const DIGITS: usize = 9;
 
 impl Bignum {
     pub fn new(value: isize) -> Self {
@@ -72,11 +73,20 @@ impl Bignum {
             vec![0]
         } else {
             let mut result = Vec::new();
-            for chunk in self.data.iter() {
+            for (i, chunk) in self.data.iter().enumerate() {
+                let mut remaining = DIGITS;
                 let mut cur = *chunk;
-                while cur > 0 {
+                while cur > 0{
                     result.push((cur % 10) as isize);
                     cur /= 10;
+                    remaining -= 1;
+                }
+
+                if i < (self.data.len() - 1) {
+                    while remaining > 0 {
+                        result.push(0);
+                        remaining -= 1;
+                    }
                 }
             }
             result

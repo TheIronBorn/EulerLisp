@@ -19,7 +19,6 @@ use ::LispErr::*;
 use symbol_table::SymbolTable;
 use env::{Env, EnvRef};
 use parser;
-use desugar;
 use builtin;
 use preprocess;
 
@@ -75,68 +74,11 @@ impl Evaluator {
         let paths = fs::read_dir("./stdlib").unwrap();
         for path in paths {
             let path_str = path.unwrap().path().display().to_string();
-            println!("Loading {}", path_str);
             ev.eval_file(&path_str[..]).expect("Failed to load lib");
         }
 
         ev
     }
-
-    // fn eval_sf_case(&mut self, expr: Expression, cases: BTreeMap<Datum, Expression>, else_case: Expression, env_ref: EnvRef) -> TCOResult {
-    //     let res = self.eval(expr, env_ref.clone())?;
-    //     if let Some(cons) = cases.get(&res) {
-    //         Ok(TCOWrapper::TailCall(cons.clone(), env_ref))
-    //     } else {
-    //         Ok(TCOWrapper::TailCall(else_case, env_ref))
-    //     }
-    // }
-
-    // fn sf_load(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-    //     check_arity!(args, 1);
-
-    //     if let Datum::Str(ref path) = self.eval(&args[0], env_ref)? {
-    //         Ok(TCOWrapper::Return(self.eval_file(path, env_ref)?))
-    //     } else {
-    //         Err(InvalidTypeOfArguments)
-    //     }
-    // }
-
-    // fn sf_delay(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-    //     check_arity!(args, 1);
-    //     Ok(TCOWrapper::Return(Datum::Promise(Promise::Delayed(env_ref, Box::new(args[0].clone())))))
-    // }
-
-    // fn sf_force(&mut self, args: &[Datum], env_ref: EnvRef) -> TCOResult {
-    //     check_arity!(args, 1);
-
-    //     match args[0] {
-    //         Datum::Symbol(ref name) => {
-    //             let val = self.envs.get(env_ref, name).clone();
-    //             match val {
-    //                 Datum::Promise(ref p) => {
-    //                     let res = self.force_promise(p, env_ref)?;
-    //                     let new = Datum::Promise(Promise::Result(Box::new(res.clone())));
-    //                     self.envs.set(env_ref, name, new);
-    //                     Ok(TCOWrapper::Return(res))
-    //                 },
-    //                 ref other => Ok(TCOWrapper::Return(self.eval(other, env_ref)?)),
-    //             }
-    //         },
-    //         ref other => {
-    //             match self.eval(other, env_ref)? {
-    //                 Datum::Promise(ref p) => Ok(TCOWrapper::Return(self.force_promise(p, env_ref)?)),
-    //                 ref other_ => Ok(TCOWrapper::Return(other_.clone())),
-    //             }
-    //         }
-    //     }
-    // }
-
-    // fn force_promise(&mut self, p: &Promise, env_ref: EnvRef) -> LispResult {
-    //     match *p {
-    //         Promise::Result(ref r) => Ok(*r.clone()),
-    //         Promise::Delayed(env_ref_, ref r) => self.eval(&(*r.clone()), env_ref_),
-    //     }
-    // }
 
     pub fn apply(&mut self, f: Datum, mut evaled_args: Vec<Datum>, env_ref: EnvRef) -> TCOResult {
         match f {
@@ -148,7 +90,7 @@ impl Evaluator {
                         let given = evaled_args.len();
                         let takes = lambda.params.len();
                         let defaults = lambda.defaults.len();
-                        let missing = (takes - given);
+                        let missing = takes - given;
 
                         if missing > defaults {
                             return Err(InvalidNumberOfArguments);
@@ -199,7 +141,7 @@ impl Evaluator {
                 arity.check(evaled_args.len());
                 Ok(TCOWrapper::Return(fun(evaled_args.as_mut_slice(), self, env_ref)?))
             },
-            _ => Err(InvalidTypeOfArguments),
+            a => panic!("Tried to apply {}", a)
         } 
     }
 
@@ -219,12 +161,9 @@ impl Evaluator {
         let result = parser::parse_program(input);
         let mut ret = Datum::Nil;
 
-        for v in result.iter() {
+        for v in result.into_iter() {
             let env_ref = self.root_env.clone();
-
-            let desugared = desugar::desugar(v);
-            let preprocessed = preprocess::preprocess(desugared, &mut self.symbol_table,
-                                                      &self.builtins)?;
+            let preprocessed = preprocess::preprocess(v, &mut self.symbol_table, &self.builtins)?;
             match self.eval(preprocessed, env_ref) {
                 Ok(res) => ret = res,
                 Err(msg) => println!("!! {}", msg)
@@ -343,8 +282,7 @@ impl Evaluator {
     }
 
     pub fn eval_datum(&mut self, datum: Datum, env_ref: EnvRef) -> LispResult {
-        let desugared = desugar::desugar(&datum);
-        let preprocessed = preprocess::preprocess(desugared, &mut self.symbol_table, &self.builtins)?;
+        let preprocessed = preprocess::preprocess(datum, &mut self.symbol_table, &self.builtins)?;
         self.eval(preprocessed, env_ref)
     }
 
