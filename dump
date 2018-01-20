@@ -128,3 +128,17 @@
     //     }
     // }
 
+    // "defmacro" => {
+    //     check_arity!(args, 2);
+    //     if let Datum::Symbol(ref a) = args[0] {
+    //         if builtins.contains_key(a) {
+    //             panic!("{} is a reserved name", a);
+    //         }
+    //         let body = args.get(1).unwrap().clone();
+    //         Ok(Expression::MacroDefinition(
+    //             symbol_table.insert(a),
+    //             Box::new(preprocess(body, symbol_table, builtins, env_ref.clone())?)))
+    //     } else {
+    //         Err(InvalidTypeOfArguments)
+    //     }
+    // },

@@ -47,17 +47,19 @@
       (cons (fst lst)
             (delete-nth (dec n) (rst lst)))))
 
-(defn select (pred arr)
+(defn select (pred arr (acc '()))
   (cond
-    (nil? arr) '()
-    (pred (fst arr)) (cons (fst arr) (select pred (rst arr)))
-    else (select pred (rst arr))))
+    (nil? arr) acc
+    (pred (fst arr)) (select pred (rst arr)
+                             (push acc (fst arr)))
+    else (select pred (rst arr) acc)))
 
-(defn reject (pred arr)
+(defn reject (pred arr (acc '()))
   (cond
-    (nil? arr) '()
-    (pred (fst arr)) (reject pred (rst arr))
-    else (cons (fst arr) (reject pred (rst arr)))))
+    (nil? arr) acc
+    (pred (fst arr)) (reject pred (rst arr) acc)
+    else (reject pred (rst arr)
+                 (push acc (fst arr)))))
 
 (defn reduce (f acc arr)
   (if (nil? arr)
@@ -111,11 +113,12 @@
           '()
           (cons (fst lst) (take (dec n) (rst lst)))))
 
-(defn chunks (size lst)
+(defn chunks (size lst (acc '()))
       (if (< (length lst) size)
-          '()
-          (cons (take size lst)
-                (chunks size (rst lst)))))
+          acc
+          (chunks size
+                  (rst lst)
+                  (push acc (take size lst)))))
 
 (defn uniq (arr (last -1) (acc '()))
   (cond

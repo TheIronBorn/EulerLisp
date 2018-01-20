@@ -17,7 +17,7 @@ use ::Symbol;
 use ::LispErr::*;
 
 use symbol_table::SymbolTable;
-use env::{Env, EnvRef};
+use env::{Env, EnvRef, AEnv, AEnvRef};
 use parser;
 use builtin;
 use preprocess;
@@ -27,6 +27,7 @@ pub struct Evaluator {
     symbol_table: SymbolTable,
     macros: HashMap<Symbol, Expression>,
     root_env: EnvRef,
+    root_aenv: AEnvRef,
     builtins: HashMap<String, LispFn>,
 }
 
@@ -55,7 +56,7 @@ pub enum TCOWrapper {
 // }
 
 impl Evaluator {
-    pub fn new() -> Self {
+    pub fn new(stdlib: bool) -> Self {
         let symbol_table = SymbolTable::new();
         let mut builtins: HashMap<String, LispFn> = HashMap::new(); 
         builtin::load(&mut builtins);
@@ -63,18 +64,24 @@ impl Evaluator {
         let root_env = Env::new(None);
         let env_ref = Rc::new(RefCell::new(root_env));
 
+        let root_aenv = AEnv::new(None);
+        let aenv_ref = Rc::new(RefCell::new(root_aenv));
+
         let mut ev = Evaluator {
             symbol_table: symbol_table,
             macros: HashMap::new(),
             builtins: builtins,
             level: 0,
-            root_env: env_ref
+            root_env: env_ref,
+            root_aenv: aenv_ref
         };
 
-        let paths = fs::read_dir("./stdlib").unwrap();
-        for path in paths {
-            let path_str = path.unwrap().path().display().to_string();
-            ev.eval_file(&path_str[..]).expect("Failed to load lib");
+        if stdlib {
+            let paths = fs::read_dir("./stdlib").unwrap();
+            for path in paths {
+                let path_str = path.unwrap().path().display().to_string();
+                ev.eval_file(&path_str[..]).expect("Failed to load lib");
+            }
         }
 
         ev
@@ -163,7 +170,7 @@ impl Evaluator {
 
         for v in result.into_iter() {
             let env_ref = self.root_env.clone();
-            let preprocessed = preprocess::preprocess(v, &mut self.symbol_table, &self.builtins)?;
+            let preprocessed = preprocess::preprocess(v, &mut self.symbol_table, &self.builtins, self.root_aenv.clone())?;
             match self.eval(preprocessed, env_ref) {
                 Ok(res) => ret = res,
                 Err(msg) => println!("!! {}", msg)
@@ -282,7 +289,7 @@ impl Evaluator {
     }
 
     pub fn eval_datum(&mut self, datum: Datum, env_ref: EnvRef) -> LispResult {
-        let preprocessed = preprocess::preprocess(datum, &mut self.symbol_table, &self.builtins)?;
+        let preprocessed = preprocess::preprocess(datum, &mut self.symbol_table, &self.builtins, self.root_aenv.clone())?;
         self.eval(preprocessed, env_ref)
     }
 

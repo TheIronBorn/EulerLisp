@@ -4,9 +4,9 @@ use ::rustyline::Editor;
 use eval::Evaluator;
 use ::Datum;
 
-pub fn run() {
+pub fn run(stdlib: bool) {
     let mut rl = Editor::<()>::new();
-    let mut eval = Evaluator::new();
+    let mut eval = Evaluator::new(stdlib);
 
     if let Err(_) = rl.load_history("history.txt") {
       println!("No previous history.");
