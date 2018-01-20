@@ -22,7 +22,6 @@ use env::EnvRef;
 use std::fmt;
 use std::cmp::Ordering;
 use std::boxed::Box;
-use std::collections::BTreeMap;
 use std::mem;
 
 use std::ops::Add;
@@ -524,26 +523,28 @@ impl fmt::Display for Datum {
 
 pub type Symbol = usize;
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct BindingRef(usize, usize);
+
 #[derive(Clone)]
 pub enum Expression {
     If(Box<Expression>, Box<Expression>, Box<Expression>),
+    // TODO: No need to keep the param names in the lambda
     LambdaDef(Vec<Symbol>, Vec<Datum>, Box<Expression>, LambdaType),
     Do(Vec<Expression>, Box<Expression>),
     Quote(Box<Datum>),
-    // Case(Box<Expression>, BTreeMap<Datum, Expression>, Box<Expression>),
-    Definition(Symbol, Box<Expression>),
-    MacroDefinition(Symbol, Box<Expression>),
-    Assignment(Symbol, Box<Expression>),
-    ListPush(Symbol, Box<Expression>),
-    ListRef(Symbol, Box<Expression>),
-    ListSet(Symbol, Box<Expression>, Box<Expression>),
-    DirectFunctionCall(Symbol, Vec<Expression>),
+    Definition(BindingRef, Box<Expression>),
+    Assignment(BindingRef, Box<Expression>),
+    ListPush(BindingRef, Box<Expression>),
+    ListRef(BindingRef, Box<Expression>),
+    ListSet(BindingRef, Box<Expression>, Box<Expression>),
     BuiltinFunctionCall(fn(&mut [Datum], &mut eval::Evaluator, EnvRef)->LispResult, Vec<Expression>),
-    SymbolFunctionCall(Symbol, Vec<Expression>),
     FunctionCall(Box<Expression>, Vec<Expression>),
     SelfEvaluating(Box<Datum>),
-    Symbol(Symbol),
+    BindingRef(BindingRef),
     DottedList(Vec<Datum>, Box<Datum>),
+    // Case(Box<Expression>, BTreeMap<Datum, Expression>, Box<Expression>),
+    // MacroDefinition(BindingRef, Box<Expression>),
 }
 
 impl Expression {

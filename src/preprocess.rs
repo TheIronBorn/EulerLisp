@@ -153,13 +153,14 @@ pub fn preprocess(
                                 }
 
                                 let symbol = symbol_table.insert(a);
-                                let binding = env_ref.borrow_mut().insert(&symbol);
-                                if binding.is_none() {
-                                    panic!("Trying to redefine existing variable");
-                                }
 
-                                let value = preprocess_sequence(elems, symbol_table, builtins, env_ref.clone());
-                                Ok(Expression::Definition(symbol, Box::new(value)))
+                                let foo = env_ref.borrow_mut().insert(&symbol);
+                                if let Some(binding) = foo {
+                                    let value = preprocess_sequence(elems, symbol_table, builtins, env_ref.clone());
+                                    Ok(Expression::Definition(binding, Box::new(value)))
+                                } else {
+                                    panic!("Trying to redefine existing variable {}", a);
+                                }
                             } else {
                                 Err(InvalidTypeOfArguments)
                             }
@@ -170,21 +171,20 @@ pub fn preprocess(
                             }
 
                             let key = elems.remove(0);
+
                             if let Datum::Symbol(ref a) = key {
                                 if builtins.contains_key(a) {
                                     panic!("{} is a reserved name", a);
                                 }
 
                                 let symbol = symbol_table.insert(a);
-                                let binding = env_ref.borrow_mut().insert(&symbol);
-                                if binding.is_none() {
-                                    panic!("Trying to redefine existing variable");
+                                let foo = env_ref.borrow_mut().insert(&symbol);
+                                if let Some(binding) = foo {
+                                    let value = preprocess_fn(elems, symbol_table, builtins, env_ref.clone())?;
+                                    Ok(Expression::Definition(binding, Box::new(value)))
+                                } else {
+                                    panic!("Trying to redefine existing variable {}", a);
                                 }
-
-                                let value = preprocess_fn(elems, symbol_table, builtins, env_ref.clone())?;
-
-
-                                Ok(Expression::Definition(symbol, Box::new(value)))
                             } else {
                                 Err(InvalidTypeOfArguments)
                             }
@@ -193,16 +193,17 @@ pub fn preprocess(
                             check_arity!(elems, 2);
 
                             let key = elems.remove(0);
-                            let index = preprocess(elems.remove(0), symbol_table, builtins, env_ref.clone())?;
 
                             if let Datum::Symbol(ref a) = key {
                                 let symbol = symbol_table.insert(a);
-                                let binding = env_ref.borrow_mut().lookup(&symbol);
-                                if binding.is_none() {
+
+                                let foo = env_ref.borrow_mut().lookup(&symbol);
+                                if let Some(binding) = foo {
+                                    let index = preprocess(elems.remove(0), symbol_table, builtins, env_ref.clone())?;
+                                    Ok(Expression::ListRef(binding, Box::new(index)))
+                                } else {
                                     panic!("Trying to list-ref undefined variable");
                                 }
-
-                                Ok(Expression::ListRef(symbol_table.insert(a), Box::new(index)))
                             } else {
                                 Err(InvalidTypeOfArguments)
                             }
@@ -211,16 +212,17 @@ pub fn preprocess(
                             check_arity!(elems, 2);
 
                             let key = elems.remove(0);
-                            let value = preprocess_sequence(elems, symbol_table, builtins, env_ref.clone());
 
                             if let Datum::Symbol(ref a) = key {
                                 let symbol = symbol_table.insert(a);
-                                let binding = env_ref.borrow_mut().lookup(&symbol);
-                                if binding.is_none() {
+
+                                let foo = env_ref.borrow_mut().lookup(&symbol);
+                                if let Some(binding) = foo {
+                                    let value = preprocess(elems.remove(0), symbol_table, builtins, env_ref.clone())?;
+                                    Ok(Expression::Assignment(binding, Box::new(value)))
+                                } else {
                                     panic!("Trying to set! undefined variable");
                                 }
-
-                                Ok(Expression::Assignment(symbol, Box::new(value)))
                             } else {
                                 Err(InvalidTypeOfArguments)
                             }
@@ -229,16 +231,17 @@ pub fn preprocess(
                             check_arity!(elems, 2);
 
                             let key = elems.remove(0);
-                            let value = preprocess(elems.remove(0), symbol_table, builtins, env_ref.clone())?;
 
                             if let Datum::Symbol(ref a) = key {
                                 let symbol = symbol_table.insert(a);
-                                let binding = env_ref.borrow_mut().lookup(&symbol);
-                                if binding.is_none() {
-                                    panic!("Trying to push! undefined variable");
-                                }
 
-                                Ok(Expression::ListPush(symbol, Box::new(value)))
+                                let foo = env_ref.borrow_mut().lookup(&symbol);
+                                if let Some(binding) = foo {
+                                    let value = preprocess(elems.remove(0), symbol_table, builtins, env_ref.clone())?;
+                                    Ok(Expression::ListPush(binding, Box::new(value)))
+                                } else {
+                                    panic!("Trying to set! undefined variable");
+                                }
                             } else {
                                 Err(InvalidTypeOfArguments)
                             }
@@ -247,17 +250,19 @@ pub fn preprocess(
                             check_arity!(elems, 3);
 
                             let key = elems.remove(0);
-                            let index = preprocess(elems.remove(0), symbol_table, builtins, env_ref.clone())?;
-                            let value = preprocess(elems.remove(0), symbol_table, builtins, env_ref.clone())?;
 
                             if let Datum::Symbol(ref a) = key {
                                 let symbol = symbol_table.insert(a);
-                                let binding = env_ref.borrow_mut().lookup(&symbol);
-                                if binding.is_none() {
-                                    panic!("Trying to set-nth! undefined variable");
-                                }
 
-                                Ok(Expression::ListSet(symbol, Box::new(index), Box::new(value)))
+                                let foo = env_ref.borrow_mut().lookup(&symbol);
+                                if let Some(binding) = foo {
+                                    let index = preprocess(elems.remove(0), symbol_table, builtins, env_ref.clone())?;
+                                    let value = preprocess(elems.remove(0), symbol_table, builtins, env_ref.clone())?;
+
+                                    Ok(Expression::ListSet(binding, Box::new(index), Box::new(value)))
+                                } else {
+                                    panic!("Trying to set! undefined variable");
+                                }
                             } else {
                                 Err(InvalidTypeOfArguments)
                             }
@@ -436,8 +441,12 @@ pub fn preprocess(
                                     Ok(Expression::BuiltinFunctionCall(*fun, exprs))
                                 },
                                 None => {
-                                    let fun = symbol_table.insert(&other.to_string());
-                                    Ok(Expression::FunctionCall(Box::new(Expression::Symbol(fun)), exprs))
+                                    let symbol = symbol_table.insert(&other.to_string());
+                                    if let Some(binding) = env_ref.borrow_mut().lookup(&symbol) {
+                                        Ok(Expression::FunctionCall(Box::new(Expression::BindingRef(binding)), exprs))
+                                    } else {
+                                        panic!("Trying to use undefined variable {}", other);
+                                    }
                                 }
                             }
                         }
@@ -455,12 +464,11 @@ pub fn preprocess(
                 Some(fun) => Ok(Expression::make_self_evaluating(Datum::Builtin(fun.clone()))),
                 None => {
                     let symbol = symbol_table.insert(name);
-                    let binding = env_ref.borrow_mut().lookup(&symbol);
-                    if binding.is_none() {
+                    if let Some(binding) = env_ref.borrow_mut().lookup(&symbol) {
+                        Ok(Expression::BindingRef(binding))
+                    } else {
                         panic!("Trying to use undefined variable");
                     }
-
-                    Ok(Expression::Symbol(symbol))
                 }
             }
 

@@ -29,11 +29,11 @@
 (defn rrrfst (lst) (rst (rst (rst (fst lst)))))
 (defn rrrrst (lst) (rst (rst (rst (rst lst)))))
 
-(defn range (from to)
-      (range_ from to '()))
 (defn range_ (from to acc)
       (if (< to from) acc
           (range_ from (dec to) (cons to acc))))
+(defn range (from to)
+      (range_ from to '()))
 
 (defn flatmap (f arr)
       (if (nil? arr)

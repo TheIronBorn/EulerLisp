@@ -22,7 +22,7 @@ fn main() {
                 lisp::repl::run(use_stdlib);
             },
             "run" => {
-                let filename = args.get(2).expect("No filename provided");
+                let filename = args.get(0).expect("No filename provided");
                 let mut eval = Evaluator::new(use_stdlib);
                 match eval.eval_file(filename) {
                     Err(e) => println!("Error: {}", e),

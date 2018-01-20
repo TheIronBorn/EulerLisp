@@ -1,58 +1,50 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::cmp::Ordering;
 
 use ::Datum;
 use ::Symbol;
+use ::BindingRef;
 
 pub type EnvRef = Rc<RefCell<Env>>;
 pub type Binding = Rc<RefCell<Datum>>;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Env(HashMap<usize, Binding>, Option<EnvRef>);
+pub struct Env {
+    bindings: Vec<Binding>,
+    parent: Option<EnvRef>
+}
+
 impl Env {
     pub fn new(parent: Option<EnvRef>) -> Self {
-        Env(HashMap::new(), parent)
+        Env {
+            bindings: Vec::new(),
+            parent: parent
+        }
     }
 
-    pub fn find_def(&self, key: &Symbol) -> Option<Binding> {
-        if let Some(binding) = self.0.get(&key) {
-            Some(binding.clone())
+    pub fn get_binding(&self, depth: usize, binding: usize) -> Binding {
+        if depth == 0 {
+            self.bindings.get(binding).expect("Trying to get undefined binding").clone()
         } else {
-            if let Some(ref env_ref) = self.1 {
-                env_ref.borrow().find_def(key)
+            if let Some(ref parent) = self.parent {
+                parent.borrow().get_binding(depth - 1, binding)
             } else {
-                None
+                panic!("Trying to get binding with non-zero depth in root env");
             }
         }
     }
 
-    pub fn extend(&mut self, keys: Vec<Symbol>, values: Vec<Datum>) {
-        for (k, v) in keys.iter().zip(values.into_iter()) {
-            self.0.insert(*k, Rc::new(RefCell::new(v)));
-        }
-    }
-
-    pub fn define(&mut self, key: Symbol, value: Datum) {
-        self.0.insert(key, Rc::new(RefCell::new(value)));
-    }
-
-    pub fn set(&mut self, key: Symbol, value: Datum) -> bool {
-        match self.find_def(&key) {
-            Some(v) => {
-                *v.borrow_mut() = value;
-                true
-            },
-            None => false
-        }
+    pub fn extend(&mut self, values: Vec<Datum>) {
+        let bindings = values.into_iter().map( |v| Rc::new(RefCell::new(v)) );
+        self.bindings.extend(bindings);
     }
 }
 
 // This type of environment is only needed
 // during the preprocessing phase.
 // There we convert each reference to a variable
-// to a `ARef(depth, binding)`
+// to a `BindingRef(depth, binding)`
 // where `depth` tells us how many environments
 // we need to move up to find a binding
 // and `binding` is the index of this binding
@@ -61,9 +53,6 @@ impl Env {
 // Using these two numbers,
 // we can repersent environments without HashMaps
 // and access to variables should be faster, too
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct ARef(usize, usize);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AEnv {
@@ -82,9 +71,9 @@ impl AEnv {
         }
     }
 
-    pub fn lookup_with_depth(&self, key: &Symbol, depth: usize) -> Option<ARef> {
+    pub fn lookup_with_depth(&self, key: &Symbol, depth: usize) -> Option<BindingRef> {
         if let Some(binding) = self.bindings.get(&key) {
-            Some(ARef(depth, *binding))
+            Some(BindingRef(depth, *binding))
         } else {
             if let Some(ref env_ref) = self.parent {
                 env_ref.borrow().lookup_with_depth(key, depth + 1)
@@ -94,17 +83,17 @@ impl AEnv {
         }
     }
 
-    pub fn lookup(&self, key: &Symbol) -> Option<ARef> {
+    pub fn lookup(&self, key: &Symbol) -> Option<BindingRef> {
         self.lookup_with_depth(key, 0)
     }
 
-    pub fn insert(&mut self, key: &Symbol) -> Option<ARef> {
+    pub fn insert(&mut self, key: &Symbol) -> Option<BindingRef> {
         let exists = self.bindings.get(key).is_some();
 
         if exists {
             None
         } else {
-            let a = ARef(0, self.counter);
+            let a = BindingRef(0, self.counter);
             self.bindings.insert(key.clone(), self.counter);
             self.counter += 1;
             Some(a)

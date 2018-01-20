@@ -3,6 +3,7 @@
 ; Times:
 ;  20.1.18 13.47s
 ;  20.1.18 13.38s, make envs nested again
+;  20.1.18 10.56s, switch to activation frames
 
 (defn witnesses (n)
   (cond
@@ -11,7 +12,7 @@
     (< n 9080191) (list 31 73)
     (< n 25326001) (list 2 3 5)
     (< n 3215031751) (list 2 3 5 7)
-    (< n 4759123141) (list 2 7 61),
+    (< n 4759123141) (list 2 7 61)
     (< n 1122004669633) (list 2 13 23 1662803)
 ))
 
@@ -26,6 +27,16 @@
   (if (even? n)
       (factor2 (div n 2) (inc r))
       (cons r n)))
+
+; return true to continue, false to return 'composite'
+(defn subloop (times x n)
+      (if (zero? times)
+          #f
+          (let (x (% (* x x) n))
+               (cond
+                 (= x 1) #f
+                 (= x (dec n)) #t
+                 else (subloop (dec times) x n)))))
 
 ; returns true if probably prime, false if not
 (defn witness-loop (n r d witnesses)
@@ -46,23 +57,12 @@
            (witness-loop n (fst rd) (rst rd)
                          (witnesses n)))))
 
-
-; return true to continue, false to return 'composite'
-(defn subloop (times x n)
-      (if (zero? times)
-          #f
-          (let (x (% (* x x) n))
-               (cond
-                 (= x 1) #f
-                 (= x (dec n)) #t
-                 else (subloop (dec times) x n)))))
-
-(defn nth-prime (n) (nth-prime_ (- n 3) 5))
 (defn nth-prime_ (n cur)
       (if (myprime? cur)
           (if (zero? n)
               cur
               (nth-prime_ (dec n) (+ cur 2)))
           (nth-prime_ n (+ cur 2))))
+(defn nth-prime (n) (nth-prime_ (- n 3) 5))
 
 (println (nth-prime 20000))

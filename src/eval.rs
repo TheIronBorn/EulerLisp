@@ -14,6 +14,7 @@ use ::Lambda;
 use ::LambdaType;
 use ::Expression;
 use ::Symbol;
+use ::BindingRef;
 use ::LispErr::*;
 
 use symbol_table::SymbolTable;
@@ -105,10 +106,7 @@ impl Evaluator {
                             evaled_args.extend(
                                 lambda.defaults.iter().cloned().skip(defaults - missing)
                             );
-                            child_env.extend(
-                                lambda.params,
-                                evaled_args
-                            );
+                            child_env.extend(evaled_args);
                         }
                     },
                     LambdaType::DottedList => {
@@ -118,10 +116,7 @@ impl Evaluator {
                         if given > takes {
                             let rest = evaled_args.split_off(takes);
                             evaled_args.push(Datum::List(rest));
-                            child_env.extend(
-                                lambda.params,
-                                evaled_args
-                            );
+                            child_env.extend(evaled_args);
                         } else {
                             let defaults = lambda.defaults.len();
                             let missing = takes - given;
@@ -133,10 +128,7 @@ impl Evaluator {
                                     lambda.defaults.iter().cloned().skip(defaults - missing)
                                 );
                                 evaled_args.push(Datum::List(vec!()));
-                                child_env.extend(
-                                    lambda.params,
-                                    evaled_args
-                                );
+                                child_env.extend(evaled_args);
                             }
                         }
                     }
@@ -199,89 +191,84 @@ impl Evaluator {
         Ok(TCOWrapper::TailCall(last, env_ref))
     }
 
-    fn eval_sf_definition(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
+    fn eval_sf_definition(&mut self, key: BindingRef, value: Expression, env_ref: EnvRef) -> TCOResult {
+        // TODO: Check if this would use the correct binding?
+        // (env.counter + 1 == key.index)
         let value = self.eval(value, env_ref.clone())?;
         let mut env_ = env_ref.borrow_mut();
 
-        env_.define(key, value);
+        env_.extend(vec![value]);
         Ok(TCOWrapper::Return(Datum::Undefined))
     }
 
-    fn eval_sf_assignment(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
+    fn eval_sf_assignment(&mut self, key: BindingRef, value: Expression, env_ref: EnvRef) -> TCOResult {
         let value = self.eval(value, env_ref.clone())?;
         let env = env_ref.borrow();
 
-        if let Some(binding) = env.find_def(&key) {
-            (*binding.borrow_mut()) = value;
-            Ok(TCOWrapper::Return(Datum::Undefined))
-        } else {
-            panic!("Definition not found: {}", self.symbol_table.name(key));
-        }
+        let BindingRef(depth, index) = key;
+        let binding = env.get_binding(depth, index);
+        (*binding.borrow_mut()) = value;
+        Ok(TCOWrapper::Return(Datum::Undefined))
     }
 
-    fn eval_sf_list_push(&mut self, key: Symbol, value: Expression, env_ref: EnvRef) -> TCOResult {
+    fn eval_sf_list_push(&mut self, key: BindingRef, value: Expression, env_ref: EnvRef) -> TCOResult {
         let value = self.eval(value, env_ref.clone())?;
         let env = env_ref.borrow();
 
-        if let Some(binding) = env.find_def(&key) {
-            let mut b = binding.borrow_mut();
-            b.push(value);
-            Ok(TCOWrapper::Return(Datum::Undefined))
-        } else {
-            panic!("Definition not found: {}", self.symbol_table.name(key));
-        }
+        let BindingRef(depth, index) = key;
+        let binding = env.get_binding(depth, index);
+        (*binding.borrow_mut()).push(value);
+        Ok(TCOWrapper::Return(Datum::Undefined))
     }
 
-    fn eval_sf_list_ref(&mut self, key: Symbol, index: Expression, env_ref: EnvRef) -> TCOResult {
+    fn eval_sf_list_ref(&mut self, key: BindingRef, index: Expression, env_ref: EnvRef) -> TCOResult {
         let vindex = self.eval(index, env_ref.clone())?;
         if let Datum::Integer(index) = vindex {
             let env = env_ref.borrow();
 
-            if let Some(binding) = env.find_def(&key) {
-                match *binding.borrow_mut() {
-                    Datum::List(ref mut elements) => {
-                        if let Some(elem) = elements.get(index as usize) {
-                            Ok(TCOWrapper::Return(elem.clone()))
-                        } else {
-                            panic!("Index out of bounds")
-                        }
-                    },
-                    _ => {
-                        panic!("Usage: (list-ref <id> <index>)")
+            let BindingRef(depth, b_index) = key;
+            let binding = env.get_binding(depth, b_index);
+            let mut bm = binding.borrow_mut();
+            match *bm {
+                Datum::List(ref mut elements) => {
+                    if let Some(elem) = elements.get(index as usize) {
+                        Ok(TCOWrapper::Return(elem.clone()))
+                    } else {
+                        panic!("Index out of bounds")
                     }
+                },
+                _ => {
+                    panic!("Usage: (list-ref <id> <index>)")
                 }
-            } else {
-                panic!("Definition not found: {}", self.symbol_table.name(key));
             }
         } else {
             panic!("Usage: (list-ref <id> <index>)")
         }
     }
 
-    fn eval_sf_list_set(&mut self, key: Symbol, index: Expression, value: Expression, env_ref: EnvRef) -> TCOResult {
+    fn eval_sf_list_set(&mut self, key: BindingRef, index: Expression, value: Expression, env_ref: EnvRef) -> TCOResult {
         let vindex = self.eval(index, env_ref.clone())?;
         let value = self.eval(value, env_ref.clone())?;
 
         if let Datum::Integer(index) = vindex {
             let env = env_ref.borrow();
 
-            if let Some(binding) = env.find_def(&key) {
-                match *binding.borrow_mut() {
-                    Datum::List(ref mut elements) => {
-                        if let Some(elem) = elements.get_mut(index as usize) {
-                            *elem = value;
-                            Ok(TCOWrapper::Return(Datum::Undefined))
-                        } else {
-                            // TODO: Index out of bounds
-                            Err(InvalidTypeOfArguments)
-                        }
-                    },
-                    _ => {
+            let BindingRef(depth, b_index) = key;
+            let binding = env.get_binding(depth, b_index);
+            let mut bm = binding.borrow_mut();
+            match *bm {
+                Datum::List(ref mut elements) => {
+                    if let Some(elem) = elements.get_mut(index as usize) {
+                        *elem = value;
+                        Ok(TCOWrapper::Return(Datum::Undefined))
+                    } else {
+                        // TODO: Index out of bounds
                         Err(InvalidTypeOfArguments)
                     }
+                },
+                _ => {
+                    Err(InvalidTypeOfArguments)
                 }
-            } else {
-                panic!("Definition not found: {}", self.symbol_table.name(key));
             }
         } else {
             Err(InvalidTypeOfArguments)
@@ -314,22 +301,17 @@ impl Evaluator {
                 // Expression::Case(e, cases, else_case) => self.eval_sf_case(*e, cases, *else_case, env_ref),
                 Expression::Quote(datum) => Ok(TCOWrapper::Return(*datum)),
                 Expression::Definition(name, value) => self.eval_sf_definition(name, *value, env_ref),
-                Expression::MacroDefinition(name, value) => {
-                    self.macros.insert(name, *value);
-                    Ok(TCOWrapper::Return(Datum::Undefined))
-                },
                 Expression::Assignment(name, value) => self.eval_sf_assignment(name, *value, env_ref),
                 Expression::ListPush(name, value) => self.eval_sf_list_push(name, *value, env_ref),
                 Expression::ListRef(name, value) => self.eval_sf_list_ref(name, *value, env_ref),
                 Expression::ListSet(name, index, value) => self.eval_sf_list_set(name, *index, *value, env_ref),
-                Expression::Symbol(key) => {
+                Expression::BindingRef(key) => {
                     let env = env_ref.borrow();
-                    match env.find_def(&key) {
-                        Some(value) => Ok(TCOWrapper::Return(value.borrow().clone())),
-                        None => {
-                            panic!("Key not found: {}", self.symbol_table.name(key));
-                        }
-                    } 
+                    let BindingRef(depth, index) = key;
+                    let binding = env.get_binding(depth, index);
+                    let value = binding.borrow().clone();
+
+                    Ok(TCOWrapper::Return(value))
                 },
                 Expression::FunctionCall(fun, args) => {
                     let f = self.eval(*fun, env_ref.clone())?;
