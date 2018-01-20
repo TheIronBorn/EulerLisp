@@ -15,7 +15,7 @@ use ::eval::Evaluator;
 use ::EnvRef;
 use ::builtin::register;
 
-fn step(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn step(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Integer(from) = *(vs.get(0).unwrap_or(&Datum::Integer(0))) {
         if let Datum::Integer(step) = *(vs.get(1).unwrap_or(&Datum::Integer(1))) {
             return Ok(Datum::Stream(Stream::Step(StepStream::new(from, step))))
@@ -25,7 +25,7 @@ fn step(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     Err(InvalidTypeOfArguments)
 }
 
-fn range(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn range(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Integer(from) = vs[0].take() {
         if let Datum::Integer(to) = vs[1].take() {
             if vs.len() == 3 {
@@ -40,7 +40,7 @@ fn range(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult 
     Err(InvalidTypeOfArguments)
 }
 
-fn map(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn map(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let fun = vs[0].take();
 
     if let Datum::Stream(s) = vs[1].take() {
@@ -50,7 +50,7 @@ fn map(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     }
 }
 
-fn select(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn select(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let fun = vs[0].take();
 
     if let Datum::Stream(s) = vs[1].take() {

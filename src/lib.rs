@@ -16,6 +16,7 @@ mod symbol_table;
 mod preprocess;
 mod bignum;
 mod numbers;
+mod syntax_rule;
 
 use env::EnvRef;
 
@@ -97,7 +98,7 @@ impl RangeStream {
 }
 
 impl LispIterator for RangeStream {
-    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
+    fn next(&mut self, _eval: &mut eval::Evaluator, _env_ref: EnvRef) -> Option<Datum> {
         if self.current > self.to {
             None
         } else {
@@ -119,7 +120,7 @@ impl StepStream {
 }
 
 impl LispIterator for StepStream {
-    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
+    fn next(&mut self, _eval: &mut eval::Evaluator, _env_ref: EnvRef) -> Option<Datum> {
         let ret = self.current;
         self.current += self.step;
         Some(Datum::Integer(ret))
@@ -223,7 +224,6 @@ impl PartialEq for LispFn {
         false
     }
 }
-impl Eq for LispFn {}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Promise {
@@ -231,26 +231,20 @@ pub enum Promise {
     Result(Box<Datum>),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum LambdaType {
-    List,
-    DottedList,
-}
-
 #[derive(Clone)]
 pub struct Lambda {
     env: EnvRef,
-    params: Vec<Symbol>,
+    arity: usize,
     defaults: Vec<Datum>,
     body: Box<Expression>,
-    kind: LambdaType
+    dotted: bool
 }
 
 // TODO: Implement comparison on datums by hand,
 // these traits are mostly wrong
 impl fmt::Debug for Lambda {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Lambda({:?})", self.params)
+        write!(f, "Lambda({:?})", self.arity)
     }
 }
 
@@ -291,8 +285,8 @@ impl Add for Datum {
             (Datum::Rational(a), Datum::Integer(b)) => (a + b).reduce(),
             (Datum::Integer(a), Datum::Rational(b)) => (a + b).reduce(),
             (Datum::Rational(a), Datum::Rational(b)) => (a + b).reduce(),
-            (Datum::Float(f), other) => Datum::Float(f + other.to_float().unwrap()),
-            (other, Datum::Float(f)) => Datum::Float(f + other.to_float().unwrap()),
+            (Datum::Float(f), other) => Datum::Float(f + other.as_float().unwrap()),
+            (other, Datum::Float(f)) => Datum::Float(f + other.as_float().unwrap()),
             (a, b) => panic!("Addition not implemented for {} and {}", a, b)
         }
     }
@@ -307,8 +301,8 @@ impl Sub for Datum {
             (Datum::Rational(a), Datum::Integer(b)) => (a - b).reduce(),
             (Datum::Integer(a), Datum::Rational(b)) => (a - b).reduce(),
             (Datum::Rational(a), Datum::Rational(b)) => (a - b).reduce(),
-            (Datum::Float(f), other) => Datum::Float(f - other.to_float().unwrap()),
-            (other, Datum::Float(f)) => Datum::Float(other.to_float().unwrap() - f),
+            (Datum::Float(f), other) => Datum::Float(f - other.as_float().unwrap()),
+            (other, Datum::Float(f)) => Datum::Float(other.as_float().unwrap() - f),
             (a, b) => panic!("Subtraction not implemented for {} and {}", a, b)
         }
     }
@@ -336,8 +330,8 @@ impl Mul for Datum {
             (Datum::Integer(a), Datum::Rational(b)) => (a * b).reduce(),
             (Datum::Rational(a), Datum::Integer(b)) => (a * b).reduce(),
             (Datum::Rational(a), Datum::Rational(b)) => (a * b).reduce(),
-            (Datum::Float(f), other) => Datum::Float(f * other.to_float().unwrap()),
-            (other, Datum::Float(f)) => Datum::Float(f * other.to_float().unwrap()),
+            (Datum::Float(f), other) => Datum::Float(f * other.as_float().unwrap()),
+            (other, Datum::Float(f)) => Datum::Float(f * other.as_float().unwrap()),
             (a, b) => panic!("Multiplication not implemented for {} and {}", a, b)
         }
     }
@@ -358,8 +352,8 @@ impl Div for Datum {
             (Datum::Integer(a), Datum::Rational(b)) => (a / b).reduce(),
             (Datum::Rational(a), Datum::Integer(b)) => (a / b).reduce(),
             (Datum::Rational(a), Datum::Rational(b)) => (a / b).reduce(),
-            (Datum::Float(f), other) => Datum::Float(f / other.to_float().unwrap()),
-            (other, Datum::Float(f)) => Datum::Float(other.to_float().unwrap() / f),
+            (Datum::Float(f), other) => Datum::Float(f / other.as_float().unwrap()),
+            (other, Datum::Float(f)) => Datum::Float(other.as_float().unwrap() / f),
             (a, b) => panic!("Division not implemented for {} and {}", a, b)
         }
     }
@@ -442,12 +436,34 @@ impl Datum {
         }
     }
 
-    fn to_float(&self) -> Result<Fsize, LispErr> {
+    fn as_float(&self) -> Result<Fsize, LispErr> {
         match self {
             &Datum::Integer(n) => Ok(n as Fsize),
             &Datum::Rational(ref r) => Ok((r.num as Fsize) / (r.denom as Fsize)),
             &Datum::Float(r) => Ok(r),
             a => panic!("Can't convert {} to float", a)
+        }
+    }
+
+    fn as_symbol(&self) -> Result<String, LispErr> {
+        match self {
+            &Datum::Symbol(ref n) => Ok(n.clone()),
+            a => panic!("Can't convert {} to string", a)
+        }
+    }
+
+    fn as_list(&self) -> Result<Vec<Datum>, LispErr> {
+        match self {
+            &Datum::List(ref n) => Ok(n.clone()),
+            a => panic!("Can't convert {} to a list", a)
+        }
+    }
+
+    fn is_false(&self) -> bool {
+        match self {
+            &Datum::Nil => true,
+            &Datum::Bool(false) => true,
+            _ => false
         }
     }
 
@@ -459,10 +475,10 @@ impl Datum {
                 (a.num * b.denom).cmp(&(b.num * a.denom))
             ),
             (ref other, &Datum::Float(ref b)) => {
-                Ok((other.to_float()?).partial_cmp(b).unwrap())
+                Ok((other.as_float()?).partial_cmp(b).unwrap())
             },
             (&Datum::Float(ref b), ref other) => {
-                Ok(b.partial_cmp(&other.to_float()?).unwrap())
+                Ok(b.partial_cmp(&other.as_float()?).unwrap())
             },
             (a, b) => panic!("Can't compare {} and {}", a, b)
         }
@@ -530,10 +546,10 @@ pub struct BindingRef(usize, usize);
 pub enum Expression {
     If(Box<Expression>, Box<Expression>, Box<Expression>),
     // TODO: No need to keep the param names in the lambda
-    LambdaDef(Vec<Symbol>, Vec<Datum>, Box<Expression>, LambdaType),
+    LambdaDef(usize, Vec<Datum>, Box<Expression>, bool),
     Do(Vec<Expression>, Box<Expression>),
     Quote(Box<Datum>),
-    Definition(BindingRef, Box<Expression>),
+    Definition(Box<Expression>),
     Assignment(BindingRef, Box<Expression>),
     ListPush(BindingRef, Box<Expression>),
     ListRef(BindingRef, Box<Expression>),
@@ -543,8 +559,7 @@ pub enum Expression {
     SelfEvaluating(Box<Datum>),
     BindingRef(BindingRef),
     DottedList(Vec<Datum>, Box<Datum>),
-    // Case(Box<Expression>, BTreeMap<Datum, Expression>, Box<Expression>),
-    // MacroDefinition(BindingRef, Box<Expression>),
+    SyntaxRuleDefinition(String, Box<syntax_rule::SyntaxRule>),
 }
 
 impl Expression {

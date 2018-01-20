@@ -13,7 +13,7 @@ use ::eval::Evaluator;
 use ::EnvRef;
 use ::parser;
 
-fn println(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn println(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     for v in vs.iter() {
         match *v {
             // Print string without " around them
@@ -25,7 +25,7 @@ fn println(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResul
     Ok(Datum::Undefined)
 }
 
-fn print(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn print(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     for v in vs.iter() {
         match *v {
             // Print string without " around them
@@ -37,19 +37,19 @@ fn print(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult 
     Ok(Datum::Undefined)
 }
 
-fn inspect(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn inspect(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     println!("{:?}", vs[0]);
     Ok(Datum::Undefined)
 }
 
-fn not(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn not(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Bool(b) = vs[0] {
         return Ok(Datum::Bool(!b));
     }
     Err(InvalidTypeOfArguments)
 }
 
-fn file_read(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn file_read(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Str(ref b) = vs[0] {
         match File::open(b) {
             Ok(ref mut file) => {
@@ -66,16 +66,16 @@ fn file_read(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispRes
 }
 
 fn apply(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
-    let f = vs.get(0).unwrap();
-    let argslist = vs.get(1).unwrap();
-    if let Datum::List(ref args_) = *argslist {
-        Ok(eval.full_apply(f.clone(), args_.clone(), env_ref))
+    let f = vs[0].take();
+    let argslist = vs[1].take();
+    if let Datum::List(args_) = argslist {
+        Ok(eval.full_apply(f, args_, env_ref))
     } else {
         panic!("Usage: (apply fun (arg1 arg2 arg3 ...))")
     }
 }
 
-fn read(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn read(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let arg = vs.get(0).unwrap();
     if let Datum::Str(ref input) = *arg {
         let result = parser::parse_datum(input.as_ref());
@@ -89,6 +89,15 @@ fn eval(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     eval.eval_datum(vs[0].take(), env_ref)
 }
 
+fn syntax_expand(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let mut body = vs[0].as_list()?;
+    let name = body.remove(0).as_symbol()?;
+
+    let rule = eval.syntax_rules.get(&name).unwrap();
+    let expanded = rule.apply(body);
+    Ok(expanded)
+}
+
 
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "println", println, Arity::Min(0));
@@ -99,4 +108,5 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "apply", apply, Arity::Exact(2));
     register(hm, "read", read, Arity::Exact(1));
     register(hm, "eval", eval, Arity::Exact(1));
+    register(hm, "expand-syntax", syntax_expand, Arity::Exact(1));
 }

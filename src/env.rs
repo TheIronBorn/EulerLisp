@@ -23,12 +23,17 @@ impl Env {
         }
     }
 
-    pub fn get_binding(&self, depth: usize, binding: usize) -> Binding {
+    pub fn get_binding(&self, binding: BindingRef) -> Binding {
+        let BindingRef(depth, index) = binding;
+        self.get_binding_(depth, index)
+    }
+
+    pub fn get_binding_(&self, depth: usize, binding: usize) -> Binding {
         if depth == 0 {
             self.bindings.get(binding).expect("Trying to get undefined binding").clone()
         } else {
             if let Some(ref parent) = self.parent {
-                parent.borrow().get_binding(depth - 1, binding)
+                parent.borrow().get_binding_(depth - 1, binding)
             } else {
                 panic!("Trying to get binding with non-zero depth in root env");
             }

@@ -186,7 +186,7 @@ impl fmt::Display for Bignum {
             write!(f, "0")?;
         } else {
             let mut iter = self.data.iter().rev();
-            write!(f, "{}", iter.nth(0).unwrap());
+            write!(f, "{}", iter.nth(0).unwrap())?;
             for datum in iter {
                 write!(f, "{:09}", datum)?;
             }

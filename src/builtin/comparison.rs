@@ -10,7 +10,7 @@ use ::eval::Evaluator;
 use ::EnvRef;
 use ::builtin::register;
 
-fn eq(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn eq(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     for i in 0..(vs.len() - 1) {
         if vs[i] != vs[i+1] {
             return Ok(Datum::Bool(false));
@@ -19,11 +19,11 @@ fn eq(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     Ok(Datum::Bool(true))
 }
 
-fn neq(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn neq(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     Ok(Datum::Bool(vs[0] != vs[1]))
 }
 
-fn lt(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn lt(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     for i in 0..(vs.len() - 1) {
         if vs[i].compare(&vs[i+1]).unwrap() != Ordering::Less {
             return Ok(Datum::Bool(false));
@@ -32,7 +32,7 @@ fn lt(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     Ok(Datum::Bool(true))
 }
 
-fn gt(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn gt(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     for i in 0..(vs.len() - 1) {
         if vs[i].compare(&vs[i+1]).unwrap() != Ordering::Greater {
             return Ok(Datum::Bool(false));
@@ -41,7 +41,7 @@ fn gt(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     Ok(Datum::Bool(true))
 }
 
-fn lte(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn lte(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     for i in 0..(vs.len() - 1) {
         if vs[i+1].compare(&vs[i]).unwrap() == Ordering::Less {
             return Ok(Datum::Bool(false));
@@ -50,7 +50,7 @@ fn lte(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     Ok(Datum::Bool(true))
 }
 
-fn gte(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn gte(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     for i in 0..(vs.len() - 1) {
         if vs[i+1].compare(&vs[i]).unwrap() == Ordering::Greater {
             return Ok(Datum::Bool(false));
@@ -59,7 +59,7 @@ fn gte(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     Ok(Datum::Bool(true))
 }
 
-fn max(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn max(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let mut max = vs[0].take();
     for v in vs.into_iter().skip(1) {
         if max.compare(v).unwrap() == Ordering::Less {
@@ -69,7 +69,7 @@ fn max(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     Ok(max)
 }
 
-fn min(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn min(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let mut min = vs[0].take();
     for v in vs.into_iter().skip(1) {
         if min.compare(v).unwrap() == Ordering::Greater {

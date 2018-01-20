@@ -12,7 +12,7 @@ use ::bignum::Bignum;
 use ::eval::Evaluator;
 use ::EnvRef;
 
-fn bg_add(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn bg_add(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     match vs[0].take() {
         Datum::Bignum(a) => {
             match vs[1].take() {
@@ -24,7 +24,7 @@ fn bg_add(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult
     }
 }
 
-fn bg_mul(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn bg_mul(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     match vs[0].take() {
         Datum::Bignum(a) => {
             match vs[1].take() {
@@ -36,21 +36,21 @@ fn bg_mul(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult
     }
 }
 
-fn number_to_bignum(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn number_to_bignum(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Integer(a) = vs[0] {
         return Ok(Datum::Bignum(Bignum::new(a)))
     }
     Err(TypeError("number->bignum", "integer", vs[0].take()))
 }
 
-fn bignum_num_digits(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn bignum_num_digits(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Bignum(a) = vs[0].take() {
         return Ok(Datum::Integer(a.num_digits()))
     }
     Err(TypeError("bignum-num-digits", "bignum", vs[0].take()))
 }
 
-fn bignum_digits(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn bignum_digits(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Bignum(a) = vs[0].take() {
         let digits = a.digits();
         return Ok(Datum::List(
@@ -60,7 +60,7 @@ fn bignum_digits(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> Lis
     Err(TypeError("bignum-digits", "bignum", vs[0].take()))
 }
 
-fn bignum_from_digits(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn bignum_from_digits(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::List(ref digits) = vs[0] {
         let mut chunks = Vec::new();
         let mut pow = 1;
@@ -92,7 +92,7 @@ fn bignum_from_digits(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -
     }
 }
 
-fn bignum_chunks(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn bignum_chunks(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Bignum(a) = vs[0].take() {
         let digits = a.chunks();
         return Ok(Datum::List(
@@ -102,7 +102,7 @@ fn bignum_chunks(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> Lis
     return Err(TypeError("bignum-chunks", "bignum", vs[0].take()))
 }
 
-fn bignum_from_chunks(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn bignum_from_chunks(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::List(chunks) = vs[0].take() {
         let mut result = Vec::new();
 

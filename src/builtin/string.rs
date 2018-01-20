@@ -10,7 +10,7 @@ use ::builtin::register;
 use ::eval::Evaluator;
 use ::EnvRef;
 
-fn string_bytes(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn string_bytes(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Str(ref string) = vs[0] {
         let bytes = string.as_bytes().iter().map(
             |b| Datum::Integer(*b as isize)
@@ -20,14 +20,14 @@ fn string_bytes(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> Lisp
     Err(InvalidTypeOfArguments)
 }
 
-fn string_length(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn string_length(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Str(ref string) = vs[0] {
         return Ok(Datum::Integer(string.len() as isize));
     }
     Err(InvalidTypeOfArguments)
 }
 
-fn string_to_number(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn string_to_number(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Str(ref string) = vs[0] {
         match string.parse::<isize>() {
             Ok(i) => {
@@ -41,7 +41,7 @@ fn string_to_number(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> 
     Err(InvalidTypeOfArguments)
 }
 
-fn string_split(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn string_split(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Str(ref splitter) = vs[0] {
         if let Datum::Str(ref string) = vs[1] {
             let lines: Vec<Datum> =
@@ -54,7 +54,7 @@ fn string_split(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> Lisp
     Err(InvalidTypeOfArguments)
 }
 
-fn string_join(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+fn string_join(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let mut result = String::new();
 
     for v in vs.into_iter() {
