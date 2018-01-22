@@ -1,7 +1,7 @@
 ; Solved 11.1
 
 (defn sorted-digits (n)
-    (~> n digits sort))
+    (~> n number->digits sort))
 
 (defn matches? (n)
       (= (sorted-digits n)
@@ -14,5 +14,5 @@
 (~>
   (step~ 1)
   (select~ matches?)
-  (nth~ 0)
+  first~
   (println "Solution: "))

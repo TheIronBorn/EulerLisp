@@ -25,7 +25,7 @@
       (list (list size))
       (flatmap
         (fn (x)
-          (map (fn (rest) (cons x rest))
+          (map &(cons x &1)
             (generate (- size x) (dec missing))))
         (range 0 size)
       )
@@ -44,16 +44,10 @@
                               (inc d)
                               (+ acc (* (fst perm) d d)))))
 
-(defn solve (i to (acc 0))
-      (if (= i to)
-          acc
-          (let*
-            (perm (list-ref perms i)
-             res (perm-digit-squares perm))
-            (if (list-ref lookup res)
-                (solve (inc i)
-                       to
-                       (+ acc (number-of-permutations perm)))
-                (solve (inc i) to acc)))))
-
-(println "Solution: " (solve 0 (length perms)))
+(~> 
+  (range~ 0 (dec (length perms)))
+  (map~ &(list-ref perms &1))
+  (select~ &(list-ref lookup (perm-digit-squares &1)))
+  (map~ number-of-permutations)
+  sum~
+  (println "Solution: "))

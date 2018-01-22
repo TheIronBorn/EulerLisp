@@ -12,7 +12,7 @@
       (cond
         (> a b) (solve from (inc b) prod)
         (> b to) prod
-        (and (> (* a b) prod) (palindrome? (digits (* a b))))
+        (and (> (* a b) prod) (palindrome? (number->digits (* a b))))
         (solve (inc a) b (* a b))
         else (solve (inc a) b prod)))
 

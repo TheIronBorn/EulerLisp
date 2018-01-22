@@ -1,18 +1,11 @@
 ; Solved 8.1
 ; Changes: Add bignum multiplication
 
-(def myprimes (~>
-                (range 1000 9999)
-                (select prime?)
-                (map digits)))
-
-(defn find-permutations (a)
-  (let (elem (list-ref myprimes a))
-    (find-permutations_
-      (sort elem)
-      (inc a)
-      (length myprimes)
-      (list elem))))
+(def myprimes 
+   (~> (range~ 1000 9999)
+       (select~ prime?)
+       (map~ number->digits)
+       collect))
 
 (defn find-permutations_ (sds b max-b acc)
   (if (>= b max-b)
@@ -23,6 +16,14 @@
             (find-permutations_ sds (inc b) max-b (cons elem acc))
             (find-permutations_ sds (inc b) max-b acc)))))
 
+(defn find-permutations (a)
+  (let (elem (list-ref myprimes a))
+    (find-permutations_
+      (sort elem)
+      (inc a)
+      (length myprimes)
+      (list elem))))
+
 (defn subsequences (seq len)
   (cond
     (zero? len) (list)
@@ -31,9 +32,10 @@
     else
       (append
         (subsequences (rst seq) len)
-        (map
-          (fn (x) (cons (fst seq) x))
-          (subsequences (rst seq) (dec len))))))
+        (let (rests (subsequences (rst seq) (dec len)))
+             (if (nil? rests)
+                 '()
+                 (map &(cons (fst seq) &1) rests))))))
 
 (defn solve (from to (acc '()))
   (if (>= from to)
@@ -47,9 +49,6 @@
 (def sequences (solve 0 (length myprimes)))
 (def all-sequences (flatmap (fn (x) (subsequences x 3)) sequences))
 
-(defn ascending? (seq)
-      (ascending?_ (rst seq) (- (frst seq) (fst seq))))
-
 (defn ascending?_ (seq diff)
   (let (a (fst seq)
         b (rst seq))
@@ -58,7 +57,10 @@
       (= diff (- (fst b) a)) (ascending?_ b diff)
       else #f)))
 
+(defn ascending? (seq)
+      (ascending?_ (rst seq) (- (frst seq) (fst seq))))
+
 (println
   "Solutions: "
-  (map (fn (x) (apply str x))
+  (map &(apply str &1)
        (~> all-sequences (map sort) (select ascending?))))

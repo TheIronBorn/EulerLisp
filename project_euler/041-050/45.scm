@@ -16,13 +16,9 @@
         (and (= det (* root root))
              (divides? 4 (inc root)))))
 
-(defn find-first (n)
-      (let (x (triangle n))
-        (if (and (pentagonal? x) (hexagonal? x))
-          x
-          (find-first (inc n)))))
-
-; To be perfectly sure this is the right solution,
-; we could prove that P_n grows in such a way,
-; that we would return the solution with the smallest difference first
-(println "Solution: " (find-first (inc 285)))
+(~>
+  (step~ (inc 285))
+  (map~ triangle)
+  (select~ &(and (pentagonal? &1) (hexagonal? &1)))
+  first~
+  (println "Solution: "))

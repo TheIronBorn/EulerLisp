@@ -1,18 +1,12 @@
 ; Solved 8.1
 
-(def names
-     (~> "project_euler/041-050/42.txt"
-         file-read
-         (string-split ",")
-         sort))
-
 (defn value (name)
-      (sum
-        (map (fn (x)
-                 (if (and (>= x 65) (<= x 90))
-                     (- x 64)
-                     0))
-          (string-bytes name))))
+      (reduce-sum
+        (fn (c)
+            (if (char-alphabetic? c)
+              (- (char->integer c) 64)
+              0))
+        (string->chars name)))
 
 (defn triangle? (n (m 2) (acc 1))
   (cond
@@ -34,4 +28,10 @@
                 acc)
             )))
 
-(println "Solution: " (solve names))
+(def names
+     (~> "project_euler/041-050/42.txt"
+         file-read
+         (string-split ",")
+         sort
+         solve
+         (println "Solution: ")))

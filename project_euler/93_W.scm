@@ -8,34 +8,22 @@
         op3 (frrst ops))
     (list
       (eval (list op2
-            (list op1 a b)
-            (list op3 c d)))
+                  (list op1 a b)
+                  (list op3 c d)))
       (eval (list op3
-        (list
-          op2
-          (list op1 a b)
-          c)
-        d))
+                  (list op2 (list op1 a b) c)
+                  d))
       (eval (list op3
-        (list op1
-              a
-              (list op2 b c))
-        d))
-      (eval (list op1 a
-            (list op3
-                  (list op2 b c)
-                  d)))
-      (eval (list op1 a
-            (list op2
-                  b
-                  (list op3 c d))))
-      )))
+                  (list op1 a (list op2 b c))
+                  d))
+      (eval (list op1
+                  a
+                  (list op3 (list op2 b c) d)))
+      (eval (list op1
+                  a
+                  (list op2 b (list op3 c d)))))))
 
-(defn div_ (a b)
-  (if (= b 0)
-      -99999
-      (/ a b)))
-
+(defn div_ (a b) (if (= b 0) -99999 (/ a b)))
 (def op-combs (combinations 3 (list '+ '- '* 'div_)))
 
 (def abcds
@@ -48,9 +36,9 @@
                        (map
                          (fn (d) (list a b c d))
                          (range 1 (dec c))))
-                   (range 1 (dec b))))
-             (range 1 (dec a))))
-       (range 1 9)))
+                   (range 2 (dec b))))
+             (range 3 (dec a))))
+       (range 4 9)))
 
 (defn streak (results (acc 0) (last 0))
       (cond
@@ -69,9 +57,8 @@
            (~>
              (flatmap
                (fn (ops)
-                   (map (fn (x)
-                            (if (integer? x) x -999))
-                   (brackets dgs ops)))
+                   (map &(if (integer? &1) &1 -999)
+                        (brackets dgs ops)))
                op-combs)
              sort
              uniq))
@@ -82,18 +69,6 @@
        streak
      ))
 
-(defn max-by (fun lst)
-  (if (nil? lst)
-      '()
-      (reduce (fn (x acc)
-                  (let (fx (fun x))
-                       (if (> fx (rst acc))
-                           (cons x fx)
-                           acc)))
-              (cons
-                (fst lst)
-                (fun (fst lst)))
-              (rst lst))))
 
 (~>
   (max-by results abcds)

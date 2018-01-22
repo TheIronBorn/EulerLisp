@@ -5,7 +5,6 @@
   (~> n bignum-digits sum))
 
 (defn loop (a b max-ds)
-  (println "a = " a)
   (cond
     (>= b 100) (loop (inc a) 1 max-ds)
     (>= a 100) max-ds

@@ -9,8 +9,6 @@
 
 (~>
   (step~ 9 2)
-  (select~
-    (fn (x) (not (or (prime? x)
-                     (goldbach? x)))))
+  (select~ &(not (or (prime? &1) (goldbach? &1))))
   (nth~ 0)
   (println "Solution: "))

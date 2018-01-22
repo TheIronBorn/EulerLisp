@@ -27,8 +27,7 @@
           (nth (dec (div n 100)) single)
           "hundred"
           "and"
-          (format-ten (% n 100)))
-        ))
+          (format-ten (% n 100)))))
 
 (defn format (n)
       (cond
@@ -36,12 +35,8 @@
         (< n 1000) (format-hundred n)
         else "onethousand"))
 
-(defn solve ((from 1) (acc 0))
-      (if (> from 1000)
-        acc
-        (solve
-          (inc from)
-          (+ acc
-             (length (format from))))))
-
-(println "Solution: " (solve))
+(~>
+  (range~ 1 1000)
+  (map~ &(length (format &1)))
+  sum~
+  (println "Solution: "))

@@ -8,15 +8,16 @@
        (rst frac))))
 
 (defn more-digits? (frac)
-  (>
-    (~> frac fst bignum-num-digits)
-    (~> frac rst bignum-num-digits)))
+  (> (~> frac fst bignum-num-digits)
+     (~> frac rst bignum-num-digits)))
 
 (defn solve (cur (n 1000) (acc 0))
-  (println cur)
   (if (zero? n)
       acc
       (solve (next cur) (dec n)
              (if (more-digits? cur) (inc acc) acc))))
 
-(println (solve (cons (bignum 3) (bignum 2))))
+(~>
+  (cons (bignum 3) (bignum 2))
+  solve
+  (println "Solution: "))

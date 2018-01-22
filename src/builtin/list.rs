@@ -30,6 +30,13 @@ fn cons(vs: &mut[Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult 
     }
 }
 
+fn pair(vs: &mut[Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let fst = vs[0].take();
+    let rst = vs[1].take();
+
+    Ok(Datum::Pair(Box::new(fst), Box::new(rst)))
+}
+
 fn fst(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     match vs[0].take() {
         Datum::DottedList(mut elems, _) => {
@@ -37,6 +44,9 @@ fn fst(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult 
         },
         Datum::List(mut elems) => {
             Ok(elems[0].take())
+        },
+        Datum::Pair(fst, _rst) => {
+            Ok(*fst)
         },
         _ => panic!("fst only works on pairs")
     }
@@ -59,6 +69,9 @@ fn rst(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult 
                 let rest: Vec<Datum> = elems[1..].to_vec();
                 Ok(Datum::List(rest))
             }
+        },
+        Datum::Pair(_fst, rst) => {
+            Ok(*rst)
         },
         _ => panic!("fst only works on pairs")
     }
@@ -305,24 +318,100 @@ fn combinations(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> Li
 
 fn map(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     let fun = vs[0].take();
+    let mut lists = Vec::new();
+    let mut len = 0;
+
+    for i in 1..vs.len() {
+        match vs[i].take() {
+            Datum::List(elems) => {
+                if i == 1 {
+                    len = elems.len()
+                } else {
+                    if elems.len() != len {
+                        panic!("All lists passed to map must have the same length")
+                    }
+                }
+                lists.push(elems);
+            },
+            _ => return Err(InvalidTypeOfArguments)
+        }
+    }
+
+    let mut result = Vec::new();
+    for i in 0..len {
+        let args = lists.iter_mut().map(|l| l[i].take() ).collect();
+        result.push(eval.full_apply(fun.clone(), args, env_ref.clone()))
+    }
+
+    Ok(Datum::List(result))
+}
+
+fn count(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    let pred = vs[0].take();
     let mut list = vs[1].take();
 
     match list {
         Datum::List(ref mut elems) => {
-            let mut result = Vec::new();
+            let mut result = 0;
 
             for e in elems.iter_mut() {
-                result.push(eval.full_apply(fun.clone(), vec![e.take()], env_ref.clone()))
+                let res = eval.full_apply(pred.clone(), vec![e.take()], env_ref.clone());
+                if res.is_true() {
+                    result += 1
+                }
             }
-            Ok(Datum::List(result))
+            Ok(Datum::Integer(result))
         },
-        Datum::Nil => Ok(Datum::Nil),
+        Datum::Nil => Ok(Datum::Integer(0)),
         _ => Err(InvalidTypeOfArguments)
     }
 }
 
+fn any(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    let pred = vs[0].take();
+    let mut list = vs[1].take();
+
+    match list {
+        Datum::List(ref mut elems) => {
+            for e in elems.iter_mut() {
+                let res = eval.full_apply(pred.clone(), vec![e.take()], env_ref.clone());
+                if res.is_true() {
+                    return Ok(Datum::Bool(true))
+                }
+            }
+            Ok(Datum::Bool(false))
+        },
+        Datum::Nil => Ok(Datum::Bool(false)),
+        _ => Err(InvalidTypeOfArguments)
+    }
+}
+
+fn reduce(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    let pred = vs[0].take();
+    let mut result = vs[1].take();
+    let mut list = vs[2].take();
+
+    match list {
+        Datum::List(ref mut elems) => {
+            for e in elems.iter_mut() {
+                result = eval.full_apply(pred.clone(), vec![e.take(), result], env_ref.clone());
+            }
+            Ok(result)
+        },
+        Datum::Nil => Ok(result),
+        _ => Err(InvalidTypeOfArguments)
+    }
+}
+
+fn uniq(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let mut list = vs[0].take().as_list()?;
+    list.dedup();
+    Ok(Datum::List(list))
+}
+
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "cons", cons, Arity::Exact(2));
+    register(hm, "pair", pair, Arity::Exact(2));
     register(hm, "fst", fst, Arity::Exact(1));
     register(hm, "rst", rst, Arity::Exact(1));
     register(hm, "list", list, Arity::Min(0));
@@ -335,5 +424,9 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "sort", sort, Arity::Exact(1));
     register(hm, "permutations", permutations, Arity::Exact(1));
     register(hm, "combinations", combinations, Arity::Exact(2));
-    register(hm, "map", map, Arity::Exact(2));
+    register(hm, "map", map, Arity::Min(2));
+    register(hm, "reduce", reduce, Arity::Exact(3));
+    register(hm, "count", count, Arity::Exact(2));
+    register(hm, "any?", any, Arity::Exact(2));
+    register(hm, "uniq", uniq, Arity::Exact(1));
 }

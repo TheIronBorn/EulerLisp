@@ -4,8 +4,7 @@
   (~>
     (file-read "./project_euler/091-100/99.txt")
     lines
-    (map (fn (line)
-             (map string->number (string-split "," line))))))
+    (map &(map string->number (string-split "," &1)))))
 
 (defn be> (be1 be2)
   (let (b1 (fst be1) e1 (frst be1)

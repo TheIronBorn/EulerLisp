@@ -178,8 +178,8 @@ named!(
 );
 
 named!(
-    hashlbracket,
-    delimited!(intertoken_space, tag!("#("), intertoken_space)
+    andbracket,
+    delimited!(intertoken_space, tag!("&("), intertoken_space)
 );
 
 named!(
@@ -244,9 +244,9 @@ named!(
 );
 
 named!(
-    vector<Vec<Datum>>,
+    hole_lambda<Vec<Datum>>,
     do_parse!(
-        hashlbracket >>
+        andbracket >>
         datums: many0!(datum) >>
         rbracket >>
         (datums)
@@ -264,14 +264,14 @@ named!(
         intertoken_space,
         alt!(
             tag!("'()") => { |_| Datum::Nil } |
+            hole_lambda => { |ds| convert_hole_lambda_to_lambda(ds) } |
             boolean     => { |b| Datum::Bool(b) } |
             integer     => { |n| Datum::Integer(n) } |
-            character   => { |c| Datum::Character(c) } |
+            character   => { |c| Datum::Char(c) } |
             string      => { |s| Datum::Str(s) } |
             identifier  => { |s| Datum::Symbol(s) } |
             list        => { |ds| Datum::List(ds) } |
             dotted_list => { |(ds, d)| Datum::DottedList(ds, Box::new(d)) } |
-            // vector      => { |ds| Datum::Vector(ds) } |
             quote       => { |q| Datum::List(vec!(make_symbol("quote"), q)) } |
             quasiquote  => { |q| Datum::List(vec!(make_symbol("quasiquote"), q)) } |
             unquote     => { |q| Datum::List(vec!(make_symbol("unquote"), q)) } |
@@ -306,8 +306,53 @@ pub fn parse_datum(s: &str) -> Datum {
     }
 }
 
+fn find_max_hole(datum: &Datum) -> isize {
+    let mut max = 0;
+    match datum {
+        &Datum::List(ref elems) => {
+            for d in elems {
+                let res = find_max_hole(d);
+                if res > max {
+                    max = res;
+                }
+            }
+        }
+        &Datum::Symbol(ref name) => {
+            let mut tmp = name.clone();
+            let first = tmp.remove(0);
+
+            if first == '&' {
+                let res = tmp.parse::<isize>().expect("Could not parse hole index");
+                if res > max {
+                    max = res
+                }
+            }
+        }
+        _ => ()
+    }
+    max
+}
+
+fn convert_hole_lambda_to_lambda(datums: Vec<Datum>) -> Datum {
+    let body = Datum::List(datums);
+    let max = find_max_hole(&body);
+
+    let mut params: Vec<Datum> = Vec::new();
+
+    for i in 1..(max + 1) {
+        let param = format!("&{}", i);
+        params.push(Datum::Symbol(param));
+    }
+
+    Datum::List(vec![
+       Datum::Symbol(String::from("fn")),
+       Datum::List(params),
+       body
+    ])
+}
+
 macro_rules! assert_parsed_fully {
-    ($parser:expr, $input:expr, $result:expr) => {
-        assert_eq!($parser($input.as_bytes()), nom::IResult::Done(&b""[..], $result));
-    } 
+($parser:expr, $input:expr, $result:expr) => {
+    assert_eq!($parser($input.as_bytes()), nom::IResult::Done(&b""[..], $result));
+} 
 }

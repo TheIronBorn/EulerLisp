@@ -66,10 +66,67 @@ fn string_join(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> Lis
     return Ok(Datum::Str(result));
 }
 
+
+fn string_to_chars(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let string = vs[0].take().as_string().unwrap();
+
+    Ok(Datum::List(string.chars().map(|c| Datum::Char(c) ).collect()))
+}
+
+fn char_to_integer(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let c = vs[0].take().as_char().unwrap();
+    Ok(Datum::Integer(c as isize))
+}
+
+fn char_to_digit(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let c = vs[0].take().as_char().unwrap();
+
+    if c.is_ascii_digit() {
+        // 48 is ASCII of 0
+        Ok(Datum::Integer(c as isize - 48))
+    } else {
+        Err(InvalidNumberOfArguments)
+    }
+}
+
+fn char_is_numeric(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let c = vs[0].take().as_char().unwrap();
+
+    Ok(Datum::Bool(c.is_ascii_digit()))
+}
+
+fn char_is_alphabetic(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let c = vs[0].take().as_char().unwrap();
+    Ok(Datum::Bool(c.is_ascii_alphabetic()))
+}
+
+fn char_is_whitespace(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let c = vs[0].take().as_char().unwrap();
+    Ok(Datum::Bool(c.is_ascii_whitespace()))
+}
+
+fn char_is_upper_case(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let c = vs[0].take().as_char().unwrap();
+    Ok(Datum::Bool(c.is_ascii_uppercase()))
+}
+
+fn char_is_lower_case(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let c = vs[0].take().as_char().unwrap();
+    Ok(Datum::Bool(c.is_ascii_lowercase()))
+}
+
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "string-bytes", string_bytes, Arity::Exact(1));
     register(hm, "string-length", string_length, Arity::Exact(1));
     register(hm, "string->number", string_to_number, Arity::Exact(1));
+    register(hm, "string->chars", string_to_chars, Arity::Exact(1));
     register(hm, "string-split", string_split, Arity::Exact(2));
     register(hm, "str", string_join, Arity::Min(0));
+    register(hm, "char-alphabetic?", char_is_alphabetic, Arity::Exact(1));
+    register(hm, "char-numeric?", char_is_numeric, Arity::Exact(1));
+    register(hm, "char-whitespace?", char_is_whitespace, Arity::Exact(1));
+    register(hm, "char-upper-case?", char_is_upper_case, Arity::Exact(1));
+    register(hm, "char-lower-case?", char_is_lower_case, Arity::Exact(1));
+    register(hm, "char->integer", char_to_integer, Arity::Exact(1));
+    register(hm, "char->digit", char_to_digit, Arity::Exact(1));
 }

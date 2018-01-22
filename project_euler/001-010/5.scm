@@ -32,9 +32,7 @@
 (def max-factors (reduce merge '() factors_))
 
 (println "Max. factors: " max-factors)
-
 (println
   "Solution: "
-  (reduce (fn (factor acc)
-              (* acc (pow (fst factor) (rst factor))))
-          1 max-factors))
+  (reduce-product &(pow (fst &1) (rst &1)) max-factors))
+

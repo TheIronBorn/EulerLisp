@@ -3,7 +3,6 @@
 (defn pentagonal (n)
       (div (* n (dec (* 3 n))) 2))
 
-
 ; P_n = (n * (3n - 1)) / 2
 ;     = (3n^2 - n) / 2
 ;
@@ -26,7 +25,6 @@
 ; => x is pentagonal,
 ;    if det is a square
 ;    and 1 + sqrt(det) is divisible by 6
-
 (defn pentagonal? (n)
   (let* (det (inc (* 24 n))
          root (isqrt det))

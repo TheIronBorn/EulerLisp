@@ -3,6 +3,6 @@
 
 (~>
   (range~ 1 1000)
-  (select~ (fn (x) (or (divides? 3 x) (divides? 5 x))))
+  (select~ &(or (divides? 3 &1) (divides? 5 &1)))
   sum~
   (println "Solution: "))

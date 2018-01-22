@@ -12,11 +12,11 @@
 (def chunks4 (curry chunks 4))
 
 (def grid
-  (map (fn (x) (map string->number (words x))) input))
+  (map &(map string->number (words &1)) input))
 
 (defn transpose (lst)
       (map
-        (fn (i) (map (curry nth i) lst))
+        &(map (curry nth &1) lst)
         (range 0 (dec (length (fst lst))))))
 
 (defn diagonals (rows)

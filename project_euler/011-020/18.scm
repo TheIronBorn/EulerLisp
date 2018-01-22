@@ -3,13 +3,12 @@
 ;  * add `file-read` function
 
 (def input
-  (map (fn (x)
-           (map string->number (words x)))
-      (~> "project_euler/011-020/18.txt"
-          file-read
-          lines
-          reverse
-          rst)))
+     (~> "project_euler/011-020/18.txt"
+         file-read
+         lines
+         reverse
+         rst
+         (map &(map string->number (words &1)))))
 
 (defn reduce-rows (a b (acc '()))
   (if (nil? b)

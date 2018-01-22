@@ -12,11 +12,11 @@
     (even? e) (resizing-bigpow (resize (bignum* b b)) (div e 2))
     else (bignum* b (resizing-bigpow b (dec e)))))
 
-(println 
-  (~>
-    (resizing-bigpow (bignum 2) 7830457)
-    (bignum* (bignum 28433))
-    bignum-digits
-    (take 10)
-    digits->number
-    inc))
+(~>
+  (resizing-bigpow (bignum 2) 7830457)
+  (bignum* (bignum 28433))
+  bignum-digits
+  (take 10)
+  digits->number
+  inc
+  (println "Solution: "))

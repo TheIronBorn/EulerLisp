@@ -1,22 +1,15 @@
 ; Solved 6.1
 
-(defn member? (e lst)
-  (cond
-    (nil? list) #f
-    (= (fst lst) e) #t
-    else (member? e (rst lst))))
+(def all-digits (range 1 9))
 
 (defn pandigital? (a b c)
-  (= (sort (append (append (digits a) (digits b)) (digits c)))
-     (list 1 2 3 4 5 6 7 8 9)))
+  (= (sort (flatmap number->digits (list a b c)))
+     all-digits))
 
 (def range1 (range 1 9))
 (def range2 (range 12 98))
 (def range3 (range 123 987))
 (def range4 (range 1234 9876))
-
-(defn find-pandigital (ra rb)
-  (find-pandigital_ ra rb ra '()))
 
 (defn find-pandigital_ (ra rb ra-backup acc)
   (cond
@@ -28,6 +21,9 @@
            (if (pandigital? a b c)
              (find-pandigital_ (rst ra) rb ra-backup (cons c acc))
              (find-pandigital_ (rst ra) rb ra-backup acc)))))
+
+(defn find-pandigital (ra rb)
+  (find-pandigital_ ra rb ra '()))
 
 ; The product of a n-digit number and a m-digit number
 ; is either n+m-1 and n+m digits long,

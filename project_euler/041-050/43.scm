@@ -17,7 +17,7 @@
 
 (~>
   (range~ 0 (dec (fac 10)))
-  (map~ (fn (x) (digits->number (list-ref ps x))))
+  (map~ &(digits->number (list-ref ps &1)))
   (select~ substring-divisible?)
   sum~
   (println "Solution: "))

@@ -3,8 +3,8 @@
 (defn digit-power? (n)
       (= n
          (reduce-sum
-           (fn (x) (pow x 5))
-           (digits n))))
+           &(pow &1 5)
+           (number->digits n))))
 
 ; 7 * 9^5 has 6 digits,
 ; so 6 * 9^5 is the biggest number that could be valid

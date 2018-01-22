@@ -2,11 +2,7 @@
 
 (defn ring-numbers (i)
   (let (sq (square (inc (* 2 i))))
-    (list
-      sq
-      (- sq (* i 2))
-      (- sq (* i 4))
-      (- sq (* i 6)))))
+    (map &(- sq (* i 2 &1)) (range 0 3))))
 
 (defn solve ((i 2) (numbers 5) (ps 3))
     (if (< (/ ps numbers) (/ 1 10))

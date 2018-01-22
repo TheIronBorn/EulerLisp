@@ -8,9 +8,9 @@
 
 (defn digit-cancelling? (f)
   (let (a (div (fst f) 10)
-        b (% (fst f) 10)
+        b (%   (fst f) 10)
         c (div (rst f) 10)
-        d (% (rst f) 10))
+        d (%   (rst f) 10))
     (or
       (and (= a d)
            (fraction= f (cons b c)))

@@ -8,7 +8,7 @@
 
 (defn palindromic? (n)
       (let (ds (bignum-digits n))
-        (= ds (reverse ds))))
+           (= ds (reverse ds))))
 
 (defn lychrel? (cur (n 50))
   (if (zero? n)
@@ -19,11 +19,8 @@
             #f
             (lychrel? sum_ (dec n))))))
 
-(defn solve (cur (count 0))
-  (println "cur = " cur)
-  (cond
-    (>= cur 10000) count
-    (lychrel? (bignum cur)) (solve (inc cur) (inc count))
-    else (solve (inc cur) count)))
-
-(println "Solution: " (solve 1))
+(~>
+  (range~ 1 9999)
+  (map~ bignum)
+  (count~ lychrel?)
+  (println "Solution: "))

@@ -12,16 +12,10 @@
           (if (= cur 1) (cons (fst data) acc1) acc1)
           (if (= cur 2) (cons (fst data) acc2) acc2))))
 
-(defn count (e lst (acc 0))
-      (cond
-        (nil? lst) acc
-        (= e (fst lst)) (count e (rst lst) (inc acc))
-        else (count e (rst lst) acc)))
-
 (defn frequency (lst)
       (~>
         (range 0 127)
-        (map (fn (b) (count b lst)))))
+        (map (fn (b) (count &(= b &1) lst)))))
 
 (defn find-max-index (lst (index 0) (max-value 0) (max-index 0))
       (cond
@@ -45,17 +39,12 @@
         (bits->number (rst bits)
                       (+ (fst bits) (* 2 acc)))))
 
-(defn xor-bits (a b (acc '()))
-      (if (nil? a)
-        (reverse acc)
-        (xor-bits (rst a) (rst b)
-                  (cons 
-                    (if (= 1 (+ (fst a) (fst b))) 1 0)
-                    acc)))) 
+(defn xor-bit (a b)
+      (if (= 1 (+ a b)) 1 0))
 
 (defn xor (a b)
       (bits->number
-        (xor-bits
+        (map xor-bit
           (number->bits a)
           (number->bits b))))
 
@@ -65,25 +54,21 @@
        lines
        fst
        (string-split ",")
-       (map string->number)
-       ))
+       (map string->number)))
 
 (def splits (~> numbers split3))
 
 ; If the text contains spaces, 32 will be the most common value
 (def key
      (map 
-       (fn (split)
-           (~> split frequency find-max-index (xor 32)))
+       &(~> &1 frequency find-max-index (xor 32))
        splits))
 
 ; Here key refers to just one byte of the full key
 (defn sum-split-with-key (split key)
-  (reduce-sum (fn (s) (xor s key))
-              split))
+  (reduce-sum &(xor &1 key) split))
 
 (println "Solution: "
   (reduce-sum
-    (fn (ks)
-        (apply sum-split-with-key ks))
+    &(apply sum-split-with-key &1)
     (zip splits key)))

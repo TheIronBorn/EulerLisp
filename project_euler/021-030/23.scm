@@ -36,17 +36,8 @@
                    (list-ref abundants (inc pa)) vb
                    limit)))))
 (loop2 0 0 init init (- max-n init))
-; (~> (range~ 1 max-n)
-;     (select~ (fn (x) (not (abundant-sum? x))))
-;     sum~
-;     (println "Solution: "))
 
-(defn loop3 ((from 1) (acc 0))
-      (if (> from max-n)
-          acc
-          (loop3 (inc from)
-                 (if (abundant-sum? from)
-                     acc
-                     (+ acc from)))))
-
-(println "Solution: " (loop3))
+(~> (range~ 1 max-n)
+    (select~ (fn (x) (not (abundant-sum? x))))
+    sum~
+    (println "Solution: "))

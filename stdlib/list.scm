@@ -1,3 +1,5 @@
+(def nil '())
+
 (defn ffst (lst) (fst (fst lst)))
 (defn frst (lst) (fst (rst lst)))
 (defn rfst (lst) (rst (fst lst)))
@@ -29,11 +31,11 @@
 (defn rrrfst (lst) (rst (rst (rst (fst lst)))))
 (defn rrrrst (lst) (rst (rst (rst (rst lst)))))
 
-(defn range_ (from to acc)
+(defn range_ (from to step acc)
       (if (< to from) acc
-          (range_ from (dec to) (cons to acc))))
-(defn range (from to)
-      (range_ from to '()))
+          (range_ from (- to step) step (cons to acc))))
+(defn range (from to (step 1))
+      (range_ from to step '()))
 
 (defn flatmap (f arr)
       (if (nil? arr)
@@ -61,34 +63,24 @@
     else (reject pred (rst arr)
                  (push acc (fst arr)))))
 
-(defn reduce (f acc arr)
-  (if (nil? arr)
-      acc
-      (reduce f (f (fst arr) acc) (rst arr))))
-
-(defn count (pred arr (acc 0))
-  (cond
-    (nil? arr) acc
-    (pred (fst arr)) (count pred (rst arr) (inc acc))
-    else (count pred (rst arr) acc)))
-
 (defn reduce-sum (f arr)
-  (reduce (fn (x acc)
-              (+ acc (f x)))
-          0
-          arr))
+  (reduce (fn (x acc) (+ acc (f x))) 0 arr))
 
 (defn reduce-product (f arr)
-  (reduce (fn (x acc)
-              (* acc (f x)))
-          1
-          arr))
+  (reduce (fn (x acc) (* acc (f x))) 1 arr))
 
-(defn any? (pred arr)
-  (cond
-    (nil? arr) #f
-    (pred (fst arr)) #t
-    else (any? pred (rst arr))))
+(defn max-by (f arr)
+  (if (nil? arr)
+      '()
+      (fst
+        (reduce
+          (fn (x acc)
+              (let (res (f x))
+                (if (> res (rst acc))
+                    (cons x res)
+                    acc)))
+            (cons (fst arr) (f (fst arr)))
+            (rst arr)))))
 
 (defn all? (pred arr)
   (cond
@@ -120,9 +112,10 @@
                   (rst lst)
                   (push acc (take size lst)))))
 
-(defn uniq (arr (last -1) (acc '()))
-  (cond
-    (nil? arr) acc
-    (= last (fst arr)) (uniq (rst arr) last acc)
-    else (uniq (rst arr) (fst arr) (cons (fst arr) acc))))
+; (defn uniq (arr (last -1) (acc '()))
+;   (cond
+;     (nil? arr) acc
+;     (= last (fst arr)) (uniq (rst arr) last acc)
+;     else (uniq (rst arr) (fst arr) (cons (fst arr) acc))))
 
+(defn first~ (stream) (nth~ 0 stream))

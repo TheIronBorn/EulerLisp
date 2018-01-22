@@ -35,9 +35,7 @@
   (if (zero? needed)
       acc
       (if (truncatable-prime? cur)
-          (do
-            (println "Truncatable prime: " cur)
-            (solve (+ cur 2) (dec needed) (+ cur acc)))
+          (solve (+ cur 2) (dec needed) (+ cur acc))
           (solve (+ cur 2) needed acc))))
 
 (println "Solution: " (solve 11 11))

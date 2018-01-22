@@ -262,9 +262,10 @@ pub enum Datum {
     Rational(numbers::Rational),
     Float(Fsize),
     Bignum(bignum::Bignum),
-    Character(char),
+    Char(char),
     Str(String),
     Symbol(String),
+    Pair(Box<Datum>, Box<Datum>),
     List(Vec<Datum>),
     DottedList(Vec<Datum>, Box<Datum>),
     Lambda(Lambda),
@@ -452,6 +453,20 @@ impl Datum {
         }
     }
 
+    fn as_string(&self) -> Result<String, LispErr> {
+        match self {
+            &Datum::Str(ref n) => Ok(n.clone()),
+            a => panic!("Can't convert {} to string", a)
+        }
+    }
+
+    fn as_char(&self) -> Result<char, LispErr> {
+        match self {
+            &Datum::Char(n) => Ok(n),
+            a => panic!("Can't convert {} to string", a)
+        }
+    }
+
     fn as_list(&self) -> Result<Vec<Datum>, LispErr> {
         match self {
             &Datum::List(ref n) => Ok(n.clone()),
@@ -467,10 +482,19 @@ impl Datum {
         }
     }
 
+    fn is_true(&self) -> bool {
+        match self {
+            &Datum::Nil => false,
+            &Datum::Bool(false) => false,
+            _ => true
+        }
+    }
+
     // TODO: Better error handling
     fn compare(&self, other: &Datum) -> Result<Ordering, LispErr> {
         match (self, other) {
             (&Datum::Integer(ref a), &Datum::Integer(ref b)) => Ok(a.cmp(b)),
+            (&Datum::Bignum(ref a), &Datum::Bignum(ref b)) => Ok(a.cmp(b)),
             (&Datum::Rational(ref a), &Datum::Rational(ref b)) => Ok(
                 (a.num * b.denom).cmp(&(b.num * a.denom))
             ),
@@ -479,6 +503,17 @@ impl Datum {
             },
             (&Datum::Float(ref b), ref other) => {
                 Ok(b.partial_cmp(&other.as_float()?).unwrap())
+            },
+            (&Datum::Str(ref a), &Datum::Str(ref b)) => Ok(a.cmp(b)),
+            (&Datum::Char(ref a), &Datum::Char(ref b)) => Ok(a.cmp(b)),
+            (&Datum::Pair(ref a1, ref a2), &Datum::Pair(ref b1, ref b2)) => {
+                let res1 = a1.compare(b1)?;
+
+                if res1 == Ordering::Equal {
+                    a2.compare(b2)
+                } else {
+                    Ok(res1)
+                }
             },
             (a, b) => panic!("Can't compare {} and {}", a, b)
         }
@@ -496,7 +531,8 @@ impl fmt::Display for Datum {
                     write!(f, "#f")
                 }
             },
-            Datum::Character(c) => write!(f, "#\\{}", c),
+            Datum::Char(c) => write!(f, "#\\{}", c),
+            Datum::Pair(ref fst, ref rst) => write!(f, "({} . {})", fst, rst),
             Datum::List(ref elems) => {
                 let mut result = String::new();
                 result.push_str("(");

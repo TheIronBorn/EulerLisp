@@ -121,12 +121,37 @@ fn reduce(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult
     }
 }
 
+fn count(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    let fun = vs[0].take();
+    let mut res = 0;
+
+    if let Datum::Stream(ref mut s) = vs[1].take() {
+        loop {
+            let next = (*s).next(eval, env_ref.clone());
+            match next {
+                Some(v) => {
+                    let ret = eval.full_apply(fun.clone(), vec![v], env_ref.clone());
+                    if ret.is_true() {
+                        res += 1;
+                    }
+                },
+                None => break
+            }
+        }
+
+        Ok(Datum::Integer(res))
+    } else {
+        Err(InvalidTypeOfArguments)
+    }
+}
+
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "range~", range, Arity::Range(2, 3));
     register(hm, "step~", step, Arity::Range(0, 2));
     register(hm, "map~", map, Arity::Exact(2));
     register(hm, "nth~", nth, Arity::Exact(2));
     register(hm, "select~", select, Arity::Exact(2));
+    register(hm, "count~", count, Arity::Exact(2));
     register(hm, "reduce~", reduce, Arity::Exact(3));
     register(hm, "collect", collect, Arity::Exact(1));
 }

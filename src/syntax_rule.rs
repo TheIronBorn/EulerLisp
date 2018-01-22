@@ -252,6 +252,7 @@ impl Template {
                             if let Datum::List(mut inner) = foo {
                                 res.append(&mut inner);
                             } else {
+                                println!("{:?}", self);
                                 panic!("macro templates `<identifier> ...` only work if binding is list");
                             }
                         }

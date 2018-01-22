@@ -3,7 +3,7 @@
 
 (~>
   (range~ 1 1000)
-  (map~ (fn (x) (bigpow (bignum x) x)))
+  (map~ &(bigpow (bignum &1) &1))
   (reduce~ bignum+ (bignum 0))
   bignum-digits
   reverse

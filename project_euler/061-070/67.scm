@@ -1,10 +1,5 @@
 ; Solved 1.1
 
-(def input
-  (map (fn (x)
-           (map string->number (words x)))
-      (rst (reverse (lines (file-read "project_euler/67.txt"))))))
-
 (defn reduce-rows (a b acc)
   (if (nil? b)
       (reverse acc)
@@ -25,4 +20,11 @@
             (reduce-rows (fst input) (frst input) '())
             (rrst input)))))
 
-(println (reduce-full input))
+(~>
+  (file-read "./project_euler/061-070/67.txt")
+  lines
+  reverse
+  rst
+  (map &(map string->number (words &1)))
+  reduce-full
+  (println "Solution: "))

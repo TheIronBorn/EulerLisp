@@ -4,7 +4,7 @@
 (def candidates (range 2 100))
 (def result
      (flatmap 
-       (fn (a) (map (fn (b) (bigpow (bignum a) b)) candidates))
+       (fn (a) (map &(bigpow (bignum a) &1) candidates))
        candidates))
 
 (~> result sort uniq length (println "Solution: "))
