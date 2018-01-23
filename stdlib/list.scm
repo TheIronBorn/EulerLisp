@@ -49,19 +49,15 @@
       (cons (fst lst)
             (delete-nth (dec n) (rst lst)))))
 
-(defn select (pred arr (acc '()))
-  (cond
-    (nil? arr) acc
-    (pred (fst arr)) (select pred (rst arr)
-                             (push acc (fst arr)))
-    else (select pred (rst arr) acc)))
+(defn select (pred arr)
+  (~> arr
+      (reduce &(if (pred &1) (cons &1 &2) &2) '())
+      reverse))
 
-(defn reject (pred arr (acc '()))
-  (cond
-    (nil? arr) acc
-    (pred (fst arr)) (reject pred (rst arr) acc)
-    else (reject pred (rst arr)
-                 (push acc (fst arr)))))
+(defn reject (pred arr)
+  (~> arr
+      (reduce &(unless (pred &1) (cons &1 &2) &2) '())
+      reverse))
 
 (defn reduce-sum (f arr)
   (reduce (fn (x acc) (+ acc (f x))) 0 arr))
@@ -111,11 +107,5 @@
           (chunks size
                   (rst lst)
                   (push acc (take size lst)))))
-
-; (defn uniq (arr (last -1) (acc '()))
-;   (cond
-;     (nil? arr) acc
-;     (= last (fst arr)) (uniq (rst arr) last acc)
-;     else (uniq (rst arr) (fst arr) (cons (fst arr) acc))))
 
 (defn first~ (stream) (nth~ 0 stream))

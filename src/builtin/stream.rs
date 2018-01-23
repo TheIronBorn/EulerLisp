@@ -9,6 +9,7 @@ use ::RangeStream;
 use ::StepStream;
 use ::MapStream;
 use ::SelectStream;
+use ::PermutationStream;
 use ::Stream;
 
 use ::eval::Evaluator;
@@ -23,6 +24,11 @@ fn step(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult
     }
 
     Err(InvalidTypeOfArguments)
+}
+
+fn permutations(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let array = vs[0].take().as_list()?;
+    Ok(Datum::Stream(Stream::Permutation(PermutationStream::new(array))))
 }
 
 fn range(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -145,13 +151,32 @@ fn count(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult 
     }
 }
 
+fn take(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    let len = vs[0].take().as_integer()?;
+    if let Datum::Stream(ref mut s) = vs[1].take() {
+        let mut res = Vec::new();
+        for i in 0..len {
+            let next = (*s).next(eval, env_ref.clone());
+            match next {
+                Some(v) => res.push(v),
+                None => break,
+            };
+        }
+        Ok(Datum::List(res))
+    } else {
+        Err(InvalidTypeOfArguments)
+    }
+}
+
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "range~", range, Arity::Range(2, 3));
     register(hm, "step~", step, Arity::Range(0, 2));
+    register(hm, "permutations~", permutations, Arity::Exact(1));
     register(hm, "map~", map, Arity::Exact(2));
     register(hm, "nth~", nth, Arity::Exact(2));
     register(hm, "select~", select, Arity::Exact(2));
     register(hm, "count~", count, Arity::Exact(2));
     register(hm, "reduce~", reduce, Arity::Exact(3));
+    register(hm, "take~", take, Arity::Exact(2));
     register(hm, "collect", collect, Arity::Exact(1));
 }

@@ -36,12 +36,6 @@
     (* (fst a) (fst b))
     (* (rst a) (rst b))))
 
-(defn gcd (a b)
-  (cond
-    (> a b) (gcd b a)
-    (= a 0) b
-    else (gcd a (% b a))))
-
 (defn simplify (f)
   (let (g (gcd (fst f) (rst f)))
     (cons (div (fst f) g)

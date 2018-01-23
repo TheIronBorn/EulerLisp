@@ -1,3 +1,5 @@
+; Solved 22.1.18
+
 (defn value (cv)
       (cond
         (char-numeric? cv) (char->digit cv)

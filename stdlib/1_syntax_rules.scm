@@ -54,6 +54,11 @@
   ((when test body ...)
    (if test (do body ...)))))
 
+(defsyntax unless () (
+  ((unless test conseq)
+   (if test '() conseq))
+  ((unless test conseq alt)
+   (if test alt conseq))))
 
 (defsyntax ~> () (
   ((~> first) first)

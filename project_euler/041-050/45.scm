@@ -6,13 +6,13 @@
 ; Use the same idea as for problem 44
 (defn pentagonal? (n)
       (let* (det (inc (* 24 n))
-                 root (isqrt det))
+                 root (floor (isqrt det)))
         (and (= det (* root root))
              (divides? 6 (inc root)))))
 
 (defn hexagonal? (n)
       (let* (det (inc (* 8 n))
-                 root (isqrt det))
+                 root (floor (sqrt det)))
         (and (= det (* root root))
              (divides? 4 (inc root)))))
 

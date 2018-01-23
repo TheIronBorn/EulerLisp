@@ -41,7 +41,8 @@ pub enum Stream {
     Range(RangeStream),
     Step(StepStream),
     Map(MapStream),
-    Select(SelectStream)
+    Select(SelectStream),
+    Permutation(PermutationStream)
 }
 
 impl Stream {
@@ -50,7 +51,8 @@ impl Stream {
             &mut Stream::Range(ref mut rs) => rs.next(eval, env_ref),
             &mut Stream::Step(ref mut rs) => rs.next(eval, env_ref),
             &mut Stream::Map(ref mut rs) => rs.next(eval, env_ref),
-            &mut Stream::Select(ref mut rs) => rs.next(eval, env_ref)
+            &mut Stream::Select(ref mut rs) => rs.next(eval, env_ref),
+            &mut Stream::Permutation(ref mut rs) => rs.next(eval, env_ref)
         }
     }
 }
@@ -80,6 +82,57 @@ pub struct MapStream {
 pub struct SelectStream {
     source: Box<Stream>,
     fun: Box<Datum>,
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct PermutationStream {
+    array: Vec<Datum>,
+    next: Vec<Datum>,
+    i: usize,
+    n: usize,
+    c: Vec<usize>
+}
+
+impl PermutationStream {
+    pub fn new(array: Vec<Datum>) -> PermutationStream {
+        let n = array.len();
+        PermutationStream {
+            array: array.clone(),
+            next: array,
+            i: 0,
+            n: n,
+            c: vec![0; n]
+        }
+    }
+}
+
+impl LispIterator for PermutationStream {
+    fn next(&mut self, _eval: &mut eval::Evaluator, _env_ref: EnvRef) -> Option<Datum> {
+        if self.i == self.n {
+            None
+        } else {
+            let ret = self.next.clone();
+
+            while self.i < self.n {
+                if self.c[self.i] < self.i {
+                    if self.i % 2 == 0 {
+                        self.array.swap(0, self.i);
+                    } else {
+                        self.array.swap(self.c[self.i], self.i);
+                    }
+                    self.next = self.array.clone();
+                    self.c[self.i] += 1;
+                    self.i = 0;
+                    break
+                } else {
+                    self.c[self.i] = 0;
+                    self.i += 1;
+                }
+            }
+
+            Some(Datum::List(ret))
+        }
+    }
 }
 
 trait LispIterator {
@@ -443,6 +496,13 @@ impl Datum {
             &Datum::Rational(ref r) => Ok((r.num as Fsize) / (r.denom as Fsize)),
             &Datum::Float(r) => Ok(r),
             a => panic!("Can't convert {} to float", a)
+        }
+    }
+
+    fn as_integer(&self) -> Result<isize, LispErr> {
+        match self {
+            &Datum::Integer(n) => Ok(n),
+            a => panic!("Can't convert {} to integer", a)
         }
     }
 

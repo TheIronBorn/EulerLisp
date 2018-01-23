@@ -1,29 +1,13 @@
 ; Solved 8.1
 
-(defn permutation (index candidates acc)
-      (if (empty? candidates)
-          acc
-      (let* (len (length candidates)
-             f (fac (dec len))
-             first (div index f))
-          (permutation
-            (% index f)
-            (delete-nth first candidates)
-            (+ 
-              (nth first candidates)
-              (* 10 acc))))))
-
-(defn loop (range from to result)
-      (if (>= from to)
-          result
-          (let (perm (permutation from range 0))
-            (if (prime? perm)
-              (loop range (inc from) to (max perm result))
-              (loop range (inc from) to result)
-            ))))
-
 (defn solve (n)
-  (loop (range 1 n) 0 (fac n) 0))
+      (~>
+        (range 1 n)
+        permutations~
+        (map~ digits->number)
+        (select~ prime?)
+        collect
+        (reduce max 0)))
 
 ; 1 + ... + n = 
 ;   1 -> 1, trivial

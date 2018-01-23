@@ -169,6 +169,7 @@ fn reverse(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispRes
             elems.reverse();
             Ok(Datum::List(elems))
         },
+        Datum::Nil => Ok(Datum::Nil),
         _ => Err(InvalidTypeOfArguments),
     }
 }
@@ -181,6 +182,7 @@ fn sort(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult
             quicksort_helper(es, 0, (len - 1) as isize)?;
             Ok(Datum::List(es.to_vec()))
         },
+        Datum::Nil => Ok(Datum::Nil),
         _ => Err(InvalidTypeOfArguments),
     }
 }
@@ -328,11 +330,17 @@ fn map(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
                     len = elems.len()
                 } else {
                     if elems.len() != len {
-                        panic!("All lists passed to map must have the same length")
+                        panic!("All lists passed to map must have the same length");
                     }
                 }
                 lists.push(elems);
             },
+            Datum::Nil => {
+                if len != 0 {
+                    panic!("All lists passed to map must have the same length");
+                }
+                return Ok(Datum::Nil);
+            }
             _ => return Err(InvalidTypeOfArguments)
         }
     }
@@ -399,7 +407,7 @@ fn reduce(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult
             Ok(result)
         },
         Datum::Nil => Ok(result),
-        _ => Err(InvalidTypeOfArguments)
+        other => panic!("Reduce expected a list or nil but got {}", other)
     }
 }
 

@@ -1,7 +1,5 @@
 ; Solved 8.1
 
-(def ps (permutations (range 0 9)))
-
 (defn substring (n offset)
       (% (div n (pow 10 (- 7 offset))) 1000))
 
@@ -16,8 +14,9 @@
         (divides?  2 (substring n 1))))
 
 (~>
-  (range~ 0 (dec (fac 10)))
-  (map~ &(digits->number (list-ref ps &1)))
+  (range 0 9)
+  permutations~
+  (map~ digits->number)
   (select~ substring-divisible?)
   sum~
   (println "Solution: "))

@@ -27,7 +27,7 @@
 ;    and 1 + sqrt(det) is divisible by 6
 (defn pentagonal? (n)
   (let* (det (inc (* 24 n))
-         root (isqrt det))
+         root (floor (sqrt det)))
     (and (= det (* root root))
          (divides? 6 (inc root)))))
 

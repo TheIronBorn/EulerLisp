@@ -147,14 +147,6 @@ fn fx_div(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResu
     Err(InvalidTypeOfArguments)
 }
 
-fn isqrt(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Integer(a) = vs[0] {
-        let res = (a as f64).sqrt() as isize;
-        return Ok(Datum::from(&res));
-    }
-    Err(InvalidTypeOfArguments)
-}
-
 fn inc(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Integer(a) = vs[0] {
         return Ok(Datum::from(&(a + 1)));
@@ -410,6 +402,11 @@ fn sqrt(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult
     Ok(Datum::Float(a.sqrt()))
 }
 
+fn cbrt(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let a = vs[0].as_float()?;
+    Ok(Datum::Float(a.cbrt()))
+}
+
 fn ceil(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let a = vs[0].as_float()?;
     Ok(Datum::Integer(a.ceil() as isize))
@@ -425,6 +422,18 @@ fn round(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResul
     Ok(Datum::Integer(a.round() as isize))
 }
 
+fn gcd(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let mut x = vs[0].take().as_integer()?;
+    let mut y = vs[1].take().as_integer()?;
+    while y != 0 {
+        let t = y;
+        y = x % y;
+        x = t;
+    }
+
+    Ok(Datum::Integer(x))
+}
+
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "prime?", prime_questionmark, Arity::Exact(1));
     register(hm, "+", add, Arity::Min(2));
@@ -433,7 +442,6 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "fx+", fx_add, Arity::Exact(2));
     register(hm, "fx-", fx_subtract, Arity::Exact(2));
     register(hm, "fx*", fx_mult, Arity::Exact(2));
-    register(hm, "isqrt", isqrt, Arity::Exact(1));
     register(hm, "inc", inc, Arity::Exact(1));
     register(hm, "dec", dec, Arity::Exact(1));
     register(hm, "divides?", divides_questionmark, Arity::Exact(2));
@@ -459,7 +467,9 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "ln", ln, Arity::Exact(1));
     register(hm, "log", log, Arity::Exact(2));
     register(hm, "sqrt", sqrt, Arity::Exact(1));
+    register(hm, "cbrt", cbrt, Arity::Exact(1));
     register(hm, "ceil", ceil, Arity::Exact(1));
     register(hm, "floor", floor, Arity::Exact(1));
     register(hm, "round", round, Arity::Exact(1));
+    register(hm, "gcd", gcd, Arity::Exact(2));
 }
