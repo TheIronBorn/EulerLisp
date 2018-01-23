@@ -13,8 +13,14 @@ Progress:
   sum~
   (println "Solution: "))
 ```
+## Special Syntax
 
-## Notation for Project Euler Filenames
+1. `fst`/`rst` instead of `car`/`cdr`, incl. chained versions `ffst`, ... (`cadr`)
+2. `~>` pipeline operator, `(~> 1 (+ 2) (* 3)` = `(* 3 (+ 2 1))`
+3. lambda shorthand, `&(+ &1 (* &2 2))` = `(fn (a b) (+ a (* b 2)))`
+4. streams (lazy iterators), `range~`, `map~`, `select~`, ...
+
+## Notation for Solution Filenames
 
 * `00.scm` Solution that runs in < 60s
 * `00_T.scm` TODO, Solution that is gives the correct answer in < 60s,
