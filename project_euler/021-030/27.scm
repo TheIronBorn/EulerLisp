@@ -10,7 +10,7 @@
           (solve -999 (inc b) maxa maxb maxlen)
           (if (> b 1000)
               (* maxa maxb)
-              (let (len (count-cycles 1 a b))
+              (let ([len (count-cycles 1 a b)])
                 (if (> len maxlen)
                     (solve (inc a) b a b len)
                     (solve (inc a) b maxa maxb maxlen))))))

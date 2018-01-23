@@ -5,9 +5,9 @@
   (= (sort lst) all-digits))
 
 (defn solve (n (x 1) (max-pan 0))
-  (let (ds (flatmap 
-             &(reverse (number->digits (* x &1)))
-             (range 1 n)))
+  (let ([ds (flatmap 
+              &(reverse (number->digits (* x &1)))
+              (range 1 n))])
     (if (> (length ds) 9)
       (if (= n 9)
           max-pan

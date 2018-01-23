@@ -6,7 +6,7 @@
       (- (sum (factors n)) n))
 
 (defn amicable? (n)
-   (let (fsum (factor-sum n))
+   (let ([fsum (factor-sum n)])
         (and (!= n 1)
              (!= n fsum)
              (= n (factor-sum fsum)))))

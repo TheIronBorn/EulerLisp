@@ -10,9 +10,9 @@
 
 (defn triangle? (n (m 2) (acc 1))
   (cond
-    (< n acc) #f
-    (= n acc) #t
-    else (triangle? n (inc m) (+ m acc))))
+    [(< n acc) #f]
+    [(= n acc) #t]
+    [else (triangle? n (inc m) (+ m acc))]))
 
 (defn solve (names (index 1) (acc 0))
       (if (empty? names)

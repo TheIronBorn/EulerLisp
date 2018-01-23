@@ -22,29 +22,58 @@
   ((or test1 test2 ...)
    (if test1 #t (or test2 ...)))))
 
-
-; TODO: R5RS has a version that is more complex,
-; does it have any features that would be nice to replicate?
-(defsyntax cond () (
-  ((cond else consq) consq)
-  ((cond test consq) (if test consq))
-  ((cond test consq rest ...)
-     (if test
-       consq
-       (cond rest ...)))))
+(defsyntax cond (else =>) (
+  ((cond (else result1 result2 ...))
+   (do result1 result2 ...))
+  ((cond (test => result))
+   (let ((temp test))
+     (if temp (result temp))))
+  ((cond (test => result) clause1 clause2 ...)
+   (let ((temp test))
+     (if temp
+       (result temp)
+       (cond clause1 clause2 ...))))
+  ((cond (test)) test)
+  ((cond (test) clause1 clause2 ...)
+   (let ((temp test))
+     (if temp
+       temp
+       (cond clause1 clause2 ...))))
+  ((cond (test result1 result2 ...))
+   (if test (do result1 result2 ...)))
+  ((cond (test result1 result2 ...)
+         clause1 clause2 ...)
+   (if test
+     (do result1 result2 ...)
+     (cond clause1 clause2 ...)))))
 
 ; TODO: R5RS has a version that is more complex,
 ; does it have any features that would be nice to replicate?
 (defsyntax case () (
   ((case (key ...) clauses ...)
-   (let (atom-key (key ...))
+   (let ((atom-key (key ...)))
      (case atom-key clauses ...)))
-  ((case key else consq) consq)
-  ((case key atom consq) (if (= key atom) consq))
-  ((case key atom consq rest ...)
+  ((case key (else consq)) consq)
+  ((case key (atom consq)) (if (= key atom) consq))
+  ((case key (atom consq) rest ...)
    (if (= key atom)
        consq
        (case key rest ...)))))
+
+(defsyntax let () (
+  ((let ((name val) ...) body1 body2 ...)
+   ((fn (name ...) body1 body2 ...) val ...))))
+
+(defsyntax let* () (
+  ((let* ()
+     body1 body2 ...)
+   (let ()
+       body1 body2 ...))
+  ((let* ((name1 val1) rest ...)
+     body1 body2 ...)
+   (let ((name1 val1))
+     (let* (rest ...)
+       body1 body2 ...)))))
 
 (defsyntax defn () (
   ((defn name args body ...)

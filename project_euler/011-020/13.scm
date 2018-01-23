@@ -25,8 +25,8 @@
   (if (nil? (fst numbers))
       (cut acc)
       (let*
-        (cur-sum (sum (map fst numbers))
-         next-sum (+ acc (* cur-sum (pow 10 p))))
+        ([cur-sum (sum (map fst numbers))]
+         [next-sum (+ acc (* cur-sum (pow 10 p)))])
         (if (> next-sum 9999999999)
             (solve (map rst numbers) (div next-sum 10) p)
             (solve (map rst numbers) next-sum (inc p))))))

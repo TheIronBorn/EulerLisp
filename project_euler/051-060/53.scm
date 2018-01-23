@@ -4,7 +4,7 @@
   (product~ (range~ from to)))
 
 (defn choose (n r)
-  (let (other (max r (- n r)))
+  (let ([other (max r (- n r))])
     (div (fac-from (+ other 1) n)
          (fac-from 1 (- n other)))))
 
@@ -16,12 +16,12 @@
 ; and avoid overflows
 (defn solve (r n (greater 0))
   (cond
-    (> r 100) greater
-    (> n 100) (solve (inc r) (inc r) greater)
-    else
-    (if (> (choose n r) 1000000)
-        (solve (inc r) (inc r)
-               (+ greater (- 100 (- n 1))))
-        (solve r (inc n) greater))))
+    [(> r 100) greater]
+    [(> n 100) (solve (inc r) (inc r) greater)]
+    [else
+     (if (> (choose n r) 1000000)
+         (solve (inc r) (inc r)
+                (+ greater (- 100 (- n 1))))
+         (solve r (inc n) greater))]))
 
 (println "Solution: " (solve 1 1))

@@ -16,9 +16,9 @@
 ; Just try to bruteforce it
 (defn triplet (sum)
       (let* 
-        (a (rand 1 (div (dec sum) 3))
-         b (rand a (div (- sum a) 2))
-         c (- (- sum a) b))
+        ([a (rand 1 (div (dec sum) 3))]
+         [b (rand a (div (- sum a) 2))]
+         [c (- (- sum a) b)])
         (if (triplet? a b c)
             (list a b c)
             (triplet sum))))

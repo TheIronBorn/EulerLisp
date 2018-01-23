@@ -1,16 +1,16 @@
 ; Solved 15.1.18
 
 (defn coin-sums (n coins)
-  (cond
-    (zero? n) 1
-    (nil? coins) 0
-    (> (fst coins) n) 0
-    else
-    (reduce-sum
-      &(coin-sums
-         (- n (* &1 (fst coins)))
-         (rst coins))
-      (range 0 (div n (fst coins))))))
+      (cond
+        [(zero? n) 1]
+        [(nil? coins) 0]
+        [(> (fst coins) n) 0]
+        [else
+          (reduce-sum
+            &(coin-sums
+               (- n (* &1 (fst coins)))
+               (rst coins))
+            (range 0 (div n (fst coins))))]))
 
 (def ps (primes 100))
 

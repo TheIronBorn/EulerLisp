@@ -19,12 +19,11 @@
 
 (defn find-max-index (lst (index 0) (max-value 0) (max-index 0))
       (cond
-        (nil? lst)
-        max-index
-        (> (fst lst) max-value)
-        (find-max-index (rst lst) (inc index) (fst lst) index)
-        else  
-        (find-max-index (rst lst) (inc index) max-value max-index)))
+        [(nil? lst) max-index]
+        [(> (fst lst) max-value)
+         (find-max-index (rst lst) (inc index) (fst lst) index)]
+        [else  
+         (find-max-index (rst lst) (inc index) max-value max-index)]))
 
 (defn number->bits (n (remaining 8) (acc '()))
       (if (zero? remaining)

@@ -1,11 +1,11 @@
 (defn brackets (dgts ops)
-  (let (a (fst dgts)
-        b (frst dgts)
-        c (frrst dgts)
-        d (frrrst dgts)
-        op1 (fst ops)
-        op2 (frst ops)
-        op3 (frrst ops))
+  (let ([a (fst dgts)]
+        [b (frst dgts)]
+        [c (frrst dgts)]
+        [d (frrrst dgts)]
+        [op1 (fst ops)]
+        [op2 (frst ops)]
+        [op3 (frrst ops)])
     (list
       (eval (list op2
                   (list op1 a b)
@@ -42,13 +42,12 @@
 
 (defn streak (results (acc 0) (last 0))
       (cond
-        (nil? results) acc
-        (<= (fst results) 0)
-          (streak (rst results) acc last)
-        (= (dec (fst results)) last)
-          (streak (rst results) (inc acc) (fst results))
-        else
-          acc))
+        [(nil? results) acc]
+        [(<= (fst results) 0)
+         (streak (rst results) acc last)]
+        [(= (dec (fst results)) last)
+         (streak (rst results) (inc acc) (fst results))]
+        [else acc]))
 
 (defn results (abcd)
      (~>

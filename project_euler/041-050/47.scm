@@ -7,9 +7,9 @@
 (defn solve ((cur 1) (streak 0))
   (println "cur = " cur)
   (cond
-    (= streak 4) (- cur 4)
-    (>= (length (prime-factors cur)) 4)
-      (solve (inc cur) (inc streak))
-    else (solve (inc cur) 0)))
+    [(= streak 4) (- cur 4)]
+    [(>= (length (prime-factors cur)) 4)
+      (solve (inc cur) (inc streak))]
+    [else (solve (inc cur) 0)]))
 
 (println "Solution: " (solve))

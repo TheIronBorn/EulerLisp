@@ -18,7 +18,7 @@
 (def min-len (reduce &(min (length &1) &2) max-len candidates))
 
 (defn square? (n)
-  (let (root (sqrt n))
+  (let ([root (sqrt n)])
     (= (floor root) (ceil root))))
 
 (def buckets
@@ -29,8 +29,8 @@
 (defn anagram-pairs (candidates (acc '()))
   (if (nil? candidates)
       acc
-      (let (a (fst candidates)
-            rest (rst candidates))
+      (let ([a (fst candidates)]
+            [rest (rst candidates)])
         (anagram-pairs
           rest
           (append
@@ -43,19 +43,19 @@
 
 (defn replace (elem replacement arr)
   (cond
-    (nil? arr) '()
-    (= (fst arr) elem)
-      (cons replacement (replace elem replacement (rst arr)))
-    else
-      (cons (fst arr) (replace elem replacement (rst arr)))))
+    [(nil? arr) '()]
+    [(= (fst arr) elem)
+      (cons replacement (replace elem replacement (rst arr)))]
+    [else
+      (cons (fst arr) (replace elem replacement (rst arr)))]))
 
 (defn number-letters (word)
-  (let (letters (~> word sort uniq))
+  (let ([letters (~> word sort uniq)])
     (rst
       (reduce 
         (fn (letter acc)
-            (let (idx (fst acc)
-                  word (rst acc))
+            (let ([idx (fst acc)]
+                  [word (rst acc)])
               (cons (inc idx)
                     (replace letter idx word))))
         (cons 0 word)
@@ -100,8 +100,8 @@
       collect))
 
 (defn square-replacements (a b)
-  (let (len (reduce max 0 a))
-    (let (replacements (all-replacements len))
+  (let ([len (reduce max 0 a)])
+    (let ([replacements (all-replacements len)])
       (flatmap 
         &(has-square-replacement? &1 a b)
         replacements))))

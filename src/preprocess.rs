@@ -269,68 +269,6 @@ pub fn preprocess(
 
                             Ok(Expression::If(Box::new(cond), Box::new(cons), Box::new(alt)))
                         },
-                        "let" => {
-                            let bindings = elems.remove(0);
-
-                            let mut variables: Vec<Datum> = Vec::new();
-                            let mut values: Vec<Datum> = Vec::new();
-
-                            if let Datum::List(ref elements) = bindings {
-                                if elements.len() % 2 == 1 {
-                                    panic!("The bindings of let must have an even length")
-                                }
-                                for varval in elements.chunks(2) {
-                                    variables.push(varval[0].clone());
-                                    values.push(varval[1].clone());
-                                }
-                            } else {
-                                panic!("First argument of let must be a list")
-                            }
-
-                            let mut result: Vec<Datum> = Vec::new();
-                            let mut fun: Vec<Datum> = Vec::new();
-                            fun.push(Datum::Symbol("fn".to_string()));
-                            fun.push(Datum::List(variables));
-                            fun.append(&mut elems);
-
-                            result.push(Datum::List(fun));
-                            result.append(&mut values);
-
-                            preprocess(Datum::List(result), symbol_table, builtins, syntax_rules, env_ref.clone())
-                        },
-                        "let*" => {
-                            let bindings = elems.remove(0);
-
-                            let mut variables: Vec<Datum> = Vec::new();
-                            let mut values: Vec<Datum> = Vec::new();
-
-                            if let Datum::List(ref elements) = bindings {
-                                if elements.len() % 2 == 1 {
-                                    panic!("The bindings of let must have an even length")
-                                }
-                                for varval in elements.chunks(2) {
-                                    variables.push(varval[0].clone());
-                                    values.push(varval[1].clone());
-                                }
-                            } else {
-                                panic!("First argument of let must be a list")
-                            }
-
-                            let mut tmp = vec![Datum::Symbol("do".to_string())];
-                            tmp.append(&mut elems);
-
-                            let mut result: Datum = Datum::List(tmp);
-                            for (key, value) in variables.into_iter().zip(values.into_iter()).rev() {
-                                let new = Datum::List(vec![
-                                                      Datum::Symbol("let".to_string()),
-                                                      Datum::List(vec![key, value]),
-                                                      result
-                                ]);
-                                result = new;
-                            }
-
-                            preprocess(result, symbol_table, builtins, syntax_rules, env_ref.clone())
-                        },
                         other => {
                             if let Some(sr) = syntax_rules.get(other.clone()) {
                                 let expanded = sr.apply(elems);

@@ -8,15 +8,14 @@
 (defn valid? (n) (not (zero? (% (div n 10) 10))))
 
 (defn find-four-digit (f (n 1) (acc '()))
-  (let (next (f n))
+  (let ([next (f n)])
     (cond
-      (< next 1000) (find-four-digit f (inc n) acc)
-      (> next 9999)
-        (~>
-          acc
-          (select valid?)
-          (map &(divmod &1 100)))
-      else (find-four-digit f (inc n) (cons next acc)))))
+      [(< next 1000) (find-four-digit f (inc n) acc)]
+      [(> next 9999)
+       (~> acc
+           (select valid?)
+           (map &(divmod &1 100)))]
+      [else (find-four-digit f (inc n) (cons next acc))])))
 
 ; Start w/ octagonal because that has the fewest elements
 (def numbers
@@ -31,9 +30,8 @@
           (fst lists)))
       (flatmap
         (fn (x)
-            (let (new-start (rst x))
-              (map &(cons x &1)
-                (find-sequences new-start end (rst lists)))))
+            (map &(cons x &1)
+              (find-sequences (rst x) end (rst lists))))
         (select
           &(= (fst &1) start)
           (fst lists)))))
@@ -41,9 +39,8 @@
 (defn sequences (first rest)
      (flatmap
        (fn (x)
-         (map
-           &(cons x &1)
-           (find-sequences (rst x) (fst x) rest)))
+         (map &(cons x &1)
+               (find-sequences (rst x) (fst x) rest)))
        first))
 
 (~>

@@ -6,21 +6,18 @@
          lines
          (reject empty?)
          (map string->number)
-         (map number->digits)
-         ))
+         (map number->digits)))
 
 (defn matches? (try passcode)
   (cond
-    (nil? try) #t
-    (nil? passcode) #f
-    (= (fst try) (fst passcode))
-      (matches? (rst try) (rst passcode))
-    else
-      (matches? try (rst passcode))))
+    [(nil? try) #t]
+    [(nil? passcode) #f]
+    [(= (fst try) (fst passcode))
+      (matches? (rst try) (rst passcode))]
+    [else (matches? try (rst passcode))]))
 
-(def all-digits (~> (flatmap (fn (x) x) tries)
-             sort
-             uniq))
+(def all-digits
+     (~> (reduce append '() tries) sort uniq))
 
 (println "Are there tries with repeating digits? "
          (any? (fn (try)

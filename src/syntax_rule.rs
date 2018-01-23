@@ -3,6 +3,8 @@ use ::Datum;
 
 // TODO: Implement SyntaxRuleErrors instead of using unwrap() everywhere
 // Based on R5RS, Section 4.2.3
+//
+// TODO: Templates like `(name val) ...` don't seem to work
 #[derive(Debug, Clone)]
 pub struct SyntaxRule {
     name: String,
@@ -109,16 +111,11 @@ impl SyntaxRule {
                         subbindings.push(b);
                     }
 
-                    if subbindings.len() == 0 {
-                        return true;
-                    }
-
-                    let keys = subbindings[0].keys();
-
+                    let keys = rest.keys();
                     for k in keys {
                         let mut coll = Vec::new();
                         for subbinding in subbindings.iter() {
-                            coll.push(subbinding.get(k).unwrap().clone());
+                            coll.push(subbinding.get(&k).unwrap().clone());
                         }
                         bindings.insert(k.clone(), Datum::List(coll));
                     }
@@ -155,7 +152,7 @@ impl Pattern {
         match datum {
             Datum::List(mut s) => {
                 if s.len() == 0 {
-                    panic!("Empty macro pattern");
+                    return Pattern::List(vec!());
                 } 
 
                 let last = s.get(s.len() - 1).unwrap().clone();
@@ -178,6 +175,32 @@ impl Pattern {
             },
             other => {
                 panic!("Invalid macro pattern: {:?}", other);
+            }
+        }
+    }
+
+    pub fn keys(&self) -> Vec<String> {
+        match self {
+            &Pattern::List(ref elems) => {
+                let mut res = Vec::new();
+                for e in elems {
+                    let mut k = e.keys(); 
+                    res.append(&mut k);
+                }
+                res
+            },
+            &Pattern::ListWithRest(ref elems, ref rest) => {
+                let mut res = Vec::new();
+                for e in elems {
+                    let mut k = e.keys(); 
+                    res.append(&mut k);
+                }
+                let mut k = rest.keys(); 
+                res.append(&mut k);
+                res
+            },
+            &Pattern::Ident(ref key) => {
+                vec![key.clone()]
             }
         }
     }
@@ -252,7 +275,6 @@ impl Template {
                             if let Datum::List(mut inner) = foo {
                                 res.append(&mut inner);
                             } else {
-                                println!("{:?}", self);
                                 panic!("macro templates `<identifier> ...` only work if binding is list");
                             }
                         }

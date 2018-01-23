@@ -18,16 +18,13 @@
 
 (defn first-partitions (n limit)
   (cond
-    (<= n 1)
-      n
-    (= n limit) 
-      (inc (partition-sum n (dec limit)))
-    else
-      (partition-sum n limit)))
+    [(<= n 1) n]
+    [(= n limit) (inc (partition-sum n (dec limit)))]
+    [else (partition-sum n limit)]))
 
 (defn inner-loop (n (limit 1))
   (if (<= limit n)
-    (let (val (first-partitions n limit))
+    (let ([val (first-partitions n limit)])
          (push! results val)
          (set! len (inc len))
          (inner-loop n (inc limit)))))

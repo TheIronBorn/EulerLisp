@@ -12,14 +12,14 @@
       (find-bracket_ n 1 ranges))
 
 (defn find-digit (range rest)
-    (let* (real-rest (+ rest (* range (pow 10 (dec range))))
-           position (dec (- range (% real-rest range))))
+    (let* ([real-rest (+ rest (* range (pow 10 (dec range))))]
+           [position (dec (- range (% real-rest range)))])
          (% (div (div real-rest range) (pow 10 position)) 10)))
 
 (defn digit (n)
   (if (<= n 9)
       n
-      (~> (dec n) find-bracket (apply find-digit))))
+      (~> n dec find-bracket (apply find-digit))))
 
 (println "Solution: "
          (reduce-product &(digit (pow 10 &1)) (range 0 6)))

@@ -12,11 +12,11 @@
   (if (> a b)
       (paths b a)
       (cond
-        (= a 1) (inc b)
-        (< (index a b) (length known))
-        (list-ref known (index a b))
-        else (+ (paths (dec a) b)
-                (paths a (dec b))))))
+        [(= a 1) (inc b)]
+        [(< (index a b) (length known))
+         (list-ref known (index a b))]
+        [else (+ (paths (dec a) b)
+                (paths a (dec b)))])))
 
 (defn iterate (a b maxa maxb)
   (if (> a b)

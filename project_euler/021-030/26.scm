@@ -39,8 +39,8 @@
       (if (> from 1000)
         max-n
         (let*
-          (f (make-stepper from)
-           len (cycle-len f))
+          ([f (make-stepper from)]
+           [len (cycle-len f)])
           (if (> len max-len)
               (loop (inc from) from len)
               (loop (inc from) max-n max-len)))))

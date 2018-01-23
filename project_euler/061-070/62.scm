@@ -3,11 +3,11 @@
 (defn cube (x) (fx* x (fx* x x)))
 
 (defn count-other_ (cur target (cnt 0))
-  (let (next (~> cur cube number->digits sort))
+  (let ([next (~> cur cube number->digits sort)])
     (cond
-      (> (length next) (length target)) cnt
-      (= next target) (count-other_ (inc cur) target (inc cnt))
-      else (count-other_ (inc cur) target cnt))))
+      [(> (length next) (length target)) cnt]
+      [(= next target) (count-other_ (inc cur) target (inc cnt))]
+      [else (count-other_ (inc cur) target cnt)])))
 
 (defn count-other (n)
   (println "n = " n)

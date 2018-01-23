@@ -54,7 +54,7 @@
       (find-cycle-start_ n in-cycle 0))
 
 (defn before-cycle-len (n)
-    (let (in (find-in-cycle n))
+    (let ([in (find-in-cycle n)])
       (+
         (find-cycle-start n in)
         (find-cycle-len in))))
@@ -64,7 +64,7 @@
       (println "from = " from)
       (if (> from 1000000)
         count
-        (let (len (before-cycle-len from))
+        (let ([len (before-cycle-len from)])
           (push! lens len)
           (if (= len 60)
             (do

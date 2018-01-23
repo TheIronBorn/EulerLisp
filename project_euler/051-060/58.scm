@@ -1,7 +1,7 @@
 ; Solved 18.1
 
 (defn ring-numbers (i)
-  (let (sq (square (inc (* 2 i))))
+  (let ([sq (square (inc (* 2 i)))])
     (map &(- sq (* i 2 &1)) (range 0 3))))
 
 (defn solve ((i 2) (numbers 5) (ps 3))

@@ -10,13 +10,13 @@
 
 (defn format-ten (n)
     (cond
-      (< n 10) (nth (dec n) single)
-      (< n 20) (nth (- n 10) teens)
-      else (if (zero? (% n 10))
+      [(< n 10) (nth (dec n) single)]
+      [(< n 20) (nth (- n 10) teens)]
+      [else (if (zero? (% n 10))
              (nth (- (div n 10) 2) tens)
              (str
                (nth (- (div n 10) 2) tens)
-               (nth (dec (% n 10)) single)))))
+               (nth (dec (% n 10)) single)))]))
 
 (defn format-hundred (n)
       (if (zero? (% n 100))
@@ -31,9 +31,9 @@
 
 (defn format (n)
       (cond
-        (< n 100) (format-ten n)
-        (< n 1000) (format-hundred n)
-        else "onethousand"))
+        [(< n 100) (format-ten n)]
+        [(< n 1000) (format-hundred n)]
+        [else "onethousand"]))
 
 (~>
   (range~ 1 1000)

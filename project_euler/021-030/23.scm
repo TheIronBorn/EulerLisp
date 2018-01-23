@@ -26,7 +26,7 @@
       (if (< pb len)
         (if (or (>= pa len)
                 (>= va limit))
-          (let (next-vb (list-ref abundants (inc pb)))
+          (let ([next-vb (list-ref abundants (inc pb))])
             (loop2 0 (inc pb)
                    init next-vb
                    (- max-n next-vb)))

@@ -8,9 +8,9 @@
 
 (defn resizing-bigpow (b e)
   (cond
-    (= e 0) (bignum 1)
-    (even? e) (resizing-bigpow (resize (bignum* b b)) (div e 2))
-    else (bignum* b (resizing-bigpow b (dec e)))))
+    [(zero? 0) (bignum 1)]
+    [(even? e) (resizing-bigpow (resize (bignum* b b)) (div e 2))]
+    [else (bignum* b (resizing-bigpow b (dec e)))]))
 
 (~>
   (resizing-bigpow (bignum 2) 7830457)

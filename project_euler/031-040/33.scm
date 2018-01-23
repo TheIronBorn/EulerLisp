@@ -7,10 +7,10 @@
      (* (rst a) (fst b))))
 
 (defn digit-cancelling? (f)
-  (let (a (div (fst f) 10)
-        b (%   (fst f) 10)
-        c (div (rst f) 10)
-        d (%   (rst f) 10))
+  (let ([a (div (fst f) 10)]
+        [b (%   (fst f) 10)]
+        [c (div (rst f) 10)]
+        [d (%   (rst f) 10)])
     (or
       (and (= a d)
            (fraction= f (cons b c)))
@@ -37,7 +37,7 @@
     (* (rst a) (rst b))))
 
 (defn simplify (f)
-  (let (g (gcd (fst f) (rst f)))
+  (let ([g (gcd (fst f) (rst f))])
     (cons (div (fst f) g)
           (div (rst f) g))))
 

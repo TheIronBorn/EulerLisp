@@ -2,7 +2,7 @@
 
 (defn solve-from (n acc best terms best-terms)
   (if (prime? n)
-      (let (next (+ n acc))
+      (let ([next (+ n acc)])
         (if (>= next 1000000)
             (cons best best-terms)
             (if (prime? next)
@@ -26,7 +26,7 @@
   (if (>= from 1000000) 
       (cons best best-terms)
       (if (prime? from)
-          (let (res (solve-from from 0 0 0 0))
+          (let ([res (solve-from from 0 0 0 0)])
             (if (> (rst res) best-terms)
                 (solve (inc from) (fst res) (rst res))
                 (solve (inc from) best best-terms)))

@@ -13,10 +13,10 @@
 
 (defn trace (n)
   (cond
-    (= n 0) #f
-    (= n 1) #f
-    (= n 89) #t
-    else (trace (digit-squares n))))
+    [(= n 0) #f]
+    [(= n 1) #f]
+    [(= n 89) #t]
+    [else (trace (digit-squares n))]))
 
 (def lookup (map trace (range 0 567)))
 

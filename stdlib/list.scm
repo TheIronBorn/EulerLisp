@@ -65,13 +65,18 @@
 (defn reduce-product (f arr)
   (reduce (fn (x acc) (* acc (f x))) 1 arr))
 
+(defn reduce-max (f init arr)
+  (reduce (fn (x acc) (max (f x) acc)) init arr))
+(defn reduce-min (f init arr)
+  (reduce (fn (x acc) (min (f x) acc)) init arr))
+
 (defn max-by (f arr)
   (if (nil? arr)
       '()
       (fst
         (reduce
           (fn (x acc)
-              (let (res (f x))
+              (let ([res (f x)])
                 (if (> res (rst acc))
                     (cons x res)
                     acc)))
@@ -80,9 +85,9 @@
 
 (defn all? (pred arr)
   (cond
-    (nil? arr) #t
-    (pred (fst arr)) (all? pred (rst arr))
-    else #f))
+    [(nil? arr) #t]
+    [(pred (fst arr)) (all? pred (rst arr))]
+    [else #f]))
 
 (defn zip (. lists)
       (if (any? nil? lists)
@@ -109,3 +114,5 @@
                   (push acc (take size lst)))))
 
 (defn first~ (stream) (nth~ 0 stream))
+
+(defn palindromic? (lst) (= lst (reverse lst)))

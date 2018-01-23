@@ -13,14 +13,14 @@
 
 (defn find-pandigital_ (ra rb ra-backup acc)
   (cond
-    (nil? rb) acc
-    (nil? ra) (find-pandigital_ ra-backup (rst rb) ra-backup acc)
-    else (let* (a (fst ra)
-                  b (fst rb)
-                  c (* a b))
+    [(nil? rb) acc]
+    [(nil? ra) (find-pandigital_ ra-backup (rst rb) ra-backup acc)]
+    [else (let* ([a (fst ra)]
+                 [b (fst rb)]
+                 [c (* a b)])
            (if (pandigital? a b c)
              (find-pandigital_ (rst ra) rb ra-backup (cons c acc))
-             (find-pandigital_ (rst ra) rb ra-backup acc)))))
+             (find-pandigital_ (rst ra) rb ra-backup acc)))]))
 
 (defn find-pandigital (ra rb)
   (find-pandigital_ ra rb ra '()))

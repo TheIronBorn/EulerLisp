@@ -178,6 +178,11 @@ named!(
 );
 
 named!(
+    lbracket2,
+    delimited!(intertoken_space, tag!("["), intertoken_space)
+);
+
+named!(
     andbracket,
     delimited!(intertoken_space, tag!("&("), intertoken_space)
 );
@@ -185,6 +190,11 @@ named!(
 named!(
     rbracket,
     delimited!(intertoken_space, tag!(")"), intertoken_space)
+);
+
+named!(
+    rbracket2,
+    delimited!(intertoken_space, tag!("]"), intertoken_space)
 );
 
 named!(
@@ -223,11 +233,19 @@ named!(
 
 named!(
     list<Vec<Datum>>,
-    do_parse!(
-        lbracket >>
-        datums: many0!(datum) >>
-        rbracket >>
-        (datums)
+    alt!(
+        do_parse!(
+            lbracket >>
+            datums: many0!(datum) >>
+            rbracket >>
+            (datums)
+        ) |
+        do_parse!(
+            lbracket2 >>
+            datums: many0!(datum) >>
+            rbracket2 >>
+            (datums)
+        )
     )
 );
 
