@@ -1,4 +1,4 @@
-# Rust Lisp
+# EulerLisp
 
 Progress:
 
