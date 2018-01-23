@@ -1,5 +1,9 @@
 # Rust Lisp
 
+Progress:
+
+![](https://projecteuler.net/profile/leonrische.png)
+
 ## Code Samples
 
 ``` clojure
