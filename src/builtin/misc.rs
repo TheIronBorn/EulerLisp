@@ -17,7 +17,7 @@ fn println(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispRes
     for v in vs.iter() {
         match *v {
             // Print string without " around them
-            Datum::Str(ref x) => print!("{}", x),
+            Datum::String(ref x) => print!("{}", x),
             ref other => print!("{}", other),
         };
     }
@@ -29,7 +29,7 @@ fn print(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResul
     for v in vs.iter() {
         match *v {
             // Print string without " around them
-            Datum::Str(ref x) => print!("{}", x),
+            Datum::String(ref x) => print!("{}", x),
             ref other => print!("{}", other),
         };
     }
@@ -50,12 +50,12 @@ fn not(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult 
 }
 
 fn file_read(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Str(ref b) = vs[0] {
+    if let Datum::String(ref b) = vs[0] {
         match File::open(b) {
             Ok(ref mut file) => {
                 let mut result = String::new();
                 match file.read_to_string(&mut result) {
-                    Ok(_) => return Ok(Datum::Str(result)),
+                    Ok(_) => return Ok(Datum::String(result)),
                     Err(_) => return Err(IOError),
                 };
             },
@@ -77,7 +77,7 @@ fn apply(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult 
 
 fn read(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let arg = vs.get(0).unwrap();
-    if let Datum::Str(ref input) = *arg {
+    if let Datum::String(ref input) = *arg {
         let result = parser::parse_datum(input.as_ref());
         Ok(result)
     } else {

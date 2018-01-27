@@ -37,11 +37,11 @@
 (defn range (from to (step 1))
       (range_ from to step '()))
 
-(defn flatmap (f arr)
-      (if (nil? arr)
-          '()
-          (append (f (fst arr))
-                (flatmap f (rst arr)))))
+; (defn flatmap (f arr)
+;       (if (nil? arr)
+;           '()
+;           (append (f (fst arr))
+;                 (flatmap f (rst arr)))))
 
 (defn delete-nth (n lst)
   (if (= n 0)
@@ -83,6 +83,19 @@
             (cons (fst arr) (f (fst arr)))
             (rst arr)))))
 
+(defn min-by (f arr)
+  (if (nil? arr)
+      '()
+      (fst
+        (reduce
+          (fn (x acc)
+              (let ([res (f x)])
+                (if (< res (rst acc))
+                    (cons x res)
+                    acc)))
+            (cons (fst arr) (f (fst arr)))
+            (rst arr)))))
+
 (defn all? (pred arr)
   (cond
     [(nil? arr) #t]
@@ -116,3 +129,8 @@
 (defn first~ (stream) (nth~ 0 stream))
 
 (defn palindromic? (lst) (= lst (reverse lst)))
+
+(defn last (arr)
+  (if (nil? (rst arr))
+      (fst arr)
+      (last (rst arr))))

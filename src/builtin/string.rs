@@ -11,7 +11,7 @@ use ::eval::Evaluator;
 use ::EnvRef;
 
 fn string_bytes(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Str(ref string) = vs[0] {
+    if let Datum::String(ref string) = vs[0] {
         let bytes = string.as_bytes().iter().map(
             |b| Datum::Integer(*b as isize)
             ).collect();
@@ -21,14 +21,14 @@ fn string_bytes(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> Li
 }
 
 fn string_length(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Str(ref string) = vs[0] {
+    if let Datum::String(ref string) = vs[0] {
         return Ok(Datum::Integer(string.len() as isize));
     }
     Err(InvalidTypeOfArguments)
 }
 
 fn string_to_number(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Str(ref string) = vs[0] {
+    if let Datum::String(ref string) = vs[0] {
         match string.parse::<isize>() {
             Ok(i) => {
                 return Ok(Datum::Integer(i));
@@ -42,11 +42,11 @@ fn string_to_number(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -
 }
 
 fn string_split(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Str(ref splitter) = vs[0] {
-        if let Datum::Str(ref string) = vs[1] {
+    if let Datum::String(ref splitter) = vs[0] {
+        if let Datum::String(ref string) = vs[1] {
             let lines: Vec<Datum> =
                 string.split(splitter)
-                .map( |l| Datum::Str(l.to_string()) )
+                .map( |l| Datum::String(l.to_string()) )
                 .collect();
             return Ok(Datum::List(lines));
         }
@@ -59,11 +59,11 @@ fn string_join(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> Lis
 
     for v in vs.into_iter() {
         match v {
-            &mut Datum::Str(ref s) => result += s,
+            &mut Datum::String(ref s) => result += s,
             other => result += &other.to_string(),
         }
     }
-    return Ok(Datum::Str(result));
+    return Ok(Datum::String(result));
 }
 
 

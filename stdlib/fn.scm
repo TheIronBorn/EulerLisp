@@ -3,5 +3,6 @@
           (apply f (cons arg args))))
 
 ; These are useful for injecting debugging ~> chains
+(defn id (x) x)
 (defn apply-id (f) (fn (x) (f x) x))
 (def println-id (apply-id println))

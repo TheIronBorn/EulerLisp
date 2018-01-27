@@ -116,7 +116,7 @@ fn length(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResu
         Datum::List(ref elems) => {
             Ok(Datum::from(&elems.len()))
         },
-        Datum::Str(ref s) => {
+        Datum::String(ref s) => {
             Ok(Datum::from(&s.len()))
         },
         _ => Err(InvalidTypeOfArguments)
@@ -354,6 +354,43 @@ fn map(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     Ok(Datum::List(result))
 }
 
+fn flatmap(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    let fun = vs[0].take();
+    let mut lists = Vec::new();
+    let mut len = 0;
+
+    for i in 1..vs.len() {
+        match vs[i].take() {
+            Datum::List(elems) => {
+                if i == 1 {
+                    len = elems.len()
+                } else {
+                    if elems.len() != len {
+                        panic!("All lists passed to map must have the same length");
+                    }
+                }
+                lists.push(elems);
+            },
+            Datum::Nil => {
+                if len != 0 {
+                    panic!("All lists passed to map must have the same length");
+                }
+                return Ok(Datum::Nil);
+            }
+            _ => return Err(InvalidTypeOfArguments)
+        }
+    }
+
+    let mut result = Vec::new();
+    for i in 0..len {
+        let args = lists.iter_mut().map(|l| l[i].take() ).collect();
+        let mut res = eval.full_apply(fun.clone(), args, env_ref.clone()).as_list()?;
+        result.append(&mut res);
+    }
+
+    Ok(Datum::List(result))
+}
+
 fn count(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     let pred = vs[0].take();
     let mut list = vs[1].take();
@@ -433,6 +470,7 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "permutations", permutations, Arity::Exact(1));
     register(hm, "combinations", combinations, Arity::Exact(2));
     register(hm, "map", map, Arity::Min(2));
+    register(hm, "flatmap", flatmap, Arity::Min(2));
     register(hm, "reduce", reduce, Arity::Exact(3));
     register(hm, "count", count, Arity::Exact(2));
     register(hm, "any?", any, Arity::Exact(2));

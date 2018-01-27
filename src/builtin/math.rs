@@ -13,7 +13,7 @@ use ::eval::Evaluator;
 use ::EnvRef;
 use ::Fsize;
 
-const WITNESSES: [(isize, &[isize]); 7] = [
+const WITNESSES: [(isize, &[isize]); 10] = [
     (2_047, &[2]),
     (1_373_653, &[2, 3]),
     (9_080_191, &[31, 73]),
@@ -21,10 +21,18 @@ const WITNESSES: [(isize, &[isize]); 7] = [
     (3_215_031_751, &[2, 3, 5, 7]),
     (4_759_123_141, &[2, 7, 61]),
     (1_122_004_669_633, &[2, 13, 23, 1662803]),
+    (2_152_302_898_747, &[2, 3, 5, 7, 11]),
+    (3_474_749_660_383, &[2, 3, 5, 7, 11, 13]),
+    (341_550_071_728_321, &[2, 3, 5, 7, 11, 13, 17])
 ];
 
 fn modexp(mut base: isize, mut exponent: isize, modulo: isize) -> isize {
     let mut c = 1;
+
+    let mut base = base as i128;
+    let mut exponent = exponent as i128;
+    let mut modulo = modulo as i128;
+
     while exponent != 0 {
         if exponent % 2 == 1 {
             exponent -= 1;
@@ -33,7 +41,7 @@ fn modexp(mut base: isize, mut exponent: isize, modulo: isize) -> isize {
         exponent /= 2;
         base = (base * base) % modulo;
     }
-    c
+    (c as isize)
 }
 
 fn factor2(n: isize) -> (isize, isize) {
@@ -52,24 +60,34 @@ fn det_miller_rabin(n: isize) -> bool {
     if n < 2 {
         return false;
     }
-    if n == 2 {
-        return true;
-    }
+
+    // Check against some obvious candidates first
+    if (n % 2) == 0 { return n == 2; } 
+    if (n % 3) == 0 { return n == 3; } 
+    if (n % 5) == 0 { return n == 5; } 
+    if (n % 7) == 0 { return n == 7; } 
+    if (n % 11) == 0 { return n == 11; } 
+    if (n % 13) == 0 { return n == 13; } 
+    if (n % 17) == 0 { return n == 17; } 
+    if (n % 19) == 0 { return n == 19; } 
+    if (n % 23) == 0 { return n == 23; } 
+    if (n % 29) == 0 { return n == 29; } 
 
     let (s, d) = factor2(n - 1);
     let &(_, witnesses) = WITNESSES.iter().find(|&&(max, _)| max > n).unwrap();
 
+    let n_ = n as i128;
     'witness: for &a in witnesses.iter() {
-        let mut x = modexp(a, d, n);
-        if x == 1 || x == n - 1 {
+        let mut x = modexp(a, d, n) as i128;
+        if x == 1 || x == n_ - 1 {
             continue 'witness;
         }
         for _ in 0..s {
-            x = (x * x) % n;
+            x = (x * x) % n_;
             if x == 1 {
                 return false;
             }
-            if x == n - 1 {
+            if x == n_ - 1 {
                 continue 'witness;
             }
         }
@@ -269,7 +287,7 @@ fn prime_factors(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> L
                         Box::new(Datum::Integer(count))
                     ));
                 }
-                i += 1;
+                i += 2;
                 if i > a {
                     break;
                 }
@@ -434,6 +452,24 @@ fn gcd(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult 
     Ok(Datum::Integer(x))
 }
 
+fn pow(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let mut b = vs[0].take().as_integer()?;
+    let mut e = vs[1].take().as_integer()?;
+    let mut res = 1;
+
+    while e > 0 {
+        if (e % 2) == 0 {
+            b *= b;
+            e /= 2;
+        } else {
+            res *= b;
+            e -= 1;
+        }
+    }
+
+    Ok(Datum::Integer(res))
+}
+
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "prime?", prime_questionmark, Arity::Exact(1));
     register(hm, "+", add, Arity::Min(2));
@@ -472,4 +508,5 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "floor", floor, Arity::Exact(1));
     register(hm, "round", round, Arity::Exact(1));
     register(hm, "gcd", gcd, Arity::Exact(2));
+    register(hm, "pow", pow, Arity::Exact(2));
 }

@@ -10,6 +10,7 @@ use ::StepStream;
 use ::MapStream;
 use ::SelectStream;
 use ::PermutationStream;
+use ::CombinationStream;
 use ::Stream;
 
 use ::eval::Evaluator;
@@ -29,6 +30,12 @@ fn step(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult
 fn permutations(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let array = vs[0].take().as_list()?;
     Ok(Datum::Stream(Stream::Permutation(PermutationStream::new(array))))
+}
+
+fn combinations(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let size = vs[0].take().as_integer()?;
+    let array = vs[1].take().as_list()?;
+    Ok(Datum::Stream(Stream::Combination(CombinationStream::new(array, size as usize))))
 }
 
 fn range(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -172,6 +179,7 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "range~", range, Arity::Range(2, 3));
     register(hm, "step~", step, Arity::Range(0, 2));
     register(hm, "permutations~", permutations, Arity::Exact(1));
+    register(hm, "combinations~", combinations, Arity::Exact(2));
     register(hm, "map~", map, Arity::Exact(2));
     register(hm, "nth~", nth, Arity::Exact(2));
     register(hm, "select~", select, Arity::Exact(2));
