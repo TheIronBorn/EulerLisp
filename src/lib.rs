@@ -1,3 +1,6 @@
+#![feature(io)]
+#![feature(i128_type)]
+
 extern crate time;
 extern crate nom;
 extern crate rustyline;
@@ -17,6 +20,8 @@ mod preprocess;
 mod bignum;
 mod numbers;
 mod syntax_rule;
+mod lexer;
+mod new_parser;
 
 use env::EnvRef;
 
@@ -42,7 +47,8 @@ pub enum Stream {
     Step(StepStream),
     Map(MapStream),
     Select(SelectStream),
-    Permutation(PermutationStream)
+    Permutation(PermutationStream),
+    Combination(CombinationStream)
 }
 
 impl Stream {
@@ -52,7 +58,8 @@ impl Stream {
             &mut Stream::Step(ref mut rs) => rs.next(eval, env_ref),
             &mut Stream::Map(ref mut rs) => rs.next(eval, env_ref),
             &mut Stream::Select(ref mut rs) => rs.next(eval, env_ref),
-            &mut Stream::Permutation(ref mut rs) => rs.next(eval, env_ref)
+            &mut Stream::Permutation(ref mut rs) => rs.next(eval, env_ref),
+            &mut Stream::Combination(ref mut rs) => rs.next(eval, env_ref)
         }
     }
 }
@@ -93,15 +100,64 @@ pub struct PermutationStream {
     c: Vec<usize>
 }
 
+#[derive(PartialEq, Clone, Debug)]
+pub struct CombinationStream {
+    array: Vec<Datum>,
+    indices: Vec<usize>,
+    n: usize,
+    size: usize,
+    done: bool,
+}
+
 impl PermutationStream {
-    pub fn new(array: Vec<Datum>) -> PermutationStream {
+    pub fn new(array: Vec<Datum>) -> Self {
         let n = array.len();
-        PermutationStream {
+        Self {
             array: array.clone(),
             next: array,
             i: 0,
             n: n,
             c: vec![0; n]
+        }
+    }
+}
+
+impl CombinationStream {
+    pub fn new(array: Vec<Datum>, size: usize) -> Self {
+        let n = array.len();
+        Self {
+            array: array.clone(),
+            indices: vec![0; size],
+            n: n,
+            size: size,
+            done: false
+        }
+    }
+
+    pub fn step(&mut self) {
+        let mut carry = 1;
+        for i in 0..self.size {
+            let next = carry + self.indices[i];
+            if next >= self.n {
+                self.indices[i] = 0;
+            } else {
+                self.indices[i] = next;
+                carry = 0;
+            }
+        }
+
+        self.done = carry != 0;
+    }
+}
+
+impl LispIterator for CombinationStream {
+    fn next(&mut self, _eval: &mut eval::Evaluator, _env_ref: EnvRef) -> Option<Datum> {
+        if self.done {
+            None
+        } else {
+            let ret = self.indices.clone().into_iter().map(|i| self.array[i].clone()).collect();
+            self.step();
+            Some(Datum::List(ret))
         }
     }
 }
@@ -316,7 +372,7 @@ pub enum Datum {
     Float(Fsize),
     Bignum(bignum::Bignum),
     Char(char),
-    Str(String),
+    String(String),
     Symbol(String),
     Pair(Box<Datum>, Box<Datum>),
     List(Vec<Datum>),
@@ -515,7 +571,7 @@ impl Datum {
 
     fn as_string(&self) -> Result<String, LispErr> {
         match self {
-            &Datum::Str(ref n) => Ok(n.clone()),
+            &Datum::String(ref n) => Ok(n.clone()),
             a => panic!("Can't convert {} to string", a)
         }
     }
@@ -530,6 +586,7 @@ impl Datum {
     fn as_list(&self) -> Result<Vec<Datum>, LispErr> {
         match self {
             &Datum::List(ref n) => Ok(n.clone()),
+            &Datum::Nil => Ok(Vec::new()),
             a => panic!("Can't convert {} to a list", a)
         }
     }
@@ -558,13 +615,19 @@ impl Datum {
             (&Datum::Rational(ref a), &Datum::Rational(ref b)) => Ok(
                 (a.num * b.denom).cmp(&(b.num * a.denom))
             ),
+            (&Datum::Integer(ref a), &Datum::Rational(ref b)) => Ok(
+                (a *  b.denom).cmp(&(b.num))
+            ),
+            (&Datum::Rational(ref a), &Datum::Integer(ref b)) => Ok(
+                a.num.cmp(&(b *  a.denom))
+            ),
             (ref other, &Datum::Float(ref b)) => {
                 Ok((other.as_float()?).partial_cmp(b).unwrap())
             },
             (&Datum::Float(ref b), ref other) => {
                 Ok(b.partial_cmp(&other.as_float()?).unwrap())
             },
-            (&Datum::Str(ref a), &Datum::Str(ref b)) => Ok(a.cmp(b)),
+            (&Datum::String(ref a), &Datum::String(ref b)) => Ok(a.cmp(b)),
             (&Datum::Char(ref a), &Datum::Char(ref b)) => Ok(a.cmp(b)),
             (&Datum::Pair(ref a1, ref a2), &Datum::Pair(ref b1, ref b2)) => {
                 let res1 = a1.compare(b1)?;
@@ -621,7 +684,7 @@ impl fmt::Display for Datum {
             Datum::Rational(ref x) => write!(f, "{}", x),
             Datum::Bignum(ref x) => write!(f, "{}", x),
             Datum::Float(x) => write!(f, "{}", x),
-            Datum::Str(ref s) => write!(f, "\"{}\"", s),
+            Datum::String(ref s) => write!(f, "\"{}\"", s),
             Datum::Nil => write!(f, "'()"),
             Datum::Undefined => write!(f, "undefined"),
             Datum::Lambda(_) => write!(f, "<lambda>"),

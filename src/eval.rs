@@ -26,7 +26,7 @@ pub struct Evaluator {
     level: isize,
     symbol_table: SymbolTable,
     pub syntax_rules: HashMap<String, SyntaxRule>,
-    root_env: EnvRef,
+    pub root_env: EnvRef,
     root_aenv: AEnvRef,
     builtins: HashMap<String, LispFn>,
 }

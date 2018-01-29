@@ -10,3 +10,7 @@
 (defn fac (n (acc 1))
   (if (zero? n) acc
       (fac (dec n) (* acc n))))
+
+(defn abs (x) (if (< x 0) (- x) x))
+(defn isqrt (n) (floor (sqrt n)))
+

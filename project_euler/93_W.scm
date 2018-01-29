@@ -1,3 +1,16 @@
+; Solved: 29.1.18
+
+; Special "broken" division as an easy way to handle
+; stuff like (/ a 0).
+; Returns a number that could not possibly appear in any useful sequence
+(defn div_ (a b) (if (= b 0) -99999 (/ a b)))
+(defn calc (op a b)
+  (case op
+    ['+ (+ a b)]
+    ['- (- a b)]
+    ['* (* a b)]
+    ['/ (div_ a b)]))
+
 (defn brackets (dgts ops)
   (let ([a (fst dgts)]
         [b (frst dgts)]
@@ -7,24 +20,13 @@
         [op2 (frst ops)]
         [op3 (frrst ops)])
     (list
-      (eval (list op2
-                  (list op1 a b)
-                  (list op3 c d)))
-      (eval (list op3
-                  (list op2 (list op1 a b) c)
-                  d))
-      (eval (list op3
-                  (list op1 a (list op2 b c))
-                  d))
-      (eval (list op1
-                  a
-                  (list op3 (list op2 b c) d)))
-      (eval (list op1
-                  a
-                  (list op2 b (list op3 c d)))))))
+      (calc op2 (calc op1 a b) (calc op3 c d))
+      (calc op3 (calc op2 (calc op1 a b) c) d)
+      (calc op3 (calc op1 a (calc op2 b c)) d)
+      (calc op1 a (calc op3 (calc op2 b c) d))
+      (calc op1 a (calc op2 b (calc op3 c d))))))
 
-(defn div_ (a b) (if (= b 0) -99999 (/ a b)))
-(def op-combs (combinations 3 (list '+ '- '* 'div_)))
+(def op-combs (combinations 3 (list '+ '- '* '/)))
 
 (def abcds
      (flatmap
@@ -59,19 +61,12 @@
                    (map &(if (integer? &1) &1 -999)
                         (brackets dgs ops)))
                op-combs)
-             sort
-             uniq))
+             sort uniq))
          (permutations abcd))
-       sort
-       uniq
-       reverse
-       streak
-     ))
-
+       sort uniq streak))
 
 (~>
   (max-by results abcds)
-  fst
   reverse
   (apply str)
   (println "Solution: "))

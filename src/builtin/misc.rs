@@ -85,8 +85,10 @@ fn read(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult
     }
 }
 
-fn eval(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
-    eval.eval_datum(vs[0].take(), env_ref)
+// TODO: 
+fn eval(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let env = eval.root_env.clone();
+    eval.eval_datum(vs[0].take(), env)
 }
 
 fn syntax_expand(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
