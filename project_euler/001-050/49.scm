@@ -1,5 +1,4 @@
 ; Solved 8.1
-; Changes: Add bignum multiplication
 
 (def myprimes 
    (~> (range~ 1000 9999)

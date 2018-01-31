@@ -12,52 +12,11 @@ use ::bignum::Bignum;
 use ::eval::Evaluator;
 use ::EnvRef;
 
-fn bg_add(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
-        Datum::Bignum(a) => {
-            match vs[1].take() {
-                Datum::Bignum(b) => Ok(Datum::Bignum(a + b)),
-                other => Err(TypeError("bignum+, second argument", "bignum", other))
-            }
-        },
-        other => Err(TypeError("bignum+, first argument", "bignum", other))
-    }
-}
-
-fn bg_mul(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
-        Datum::Bignum(a) => {
-            match vs[1].take() {
-                Datum::Bignum(b) => Ok(Datum::Bignum(a * b)),
-                other => Err(TypeError("bignum*, second argument", "bignum", other))
-            }
-        },
-        other => Err(TypeError("bignum*, first argument", "bignum", other))
-    }
-}
-
 fn number_to_bignum(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Integer(a) = vs[0] {
         return Ok(Datum::Bignum(Bignum::new(a)))
     }
     Err(TypeError("number->bignum", "integer", vs[0].take()))
-}
-
-fn bignum_num_digits(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Bignum(a) = vs[0].take() {
-        return Ok(Datum::Integer(a.num_digits()))
-    }
-    Err(TypeError("bignum-num-digits", "bignum", vs[0].take()))
-}
-
-fn bignum_digits(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Bignum(a) = vs[0].take() {
-        let digits = a.digits();
-        return Ok(Datum::List(
-                digits.into_iter().map(|d| Datum::Integer(d)).collect()
-        ));
-    }
-    Err(TypeError("bignum-digits", "bignum", vs[0].take()))
 }
 
 fn bignum_from_digits(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -123,11 +82,7 @@ fn bignum_from_chunks(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef)
 }
 
 pub fn load(hm: &mut HashMap<String, LispFn>) {
-    register(hm, "bignum+", bg_add, Arity::Exact(2));
-    register(hm, "bignum*", bg_mul, Arity::Exact(2));
     register(hm, "bignum", number_to_bignum, Arity::Exact(1));
-    register(hm, "bignum-num-digits", bignum_num_digits, Arity::Exact(1));
-    register(hm, "bignum-digits", bignum_digits, Arity::Exact(1));
     register(hm, "digits->bignum", bignum_from_digits, Arity::Exact(1));
     register(hm, "bignum-chunks", bignum_chunks, Arity::Exact(1));
     register(hm, "chunks->bignum", bignum_from_chunks, Arity::Exact(1));

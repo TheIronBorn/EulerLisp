@@ -390,7 +390,26 @@ impl Add for Datum {
     // TODO: Allow these to return errors
     fn add(self, other: Datum) -> Datum {
         match (self, other) {
-            (Datum::Integer(a), Datum::Integer(b)) => Datum::Integer(a + b),
+            (Datum::Integer(a), Datum::Integer(b)) => {
+                match a.checked_add(b) {
+                    Some(r) => Datum::Integer(r),
+                    None => {
+                       Datum::Bignum(
+                           bignum::Bignum::new(a) +
+                           bignum::Bignum::new(b)
+                        )
+                    }
+                }
+            },
+            (Datum::Integer(a), Datum::Bignum(b)) => {
+                Datum::Bignum(bignum::Bignum::new(a) + b)
+            },
+            (Datum::Bignum(a), Datum::Integer(b)) => {
+                Datum::Bignum(a + bignum::Bignum::new(b))
+            },
+            (Datum::Bignum(a), Datum::Bignum(b)) => {
+                Datum::Bignum(a + b)
+            },
             (Datum::Rational(a), Datum::Integer(b)) => (a + b).reduce(),
             (Datum::Integer(a), Datum::Rational(b)) => (a + b).reduce(),
             (Datum::Rational(a), Datum::Rational(b)) => (a + b).reduce(),
@@ -435,8 +454,27 @@ impl Mul for Datum {
 
     fn mul(self, other: Datum) -> Datum {
         match (self, other) {
-            (Datum::Integer(a), Datum::Integer(b)) => Datum::Integer(a * b),
+            (Datum::Integer(a), Datum::Integer(b)) => {
+                match a.checked_mul(b) {
+                    Some(r) => Datum::Integer(r),
+                    None => {
+                       Datum::Bignum(
+                           bignum::Bignum::new(a) *
+                           bignum::Bignum::new(b)
+                        )
+                    }
+                }
+            },
             (Datum::Integer(a), Datum::Rational(b)) => (a * b).reduce(),
+            (Datum::Integer(a), Datum::Bignum(b)) => {
+                Datum::Bignum(bignum::Bignum::new(a) * b)
+            },
+            (Datum::Bignum(a), Datum::Integer(b)) => {
+                Datum::Bignum(a * bignum::Bignum::new(b))
+            },
+            (Datum::Bignum(a), Datum::Bignum(b)) => {
+                Datum::Bignum(a * b)
+            },
             (Datum::Rational(a), Datum::Integer(b)) => (a * b).reduce(),
             (Datum::Rational(a), Datum::Rational(b)) => (a * b).reduce(),
             (Datum::Float(f), other) => Datum::Float(f * other.as_float().unwrap()),
@@ -611,6 +649,8 @@ impl Datum {
         match (self, other) {
             (&Datum::Integer(ref a), &Datum::Integer(ref b)) => Ok(a.cmp(b)),
             (&Datum::Bignum(ref a), &Datum::Bignum(ref b)) => Ok(a.cmp(b)),
+            (&Datum::Integer(a), &Datum::Bignum(ref b)) => Ok(bignum::Bignum::new(a).cmp(b)),
+            (&Datum::Bignum(ref a), &Datum::Integer(b)) => Ok(a.cmp(&bignum::Bignum::new(b))),
             (&Datum::Rational(ref a), &Datum::Rational(ref b)) => Ok(
                 (a.num * b.denom).cmp(&(b.num * a.denom))
             ),

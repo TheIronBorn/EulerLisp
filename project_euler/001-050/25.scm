@@ -1,9 +1,8 @@
 ; Solved: 17.12.17
-; Improved: 5.12.17, use bignum
 
-(defn solve (a b (n 1))
-      (if (>= (bignum-num-digits a) 1000)
+(defn solve ((a 1) (b 1) (n 1))
+      (if (>= (number-of-digits a) 1000)
           n
-          (solve b (bignum+ a b) (inc n))))
+          (solve b (+ a b) (inc n))))
 
-(println "Solution: " (solve (bignum 1) (bignum 1)))
+(solution (solve))

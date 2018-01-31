@@ -1,14 +1,9 @@
 ; Solved 22.1.18
 
 (defn count-powers (of (cur 1) (acc 0))
-    (let ([len (bignum-num-digits (bigpow of cur))])
-      (cond
-        [(= len cur) (count-powers of (inc cur) (inc acc))]
-        [else acc])))
+    (let ([len (number-of-digits (pow of cur))])
+      (if (= len cur)
+          (count-powers of (inc cur) (inc acc))
+          acc)))
 
-(~>
-  (range 1 9)
-  (map bignum)
-  (map count-powers)
-  sum
-  (println "Solution: "))
+(~> (range 1 9) (reduce-sum count-powers) solution)

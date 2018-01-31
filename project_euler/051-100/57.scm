@@ -2,14 +2,12 @@
 
 (defn next (frac)
   (cons
-    (bignum+ (fst frac)
-       (bignum* (bignum 2) (rst frac)))
-    (bignum+ (fst frac)
-       (rst frac))))
+    (+ (fst frac) (* 2 (rst frac)))
+    (+ (fst frac) (rst frac))))
 
 (defn more-digits? (frac)
-  (> (~> frac fst bignum-num-digits)
-     (~> frac rst bignum-num-digits)))
+  (> (~> frac fst number-of-digits)
+     (~> frac rst number-of-digits)))
 
 (defn solve (cur (n 1000) (acc 0))
   (if (zero? n)
@@ -17,7 +15,4 @@
       (solve (next cur) (dec n)
              (if (more-digits? cur) (inc acc) acc))))
 
-(~>
-  (cons (bignum 3) (bignum 2))
-  solve
-  (println "Solution: "))
+(~> (cons 3 2) solve solution)

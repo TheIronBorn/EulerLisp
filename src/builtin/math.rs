@@ -105,7 +105,6 @@ fn prime_questionmark(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef)
 
 fn add(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let mut res = vs[0].take();
-
     for v in &mut vs[1..] {
         res = res + v.take();
     }
@@ -116,7 +115,11 @@ fn subtract(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispRe
     if vs.len() == 1 {
         Ok(-vs[0].take())
     } else {
-        Ok(vs[0].take() - vs[1].take())
+        let mut res = vs[0].take();
+        for v in &mut vs[1..] {
+            res = res - v.take();
+        }
+        Ok(res)
     }
 }
 
@@ -129,52 +132,11 @@ fn mult(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult
     Ok(res)
 }
 
-fn fx_add(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Integer(a) = vs[0] {
-        if let Datum::Integer(b) = vs[1] {
-            return Ok(Datum::Integer(a + b));
-        }
-    }
-    Err(InvalidTypeOfArguments)
-}
-
-fn fx_subtract(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Integer(a) = vs[0] {
-        if let Datum::Integer(b) = vs[1] {
-            return Ok(Datum::Integer(a - b));
-        }
-    }
-    Err(InvalidTypeOfArguments)
-}
-
-fn fx_mult(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Integer(a) = vs[0] {
-        if let Datum::Integer(b) = vs[1] {
-            return Ok(Datum::Integer(a * b));
-        }
-    }
-    Err(InvalidTypeOfArguments)
-}
-
 fn fx_div(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Integer(a) = vs[0] {
         if let Datum::Integer(b) = vs[1] {
             return Ok(Datum::Integer(a / b));
         }
-    }
-    Err(InvalidTypeOfArguments)
-}
-
-fn inc(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Integer(a) = vs[0] {
-        return Ok(Datum::from(&(a + 1)));
-    }
-    Err(InvalidTypeOfArguments)
-}
-
-fn dec(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Integer(a) = vs[0] {
-        return Ok(Datum::from(&(a - 1)));
     }
     Err(InvalidTypeOfArguments)
 }
@@ -342,17 +304,38 @@ fn primes(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResu
 }
 
 fn digits(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Integer(mut a) = vs[0] {
-        let mut result = Vec::new();
+    match vs[0] {
+        Datum::Integer(mut a) => {
+            let mut result = Vec::new();
 
-        while a != 0 {
-            result.push(Datum::from(&(a % 10)));
-            a /= 10;
-        }
+            while a != 0 {
+                result.push(Datum::from(&(a % 10)));
+                a /= 10;
+            }
 
-        return Ok(Datum::List(result))
+            return Ok(Datum::List(result))
+        },
+        Datum::Bignum(ref a) => {
+            let digits = a.digits();
+            return Ok(Datum::List(
+                    digits.into_iter().map(|d| Datum::Integer(d)).collect()
+            ));
+        },
+        _ => Err(InvalidTypeOfArguments)
     }
-    Err(InvalidTypeOfArguments)
+}
+
+fn num_digits(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    match vs[0] {
+        Datum::Integer(a) => {
+            let res = (a as f64).log10().floor() + 1.0;
+            return Ok(Datum::Integer(res as isize))
+        },
+        Datum::Bignum(ref a) => {
+            return Ok(Datum::Integer(a.num_digits()))
+        },
+        ref other => Err(TypeError("num-digits", "integer / bignum", other.clone()))
+    }
 }
 
 fn digits_to_number(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -475,11 +458,6 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "+", add, Arity::Min(2));
     register(hm, "-", subtract, Arity::Min(1));
     register(hm, "*", mult, Arity::Min(2));
-    register(hm, "fx+", fx_add, Arity::Exact(2));
-    register(hm, "fx-", fx_subtract, Arity::Exact(2));
-    register(hm, "fx*", fx_mult, Arity::Exact(2));
-    register(hm, "inc", inc, Arity::Exact(1));
-    register(hm, "dec", dec, Arity::Exact(1));
     register(hm, "divides?", divides_questionmark, Arity::Exact(2));
     register(hm, "zero?", zero_questionmark, Arity::Exact(1));
     register(hm, "even?", even_questionmark, Arity::Exact(1));
@@ -494,6 +472,7 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "prime-factors", prime_factors, Arity::Exact(1));
     register(hm, "primes", primes, Arity::Exact(1));
     register(hm, "number->digits", digits, Arity::Exact(1));
+    register(hm, "number-of-digits", num_digits, Arity::Exact(1));
     register(hm, "digits->number", digits_to_number, Arity::Exact(1));
     register(hm, "numerator", numerator, Arity::Exact(1));
     register(hm, "denominator", denominator, Arity::Exact(1));
@@ -508,5 +487,5 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "floor", floor, Arity::Exact(1));
     register(hm, "round", round, Arity::Exact(1));
     register(hm, "gcd", gcd, Arity::Exact(2));
-    register(hm, "pow", pow, Arity::Exact(2));
+    // register(hm, "pow", pow, Arity::Exact(2));
 }

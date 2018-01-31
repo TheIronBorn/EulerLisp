@@ -134,3 +134,5 @@
   (if (nil? (rst arr))
       (fst arr)
       (last (rst arr))))
+
+(defn flatten (lst) (flatmap (fn (x) x) lst))

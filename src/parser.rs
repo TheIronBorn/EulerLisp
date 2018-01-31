@@ -81,7 +81,7 @@ impl<'a> Parser<'a> {
                     Ok(Some(Datum::Symbol(id)))
                 },
                 Literal::Number(sign, base, body) => {
-                    match isize::from_str_radix(&body, base as u32) {
+                    match isize::from_str_radix(&body.replace("_", ""), base as u32) {
                         Ok(i) => {
                             let number = if sign { i } else { -i };
                             Ok(Some(Datum::Integer(number)))

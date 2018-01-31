@@ -1,5 +1,8 @@
 ; Solved: 27.1.18
 ; Time: 48.48s
+; TODO: Remove bignum-chunks when % works on bignums
+
+(def all-digits (range 1 9))
 
 (defn pandigital? (n)
       (~>
@@ -9,20 +12,20 @@
         number->digits
         (take 9)
         sort
-        (= (range 1 9))))
+        (= all-digits)))
 
 (defn pandigital2? (n)
       (~>
         n
-        bignum-digits
+        number->digits
         reverse
         (take 9)
         sort
-        (= (range 1 9))))
+        (= all-digits)))
 
 (defn fib (n a b)
       (if (and (pandigital? a) (pandigital2? a))
           n
-          (fib (inc n) b (bignum+ a b))))
+          (fib (inc n) b (+ a b))))
 
-(println "Solution: " (fib 1 (bignum 1) (bignum 1)))
+(solution (fib 1 (bignum 1) (bignum 1)))

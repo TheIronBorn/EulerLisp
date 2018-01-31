@@ -25,11 +25,10 @@
                         (cons k2 v2)
                         (merge a1 (rst a2)))]))]))
 
-(def factors_ (map prime-factors (range 2 20)))
-(def max-factors (reduce merge '() factors_))
-
-(println "Max. factors: " max-factors)
-(println
-  "Solution: "
-  (reduce-product &(pow (fst &1) (rst &1)) max-factors))
+(~>
+  (range 2 20)
+  (map prime-factors)
+  (reduce merge '())
+  (reduce-product &(pow (fst &1) (rst &1)))
+  solution)
 

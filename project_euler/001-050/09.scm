@@ -1,9 +1,11 @@
 ; Solved: 20.12.17
-; Changes:
 
-(defn triplet? (a b c)
-      (= (+ (square a) (square b))
-         (square c)))
+(def n 1000)
+
+(defn triplet? (lst)
+      (= (+ (square (fst lst))
+            (square (frst lst)))
+         (square (frrst lst))))
 
 ; Max possible:
 ; a = 332
@@ -13,17 +15,18 @@
 ; a = fixed
 ; b = (1000 - fixed - 1) / 2
 
-; Just try to bruteforce it
-(defn triplet (sum)
-      (let* 
-        ([a (rand 1 (div (dec sum) 3))]
-         [b (rand a (div (- sum a) 2))]
-         [c (- (- sum a) b)])
-        (if (triplet? a b c)
-            (list a b c)
-            (triplet sum))))
+(defn find-triplets (a)
+  (~>
+    (range~ (inc a) (div (- n a) 2))
+    (map~ &(list a &1 (- n a &1)))
+    (select~ triplet?)
+    collect))
 
-(def result (triplet 1000))
-
-(println "Triplet: " result)
-(println "Solution: " (reduce * 1 result))
+(~>
+  (range~ 1 (div (dec n) 3))
+  (map~ find-triplets)
+  collect
+  flatten
+  fst
+  product
+  solution)

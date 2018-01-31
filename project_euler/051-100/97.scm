@@ -1,22 +1,10 @@
 ; Solved 11.1
 
-(defn resize (n)
-  (~> n
-      bignum-chunks
-      (take 2)
-      chunks->bignum))
-
-(defn resizing-bigpow (b e)
-  (cond
-    [(zero? 0) (bignum 1)]
-    [(even? e) (resizing-bigpow (resize (bignum* b b)) (div e 2))]
-    [else (bignum* b (resizing-bigpow b (dec e)))]))
+(defn last-10 (n) (% n 10_000_000_000))
 
 (~>
-  (resizing-bigpow (bignum 2) 7830457)
-  (bignum* (bignum 28433))
-  bignum-digits
-  (take 10)
-  digits->number
+  (modexp 2 7830457 10_000_000_000)
+  (* 28433)
   inc
-  (println "Solution: "))
+  last-10
+  solution)
