@@ -1,6 +1,16 @@
 ; Solved 1.1
+; Changes:
+;  * add `file-read` function
 
-(defn reduce-rows (a b acc)
+(def input
+     (~> "project_euler/input-files/18.txt"
+         file-read
+         lines
+         reverse
+         rst
+         (map &(map string->number (words &1)))))
+
+(defn reduce-rows (a b (acc '()))
   (if (nil? b)
       (reverse acc)
       (reduce-rows
@@ -17,14 +27,7 @@
         (ffst input)
         (reduce-full
           (cons
-            (reduce-rows (fst input) (frst input) '())
+            (reduce-rows (fst input) (frst input))
             (rrst input)))))
 
-(~>
-  (file-read "./project_euler/061-070/67.txt")
-  lines
-  reverse
-  rst
-  (map &(map string->number (words &1)))
-  reduce-full
-  (println "Solution: "))
+(println "Solution: " (reduce-full input))

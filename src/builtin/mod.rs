@@ -27,7 +27,7 @@ pub fn register(
     f: fn(&mut [Datum], &mut Evaluator, EnvRef) -> LispResult,
     arity: Arity
 ) {
-    hm.insert(name.to_string(), LispFn(f, arity));
+    hm.insert(name.to_string(), LispFn(f, arity, String::from(name)));
 }
 
 pub fn load(hm: &mut HashMap<String, LispFn>) {

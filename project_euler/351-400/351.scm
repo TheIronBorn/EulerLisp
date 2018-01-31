@@ -32,7 +32,7 @@
 (defn loop1 (x)
       (when (<= x l)
         (~>
-          (div (* x (inc x)) 2)
+          (gauss-sum x)
           (inner1-1 x 2 (isqrt x))
           (inner1-2 x 1 (isqrt x))
           (set-nth! v x))
@@ -55,7 +55,7 @@
       (when (> x 0)
         (let* ([k (div n x)])
           (~>
-            (div (* k (inc k)) 2)
+            (gauss-sum k)
             (inner2-1 x k 2 (isqrt k))
             (inner2-2 x k 1 (isqrt k))
             (set-nth! big-v x)))

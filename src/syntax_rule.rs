@@ -1,14 +1,16 @@
 use std::collections::HashMap;
 use ::Datum;
+use ::Symbol;
+use symbol_table::SymbolTable;
 
-// TODO: Implement SyntaxRuleErrors instead of using unwrap() everywhere
 // Based on R5RS, Section 4.2.3
 //
+// TODO: Implement SyntaxRuleErrors instead of using unwrap() everywhere
 // TODO: Templates like `(name val) ...` don't seem to work
 #[derive(Debug, Clone)]
 pub struct SyntaxRule {
-    name: String,
-    literals: Vec<String>,
+    name: Symbol,
+    literals: Vec<Symbol>,
     rules: Vec<Rule>
 }
 
@@ -16,20 +18,19 @@ pub struct SyntaxRule {
 pub struct Rule(Pattern, Template);
 
 impl Rule {
-    pub fn parse(datum: Datum) -> Rule {
-        let rule = datum.as_list().unwrap();
-
-        let pattern = Pattern::parse(rule[0].clone());
-        let template = Template::parse(rule[1].clone());
+    pub fn parse(expr: Datum, symbol_table: &SymbolTable) -> Rule {
+        let rule = expr.as_list().unwrap();
+        let pattern = Pattern::parse(rule[0].clone(), symbol_table);
+        let template = Template::parse(rule[1].clone(), symbol_table);
 
         Rule(pattern, template)
     }
 }
 
 impl SyntaxRule {
-    pub fn parse(name: String, literals: Vec<Datum>, rules: Vec<Datum>) -> SyntaxRule {
+    pub fn parse(name: Symbol, literals: Vec<Datum>, rules: Vec<Datum>, symbol_table: &SymbolTable) -> SyntaxRule {
             let literals = literals.iter().map( |l| l.as_symbol().unwrap() ).collect();
-            let rules = rules.into_iter().map( |r| Rule::parse(r) ).collect();
+            let rules = rules.into_iter().map( |r| Rule::parse(r, symbol_table) ).collect();
 
         SyntaxRule {
             name: name,
@@ -44,13 +45,13 @@ impl SyntaxRule {
         // not its own name,
         // to have the patterns work (somewhat) like specified in R5RS,
         // we need to put it in front again
-        datums.insert(0, Datum::Symbol(self.name.clone()));
+        datums.insert(0, Datum::Symbol(self.name));
         let datum = Datum::List(datums);
 
         for rule in self.rules.iter() {
             let &Rule(ref pattern, ref template) = rule;
 
-            let mut bindings: HashMap<String, Datum> = HashMap::new();
+            let mut bindings: HashMap<Symbol, Datum> = HashMap::new();
             if self.matches(pattern, datum.clone(), &mut bindings) {
                 return template.apply(&mut bindings);
             }
@@ -58,18 +59,18 @@ impl SyntaxRule {
         panic!("No matching pattern for {:?} in {:?}", datum, self);
     }
 
-    pub fn matches(&self, pattern: &Pattern, datum: Datum, bindings: &mut HashMap<String, Datum>) -> bool {
+    pub fn matches(&self, pattern: &Pattern, datum: Datum, bindings: &mut HashMap<Symbol, Datum>) -> bool {
         match *pattern {
-            Pattern::Ident(ref name) => {
+            Pattern::Ident(name) => {
                 if let Datum::Symbol(s) = datum.clone() {
                     if s == self.name || self.literals.contains(&s) {
                         true
                     } else {
-                        bindings.insert(name.clone(), datum.clone());
+                        bindings.insert(name, datum.clone());
                         true
                     }
                 } else {
-                    bindings.insert(name.clone(), datum.clone());
+                    bindings.insert(name, datum.clone());
                     true
                 }
             },
@@ -131,7 +132,7 @@ impl SyntaxRule {
 
 #[derive(Debug, Clone)]
 pub enum Pattern {
-    Ident(String),
+    Ident(Symbol),
     // (<pattern> ...)
     List(Vec<Pattern>),
     // TODO: (<pattern> <pattern> ... . <pattern>)
@@ -139,33 +140,33 @@ pub enum Pattern {
     ListWithRest(Vec<Pattern>, Box<Pattern>)
 }
 
-fn is_ellipsis(datum: Datum) -> bool {
+fn is_ellipsis(datum: Datum, symbol_table: &SymbolTable) -> bool {
     if let Datum::Symbol(s) = datum {
-        s == "..."
+        symbol_table.lookup(s) == "..."
     } else {
         false
     }
 }
 
 impl Pattern {
-    pub fn parse(datum: Datum) -> Pattern {
-        match datum {
+    pub fn parse(expr: Datum, symbol_table: &SymbolTable) -> Pattern {
+        match expr {
             Datum::List(mut s) => {
                 if s.len() == 0 {
                     return Pattern::List(vec!());
                 } 
 
                 let last = s.get(s.len() - 1).unwrap().clone();
-                if is_ellipsis(last) {
+                if is_ellipsis(last, symbol_table) {
                     s.pop();
-                    let rest = Pattern::parse(s.pop().unwrap());
+                    let rest = Pattern::parse(s.pop().unwrap(), symbol_table);
                     Pattern::ListWithRest(
-                        s.into_iter().map( |d| Pattern::parse(d) ).collect(),
+                        s.into_iter().map( |d| Pattern::parse(d, symbol_table) ).collect(),
                         Box::new(rest)
                     )
                 } else {
                     Pattern::List(
-                        s.into_iter().map( |d| Pattern::parse(d) ).collect()
+                        s.into_iter().map( |d| Pattern::parse(d, symbol_table) ).collect()
                     )
                 }
 
@@ -179,7 +180,7 @@ impl Pattern {
         }
     }
 
-    pub fn keys(&self) -> Vec<String> {
+    pub fn keys(&self) -> Vec<Symbol> {
         match self {
             &Pattern::List(ref elems) => {
                 let mut res = Vec::new();
@@ -209,7 +210,7 @@ impl Pattern {
 // TODO: Find out what elements are used for
 #[derive(Debug, Clone)]
 pub enum Template {
-    Ident(String),
+    Ident(Symbol),
     Constant(Datum),
     // (<element> ...)
     List(Vec<Element>),
@@ -218,7 +219,7 @@ pub enum Template {
 }
 
 impl Template {
-    pub fn parse(datum: Datum) -> Template {
+    pub fn parse(datum: Datum, symbol_table: &SymbolTable) -> Template {
         match datum {
             Datum::Symbol(s) => Template::Ident(s),
             Datum::List(mut elems) => {
@@ -228,7 +229,7 @@ impl Template {
                         break;
                     }
 
-                    let t = Template::parse(elems.remove(0));
+                    let t = Template::parse(elems.remove(0), symbol_table);
 
                     if elems.len() == 0 {
                         res.push(Element::Normal(t));
@@ -236,7 +237,7 @@ impl Template {
                         // "peek" next element
                         let n = elems.remove(0);
 
-                        if is_ellipsis(n.clone()) {
+                        if is_ellipsis(n.clone(), symbol_table) {
                             res.push(Element::Ellipsed(t));
                         } else {
                             elems.insert(0, n);
@@ -250,14 +251,13 @@ impl Template {
         }
     }
 
-    pub fn apply(&self, bindings: &HashMap<String, Datum>) -> Datum {
+    pub fn apply(&self, bindings: &HashMap<Symbol, Datum>) -> Datum {
         match *self {
-            Template::Ident(ref n) => {
-                let binding = bindings.get(n);
-                if let Some(d) = binding {
+            Template::Ident(n) => {
+                if let Some(d) = bindings.get(&n) {
                     d.clone()
                 } else {
-                    Datum::Symbol(n.clone())
+                    Datum::Symbol(n)
                 }
             },
             Template::Constant(ref c) => c.clone(),

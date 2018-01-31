@@ -30,7 +30,7 @@
       (= (count hits-line? t) 1))
 
 (def triangles
-     (~> "./project_euler/102.txt"
+     (~> "./project_euler/input-files/102.txt"
          file-read
          lines
          (reject empty?)

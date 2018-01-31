@@ -2,7 +2,7 @@
 
 (def input
      (~>
-       "./project_euler/081-090/81.txt"
+       "./project_euler/input-files/81.txt"
        file-read
        lines
        (reject empty?)

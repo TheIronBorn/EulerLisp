@@ -49,7 +49,7 @@
 
 (def numbers
      (~>
-       (file-read "./project_euler/051-060/59.txt")
+       (file-read "./project_euler/input-files/59.txt")
        lines
        fst
        (string-split ",")

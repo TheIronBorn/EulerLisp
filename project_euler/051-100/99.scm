@@ -2,7 +2,7 @@
 
 (def numbers
   (~>
-    (file-read "./project_euler/091-100/99.txt")
+    (file-read "./project_euler/input-files/99.txt")
     lines
     (map &(map string->number (string-split "," &1)))))
 

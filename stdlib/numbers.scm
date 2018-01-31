@@ -14,3 +14,4 @@
 (defn abs (x) (if (< x 0) (- x) x))
 (defn isqrt (n) (floor (sqrt n)))
 
+(defn gauss-sum (n) (div (* n (inc n)) 2))

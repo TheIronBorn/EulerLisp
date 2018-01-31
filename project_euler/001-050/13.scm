@@ -1,7 +1,7 @@
 ; Solved: 29.12.17
 
 (def input
-     (~> "project_euler/011-020/13.txt"
+     (~> "project_euler/input-files/13.txt"
          file-read
          lines
          (reject empty?)))

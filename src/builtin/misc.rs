@@ -11,7 +11,6 @@ use ::Arity;
 use ::builtin::register;
 use ::eval::Evaluator;
 use ::EnvRef;
-use ::parser;
 
 fn println(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     for v in vs.iter() {
@@ -75,31 +74,21 @@ fn apply(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult 
     }
 }
 
-fn read(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let arg = vs.get(0).unwrap();
-    if let Datum::String(ref input) = *arg {
-        let result = parser::parse_datum(input.as_ref());
-        Ok(result)
-    } else {
-        Err(InvalidTypeOfArguments)
-    }
-}
+// fn read(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+//     let arg = vs.get(0).unwrap();
+//     if let Datum::String(ref input) = *arg {
+//         let result = parser::parse_datum(input.as_ref());
+//         Ok(result)
+//     } else {
+//         Err(InvalidTypeOfArguments)
+//     }
+// }
 
-// TODO: 
-fn eval(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let env = eval.root_env.clone();
-    eval.eval_datum(vs[0].take(), env)
-}
-
-fn syntax_expand(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let mut body = vs[0].as_list()?;
-    let name = body.remove(0).as_symbol()?;
-
-    let rule = eval.syntax_rules.get(&name).unwrap();
-    let expanded = rule.apply(body);
-    Ok(expanded)
-}
-
+// TODO: Fix the way environments are handled here
+// fn eval(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+//     let env = eval.root_env.clone();
+//     eval.eval_datum(vs[0].take(), env)
+// }
 
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "println", println, Arity::Min(0));
@@ -108,7 +97,6 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "not", not, Arity::Exact(1));
     register(hm, "file-read", file_read, Arity::Exact(1));
     register(hm, "apply", apply, Arity::Exact(2));
-    register(hm, "read", read, Arity::Exact(1));
-    register(hm, "eval", eval, Arity::Exact(1));
-    register(hm, "expand-syntax", syntax_expand, Arity::Exact(1));
+    // register(hm, "read", read, Arity::Exact(1));
+    // register(hm, "eval", eval, Arity::Exact(1));
 }

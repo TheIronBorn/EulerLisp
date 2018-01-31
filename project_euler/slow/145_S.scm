@@ -38,5 +38,4 @@
   (select~ &(< 0 (% &1 10)))
   (map~ number->digits)
   (count~ reversible?)
-  (println "Solution: ")
-  )
+  (println "Solution: "))

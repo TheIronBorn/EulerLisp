@@ -29,7 +29,7 @@
             )))
 
 (def names
-     (~> "project_euler/041-050/42.txt"
+     (~> "project_euler/input-files/42.txt"
          file-read
          (string-split ",")
          sort

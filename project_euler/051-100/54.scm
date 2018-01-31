@@ -102,7 +102,7 @@
                (~> hand2 (map fst) sort reverse))]
             [else #f]))))
 
-(~> "./project_euler/051-060/54.txt"
+(~> "./project_euler/input-files/54.txt"
     file-read
     lines
     (reject empty?)

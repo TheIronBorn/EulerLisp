@@ -21,7 +21,6 @@ mod bignum;
 mod numbers;
 mod syntax_rule;
 mod lexer;
-mod new_parser;
 
 use env::EnvRef;
 
@@ -298,21 +297,21 @@ pub enum Arity {
 }
 
 impl Arity {
-    fn check(&self, provided: usize) {
+    fn check(&self, provided: usize, name: &String) {
         match *self {
             Arity::Exact(a) => {
                 if a != provided {
-                    panic!("Expected {} arguments, got {}", a, provided);
+                    panic!("{} expected {} arguments, got {}", name, a, provided);
                 }
             },
             Arity::Min(a) => {
                 if a > provided {
-                    panic!("Expected at least {} arguments, got {}", a, provided);
+                    panic!("{} expected at least {} arguments, got {}", name, a, provided);
                 }
             },
             Arity::Range(a, b) => {
                 if provided < a || provided > b {
-                    panic!("Expected between {} and {} arguments, got {}", a, b, provided);
+                    panic!("{} expected between {} and {} arguments, got {}", name, a, b, provided);
                 }
             }
         }
@@ -320,7 +319,7 @@ impl Arity {
 }
 
 #[derive(Clone)]
-pub struct LispFn(fn(&mut [Datum], &mut eval::Evaluator, EnvRef) -> LispResult, Arity);
+pub struct LispFn(fn(&mut [Datum], &mut eval::Evaluator, EnvRef) -> LispResult, Arity, String);
 
 impl fmt::Debug for LispFn {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -345,7 +344,7 @@ pub struct Lambda {
     env: EnvRef,
     arity: usize,
     defaults: Vec<Datum>,
-    body: Box<Expression>,
+    body: Box<Meaning>,
     dotted: bool
 }
 
@@ -373,7 +372,7 @@ pub enum Datum {
     Bignum(bignum::Bignum),
     Char(char),
     String(String),
-    Symbol(String),
+    Symbol(Symbol),
     Pair(Box<Datum>, Box<Datum>),
     List(Vec<Datum>),
     DottedList(Vec<Datum>, Box<Datum>),
@@ -562,9 +561,9 @@ impl Datum {
         }
     }
 
-    fn as_symbol(&self) -> Result<String, LispErr> {
+    fn as_symbol(&self) -> Result<Symbol, LispErr> {
         match self {
-            &Datum::Symbol(ref n) => Ok(n.clone()),
+            &Datum::Symbol(n) => Ok(n),
             a => panic!("Can't convert {} to string", a)
         }
     }
@@ -702,43 +701,43 @@ pub type Symbol = usize;
 pub struct BindingRef(usize, usize);
 
 #[derive(Clone)]
-pub enum Expression {
-    If(Box<Expression>, Box<Expression>, Box<Expression>),
+pub enum Meaning {
+    If(Box<Meaning>, Box<Meaning>, Box<Meaning>),
     // TODO: No need to keep the param names in the lambda
-    LambdaDef(usize, Vec<Datum>, Box<Expression>, bool),
-    Do(Vec<Expression>, Box<Expression>),
+    LambdaDef(usize, Vec<Datum>, Box<Meaning>, bool),
+    Do(Vec<Meaning>, Box<Meaning>),
     Quote(Box<Datum>),
-    Definition(Box<Expression>),
-    Assignment(BindingRef, Box<Expression>),
-    ListPush(BindingRef, Box<Expression>),
-    ListRef(BindingRef, Box<Expression>),
-    ListSet(BindingRef, Box<Expression>, Box<Expression>),
-    BuiltinFunctionCall(fn(&mut [Datum], &mut eval::Evaluator, EnvRef)->LispResult, Vec<Expression>),
-    FunctionCall(Box<Expression>, Vec<Expression>),
+    Definition(Box<Meaning>),
+    Assignment(BindingRef, Box<Meaning>),
+    ListPush(BindingRef, Box<Meaning>),
+    ListRef(BindingRef, Box<Meaning>),
+    ListSet(BindingRef, Box<Meaning>, Box<Meaning>),
+    BuiltinFunctionCall(fn(&mut [Datum], &mut eval::Evaluator, EnvRef)->LispResult, Vec<Meaning>),
+    FunctionCall(Box<Meaning>, Vec<Meaning>),
     SelfEvaluating(Box<Datum>),
     BindingRef(BindingRef),
     DottedList(Vec<Datum>, Box<Datum>),
-    SyntaxRuleDefinition(String, Box<syntax_rule::SyntaxRule>),
+    SyntaxRuleDefinition(Symbol, Box<syntax_rule::SyntaxRule>),
 }
 
-impl Expression {
-    pub fn make_self_evaluating(datum: Datum) -> Expression {
-        Expression::SelfEvaluating(Box::new(datum))
+impl Meaning {
+    pub fn self_evaluating(datum: Datum) -> Meaning {
+        Meaning::SelfEvaluating(Box::new(datum))
     }
 
-    pub fn make_if(cond: Expression, cons: Expression, alt: Expression) -> Expression {
-        Expression::If(Box::new(cond), Box::new(cons), Box::new(alt))
+    pub fn make_if(cond: Meaning, cons: Meaning, alt: Meaning) -> Meaning {
+        Meaning::If(Box::new(cond), Box::new(cons), Box::new(alt))
     }
 
-    pub fn datum_nil() -> Expression {
-        Expression::SelfEvaluating(Box::new(Datum::Nil))
+    pub fn datum_nil() -> Meaning {
+        Meaning::SelfEvaluating(Box::new(Datum::Nil))
     }
 
-    pub fn datum_true() -> Expression {
-        Expression::SelfEvaluating(Box::new(Datum::Bool(true)))
+    pub fn datum_true() -> Meaning {
+        Meaning::SelfEvaluating(Box::new(Datum::Bool(true)))
     }
 
-    pub fn datum_false() -> Expression {
-        Expression::SelfEvaluating(Box::new(Datum::Bool(false)))
+    pub fn datum_false() -> Meaning {
+        Meaning::SelfEvaluating(Box::new(Datum::Bool(false)))
     }
 }

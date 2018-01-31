@@ -5,7 +5,7 @@
 ; 29.12.17, Refactor to use chunks & product methods
 ; 11.1.18, Refactor to use ~> 
 
- (~> "project_euler/001-010/8.txt"
+ (~> "project_euler/input-files/8.txt"
      file-read
      string->chars
      (select char-numeric?)

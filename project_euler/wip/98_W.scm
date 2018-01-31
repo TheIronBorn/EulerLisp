@@ -1,7 +1,7 @@
 ; Solved: 22.1.18
 
 (def candidates
-     (~> "./project_euler/091-100/98.txt"
+     (~> "./project_euler/input-files/98.txt"
          file-read
          (string-split ",")
          (map &(~> &1

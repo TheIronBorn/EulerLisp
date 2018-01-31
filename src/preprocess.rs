@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use ::Datum;
-use ::Expression;
+use ::Meaning;
 use ::LispErr;
 use ::LispFn;
 use ::Symbol;
@@ -20,19 +20,19 @@ fn process_params(params: &Vec<Datum>, symbol_table: &mut SymbolTable) -> (Vec<S
 
     for param in params {
         match *param {
-            Datum::Symbol(ref v) => {
+            Datum::Symbol(v) => {
                 if had_default {
                     panic!("All params after one with a default must have defaults");
                 }
-                names.push(symbol_table.insert(v));
+                names.push(v);
             }, 
             Datum::List(ref elems) => {
                 let name = elems.get(0).unwrap();
                 let default = elems.get(1).unwrap_or(&Datum::Nil);
                 had_default = true;
 
-                if let Datum::Symbol(ref v) = *name {
-                    names.push(symbol_table.insert(v));
+                if let Datum::Symbol(v) = *name {
+                    names.push(v);
                 } else {
                     panic!("Function parameters with defaults must have the form (name default)");
                 }
@@ -50,9 +50,9 @@ fn preprocess_list(
     bodies: Vec<Datum>,
     symbol_table: &mut SymbolTable,
     builtins: &HashMap<String, LispFn>,
-    syntax_rules: &HashMap<String, SyntaxRule>,
+    syntax_rules: &HashMap<Symbol, SyntaxRule>,
     env_ref: AEnvRef
-) -> Vec<Expression> {
+) -> Vec<Meaning> {
     bodies.into_iter().map(
         |b| preprocess(b.clone(), symbol_table, builtins, syntax_rules, env_ref.clone()).unwrap()
     ).collect()
@@ -62,17 +62,17 @@ fn preprocess_sequence(
     bodies: Vec<Datum>,
     symbol_table: &mut SymbolTable,
     builtins: &HashMap<String, LispFn>,
-    syntax_rules: &HashMap<String, SyntaxRule>,
+    syntax_rules: &HashMap<Symbol, SyntaxRule>,
     env_ref: AEnvRef
-) -> Expression {
+) -> Meaning {
     if bodies.len() == 0 {
-        return Expression::datum_nil();
+        return Meaning::datum_nil();
     }
 
     let mut exprs = preprocess_list(bodies, symbol_table, builtins, syntax_rules, env_ref.clone());
     if exprs.len() > 1 {
         let last = exprs.pop().unwrap();
-        Expression::Do(exprs, Box::new(last))
+        Meaning::Do(exprs, Box::new(last))
     } else {
         exprs.pop().unwrap()
     }
@@ -82,11 +82,11 @@ fn preprocess_fn(
     mut elems: Vec<Datum>,
     symbol_table: &mut SymbolTable,
     builtins: &HashMap<String, LispFn>,
-    syntax_rules: &HashMap<String, SyntaxRule>,
+    syntax_rules: &HashMap<Symbol, SyntaxRule>,
     env_ref: AEnvRef
-) -> Result<Expression, LispErr> {
+) -> Result<Meaning, LispErr> {
     if elems.len() < 2 {
-        return Err(InvalidNumberOfArguments);
+        panic!("Invalid fn {:?}", elems);
     }
 
     let mut names;
@@ -106,8 +106,8 @@ fn preprocess_fn(
             names = res.0;
             defaults = res.1;
 
-            if let Datum::Symbol(ref v) = **tail {
-                names.push(symbol_table.insert(v));
+            if let Datum::Symbol(v) = **tail {
+                names.push(v);
             } else {
                 panic!("Dotted lambda `. rest` must be a symbol")
             }
@@ -123,55 +123,54 @@ fn preprocess_fn(
     let new_env_ref = Rc::new(RefCell::new(new_env));
 
     let body = preprocess_sequence(elems, symbol_table, builtins, syntax_rules, new_env_ref);
-    Ok(Expression::LambdaDef(names.len(), defaults, Box::new(body), dotted))
+    Ok(Meaning::LambdaDef(names.len(), defaults, Box::new(body), dotted))
 }
 
 pub fn preprocess(
     datum: Datum,
     symbol_table: &mut SymbolTable,
     builtins: &HashMap<String, LispFn>,
-    syntax_rules: &HashMap<String, SyntaxRule>,
+    syntax_rules: &HashMap<Symbol, SyntaxRule>,
     env_ref: AEnvRef
-    ) -> Result<Expression, LispErr> {
+    ) -> Result<Meaning, LispErr> {
     match datum {
         Datum::List(mut elems) => {
             if elems.len() == 0 {
-                return Err(InvalidNumberOfArguments)
+                panic!("Empty lists are not allowed");
             }
 
             let name = elems.remove(0);
             match name {
                 Datum::Symbol(s) => {
-                    match s.as_ref() {
+                    match symbol_table.lookup(s).as_ref() {
                         "fn" => preprocess_fn(elems, symbol_table, builtins, syntax_rules, env_ref.clone()),
                         "do" => Ok(preprocess_sequence(elems, symbol_table, builtins, syntax_rules, env_ref.clone())),
-                        "quote" => Ok(Expression::Quote(Box::new(elems.remove(0)))),
+                        "quote" => Ok(Meaning::Quote(Box::new(elems.remove(0)))),
                         "defsyntax" => {
                             let name = elems.remove(0).as_symbol().unwrap();
                             let literals = elems.remove(0).as_list().unwrap();
                             let rules = elems.remove(0).as_list().unwrap();
-                            let syntax_rule = SyntaxRule::parse(name.clone(), literals, rules);
+                            let syntax_rule = SyntaxRule::parse(name, literals, rules, symbol_table);
 
-                            Ok(Expression::SyntaxRuleDefinition(name, Box::new(syntax_rule)))
+                            Ok(Meaning::SyntaxRuleDefinition(name, Box::new(syntax_rule)))
                         }
                         "def" => {
                             check_arity!(elems, 2);
 
                             let key = elems.remove(0);
 
-                            if let Datum::Symbol(ref a) = key {
-                                if builtins.contains_key(a) {
-                                    panic!("{} is a reserved name", a);
+                            if let Datum::Symbol(symbol) = key {
+                                let name = symbol_table.lookup(symbol);
+                                if builtins.contains_key(&name) {
+                                    panic!("{} is a reserved name", name);
                                 }
-
-                                let symbol = symbol_table.insert(a);
 
                                 let foo = env_ref.borrow_mut().insert(&symbol);
                                 if foo.is_some() {
                                     let value = preprocess_sequence(elems, symbol_table, builtins, syntax_rules, env_ref.clone());
-                                    Ok(Expression::Definition(Box::new(value)))
+                                    Ok(Meaning::Definition(Box::new(value)))
                                 } else {
-                                    panic!("Trying to redefine existing variable {}", a);
+                                    panic!("Trying to redefine existing variable {}", name);
                                 }
                             } else {
                                 Err(InvalidTypeOfArguments)
@@ -182,13 +181,11 @@ pub fn preprocess(
 
                             let key = elems.remove(0);
 
-                            if let Datum::Symbol(ref a) = key {
-                                let symbol = symbol_table.insert(a);
-
+                            if let Datum::Symbol(symbol) = key {
                                 let foo = env_ref.borrow_mut().lookup(&symbol);
                                 if let Some(binding) = foo {
                                     let index = preprocess(elems.remove(0), symbol_table, builtins, syntax_rules, env_ref.clone())?;
-                                    Ok(Expression::ListRef(binding, Box::new(index)))
+                                    Ok(Meaning::ListRef(binding, Box::new(index)))
                                 } else {
                                     panic!("Trying to list-ref undefined variable");
                                 }
@@ -201,13 +198,11 @@ pub fn preprocess(
 
                             let key = elems.remove(0);
 
-                            if let Datum::Symbol(ref a) = key {
-                                let symbol = symbol_table.insert(a);
-
+                            if let Datum::Symbol(symbol) = key {
                                 let foo = env_ref.borrow_mut().lookup(&symbol);
                                 if let Some(binding) = foo {
                                     let value = preprocess(elems.remove(0), symbol_table, builtins, syntax_rules, env_ref.clone())?;
-                                    Ok(Expression::Assignment(binding, Box::new(value)))
+                                    Ok(Meaning::Assignment(binding, Box::new(value)))
                                 } else {
                                     panic!("Trying to set! undefined variable");
                                 }
@@ -220,13 +215,11 @@ pub fn preprocess(
 
                             let key = elems.remove(0);
 
-                            if let Datum::Symbol(ref a) = key {
-                                let symbol = symbol_table.insert(a);
-
+                            if let Datum::Symbol(symbol) = key {
                                 let foo = env_ref.borrow_mut().lookup(&symbol);
                                 if let Some(binding) = foo {
                                     let value = preprocess(elems.remove(0), symbol_table, builtins, syntax_rules, env_ref.clone())?;
-                                    Ok(Expression::ListPush(binding, Box::new(value)))
+                                    Ok(Meaning::ListPush(binding, Box::new(value)))
                                 } else {
                                     panic!("Trying to set! undefined variable");
                                 }
@@ -239,15 +232,13 @@ pub fn preprocess(
 
                             let key = elems.remove(0);
 
-                            if let Datum::Symbol(ref a) = key {
-                                let symbol = symbol_table.insert(a);
-
+                            if let Datum::Symbol(symbol) = key {
                                 let foo = env_ref.borrow_mut().lookup(&symbol);
                                 if let Some(binding) = foo {
                                     let index = preprocess(elems.remove(0), symbol_table, builtins, syntax_rules, env_ref.clone())?;
                                     let value = preprocess(elems.remove(0), symbol_table, builtins, syntax_rules, env_ref.clone())?;
 
-                                    Ok(Expression::ListSet(binding, Box::new(index), Box::new(value)))
+                                    Ok(Meaning::ListSet(binding, Box::new(index), Box::new(value)))
                                 } else {
                                     panic!("Trying to set! undefined variable");
                                 }
@@ -264,27 +255,26 @@ pub fn preprocess(
                             let cons = preprocess(elems.remove(0), symbol_table, builtins, syntax_rules, env_ref.clone())?;
                             let alt = match elems.pop() {
                                 Some(v) => preprocess(v, symbol_table, builtins, syntax_rules, env_ref.clone())?,
-                                None => Expression::datum_nil()
+                                None => Meaning::datum_nil()
                             };
 
-                            Ok(Expression::If(Box::new(cond), Box::new(cons), Box::new(alt)))
+                            Ok(Meaning::If(Box::new(cond), Box::new(cons), Box::new(alt)))
                         },
                         other => {
-                            if let Some(sr) = syntax_rules.get(other.clone()) {
+                            if let Some(sr) = syntax_rules.get(&s) {
                                 let expanded = sr.apply(elems);
                                 return preprocess(expanded, symbol_table, builtins, syntax_rules, env_ref.clone());
                             }
 
                             let exprs = preprocess_list(elems, symbol_table, builtins, syntax_rules, env_ref.clone());
                             match builtins.get(other.clone()) {
-                                Some(&LispFn(ref fun, ref arity)) => {
-                                    arity.check(exprs.len());
-                                    Ok(Expression::BuiltinFunctionCall(*fun, exprs))
+                                Some(&LispFn(ref fun, ref arity, ref name)) => {
+                                    arity.check(exprs.len(), name);
+                                    Ok(Meaning::BuiltinFunctionCall(*fun, exprs))
                                 },
                                 None => {
-                                    let symbol = symbol_table.insert(&other.to_string());
-                                    if let Some(binding) = env_ref.borrow_mut().lookup(&symbol) {
-                                        Ok(Expression::FunctionCall(Box::new(Expression::BindingRef(binding)), exprs))
+                                    if let Some(binding) = env_ref.borrow_mut().lookup(&s) {
+                                        Ok(Meaning::FunctionCall(Box::new(Meaning::BindingRef(binding)), exprs))
                                     } else {
                                         panic!("Trying to use undefined variable {}", other);
                                     }
@@ -296,17 +286,17 @@ pub fn preprocess(
                 other => {
                     let fun = preprocess(other, symbol_table, builtins, syntax_rules, env_ref.clone())?;
                     let exprs = preprocess_list(elems, symbol_table, builtins, syntax_rules, env_ref.clone());
-                    Ok(Expression::FunctionCall(Box::new(fun), exprs))
+                    Ok(Meaning::FunctionCall(Box::new(fun), exprs))
                 }
             }
         },
-        Datum::Symbol(ref name) => {
-            match builtins.get(name) {
-                Some(fun) => Ok(Expression::make_self_evaluating(Datum::Builtin(fun.clone()))),
+        Datum::Symbol(symbol) => {
+            let name = symbol_table.lookup(symbol);
+            match builtins.get(&name) {
+                Some(fun) => Ok(Meaning::self_evaluating(Datum::Builtin(fun.clone()))),
                 None => {
-                    let symbol = symbol_table.insert(name);
                     if let Some(binding) = env_ref.borrow_mut().lookup(&symbol) {
-                        Ok(Expression::BindingRef(binding))
+                        Ok(Meaning::BindingRef(binding))
                     } else {
                         panic!("Trying to use undefined variable {}", name);
                     }
@@ -315,6 +305,6 @@ pub fn preprocess(
 
         },
         Datum::DottedList(_, _) => panic!("Malformed expression"),
-        other => Ok(Expression::make_self_evaluating(other)),
+        other => Ok(Meaning::self_evaluating(other)),
     }
 }

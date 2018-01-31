@@ -4,7 +4,7 @@
 ;  * add `curry` fn functions
 
 (def input
-     (~> "project_euler/011-020/11.txt"
+     (~> "project_euler/input-files/11.txt"
          file-read
          lines
          (reject empty?)))

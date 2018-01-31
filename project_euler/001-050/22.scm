@@ -16,7 +16,7 @@
           (inc index)
           (+ acc (* index (value (fst names)))))))
 
-(~> "project_euler/021-030/22.txt"
+(~> "project_euler/input-files/22.txt"
     file-read
     (string-split ",")
     sort
