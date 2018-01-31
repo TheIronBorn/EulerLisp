@@ -1,7 +1,9 @@
 extern crate lisp;
+extern crate glob;
 
 use std::env;
 use lisp::eval::Evaluator;
+use glob::glob;
 
 fn main() {
     let mut args: Vec<String> = env::args().collect();
@@ -29,6 +31,16 @@ fn main() {
                     _ => (),
                 }
             },
+            "test" => {
+
+                for path in glob("./project_euler/*-*/*.scm").expect("Failed to read glob pattern") {
+                    let path = path.expect("Failed to read path").display().to_string();
+                    println!("Testing {}", path);
+
+                    let mut eval = Evaluator::new(true);
+                    eval.eval_file(&path);
+                }
+            }
             _ => {
                 println!("Unknown command");
             }

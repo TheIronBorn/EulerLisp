@@ -22,7 +22,6 @@
 
 ; We can be pretty sure that the number with the max length will be odd
 (defn solve (from (max-n 0) (max-len 0))
-      (println "from = " from)
       (if (> from 1000000)
           max-n
           (let ([cur-len (collatz-length from)])
