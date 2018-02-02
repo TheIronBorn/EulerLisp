@@ -13,7 +13,7 @@
 ; seems to fix that.
 
 
-(def n 100000000)
+(def n 500_000_000)
 (def l (isqrt n))
 (def v (filled-list (inc l) 0))
 (def floor-nl (div n l))
