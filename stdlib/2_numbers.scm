@@ -22,3 +22,14 @@
 
 (defn binomial (n k)
   (div (fac n) (* (fac k) (fac (- n k)))))
+
+(defn solve-quadratic (a b c)
+  (let* ([det (- (square b) (* 4 a c))])
+    (cond
+      [(< det 0) (list)]
+      [(= det 0) (list (/ (- b) (* 2 a)))]
+      [else
+        (let ([r (sqrt det)])
+          (list
+            (/ (- (- b) r) (* 2 a))
+            (/ (+ (- b) r) (* 2 a))))])))

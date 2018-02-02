@@ -21,7 +21,9 @@ mod bignum;
 mod numbers;
 mod syntax_rule;
 mod lexer;
+mod stream;
 
+use stream::LispIterator;
 use env::EnvRef;
 
 use std::fmt;
@@ -37,231 +39,10 @@ use std::ops::Mul;
 use std::ops::Rem;
 
 use numbers::Rational;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 pub type Fsize = f64;
-
-#[derive(PartialEq, Debug, Clone)]
-pub enum Stream {
-    Range(RangeStream),
-    Step(StepStream),
-    Map(MapStream),
-    Select(SelectStream),
-    Permutation(PermutationStream),
-    Combination(CombinationStream)
-}
-
-impl Stream {
-    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
-        match self {
-            &mut Stream::Range(ref mut rs) => rs.next(eval, env_ref),
-            &mut Stream::Step(ref mut rs) => rs.next(eval, env_ref),
-            &mut Stream::Map(ref mut rs) => rs.next(eval, env_ref),
-            &mut Stream::Select(ref mut rs) => rs.next(eval, env_ref),
-            &mut Stream::Permutation(ref mut rs) => rs.next(eval, env_ref),
-            &mut Stream::Combination(ref mut rs) => rs.next(eval, env_ref)
-        }
-    }
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub struct RangeStream {
-    from: isize,
-    to: isize,
-    step: isize,
-    current: isize
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub struct StepStream {
-    from: isize,
-    step: isize,
-    current: isize
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub struct MapStream {
-    source: Box<Stream>,
-    fun: Box<Datum>,
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub struct SelectStream {
-    source: Box<Stream>,
-    fun: Box<Datum>,
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub struct PermutationStream {
-    array: Vec<Datum>,
-    next: Vec<Datum>,
-    i: usize,
-    n: usize,
-    c: Vec<usize>
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub struct CombinationStream {
-    array: Vec<Datum>,
-    indices: Vec<usize>,
-    n: usize,
-    size: usize,
-    done: bool,
-}
-
-impl PermutationStream {
-    pub fn new(array: Vec<Datum>) -> Self {
-        let n = array.len();
-        Self {
-            array: array.clone(),
-            next: array,
-            i: 0,
-            n: n,
-            c: vec![0; n]
-        }
-    }
-}
-
-impl CombinationStream {
-    pub fn new(array: Vec<Datum>, size: usize) -> Self {
-        let n = array.len();
-        Self {
-            array: array.clone(),
-            indices: vec![0; size],
-            n: n,
-            size: size,
-            done: false
-        }
-    }
-
-    pub fn step(&mut self) {
-        let mut carry = 1;
-        for i in 0..self.size {
-            let next = carry + self.indices[i];
-            if next >= self.n {
-                self.indices[i] = 0;
-            } else {
-                self.indices[i] = next;
-                carry = 0;
-            }
-        }
-
-        self.done = carry != 0;
-    }
-}
-
-impl LispIterator for CombinationStream {
-    fn next(&mut self, _eval: &mut eval::Evaluator, _env_ref: EnvRef) -> Option<Datum> {
-        if self.done {
-            None
-        } else {
-            let ret = self.indices.clone().into_iter().map(|i| self.array[i].clone()).collect();
-            self.step();
-            Some(Datum::List(ret))
-        }
-    }
-}
-
-impl LispIterator for PermutationStream {
-    fn next(&mut self, _eval: &mut eval::Evaluator, _env_ref: EnvRef) -> Option<Datum> {
-        if self.i == self.n {
-            None
-        } else {
-            let ret = self.next.clone();
-
-            while self.i < self.n {
-                if self.c[self.i] < self.i {
-                    if self.i % 2 == 0 {
-                        self.array.swap(0, self.i);
-                    } else {
-                        self.array.swap(self.c[self.i], self.i);
-                    }
-                    self.next = self.array.clone();
-                    self.c[self.i] += 1;
-                    self.i = 0;
-                    break
-                } else {
-                    self.c[self.i] = 0;
-                    self.i += 1;
-                }
-            }
-
-            Some(Datum::List(ret))
-        }
-    }
-}
-
-trait LispIterator {
-    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum>;
-}
-
-impl RangeStream {
-    pub fn new(from: isize, to: isize, step: isize) -> RangeStream {
-        RangeStream {
-            from: from,
-            to: to,
-            step: step,
-            current: from
-        }
-    }
-}
-
-impl LispIterator for RangeStream {
-    fn next(&mut self, _eval: &mut eval::Evaluator, _env_ref: EnvRef) -> Option<Datum> {
-        if self.current > self.to {
-            None
-        } else {
-            let ret = self.current;
-            self.current += self.step;
-            Some(Datum::Integer(ret))
-        }
-    }
-}
-
-impl StepStream {
-    pub fn new(from: isize, step: isize) -> StepStream {
-        StepStream {
-            from: from,
-            step: step,
-            current: from
-        }
-    }
-}
-
-impl LispIterator for StepStream {
-    fn next(&mut self, _eval: &mut eval::Evaluator, _env_ref: EnvRef) -> Option<Datum> {
-        let ret = self.current;
-        self.current += self.step;
-        Some(Datum::Integer(ret))
-    }
-}
-
-impl LispIterator for MapStream {
-    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
-        let next = self.source.next(eval, env_ref.clone());
-
-        match next {
-            Some(v) => Some(eval.full_apply((*self.fun).clone(), vec![v], env_ref)),
-            None => None
-        }
-    }
-}
-
-impl LispIterator for SelectStream {
-    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
-        loop {
-            let next = self.source.next(eval, env_ref.clone());
-            match next {
-                Some(v) => {
-                    if let Datum::Bool(true) = eval.full_apply((*self.fun).clone(), vec![v.clone()], env_ref.clone()) {
-                        return Some(v);
-                    }
-                },
-                None => return None
-            }
-        }
-    }
-}
-
 pub type LispResult = Result<Datum, LispErr>;
 
 #[derive(Debug, PartialEq)]
@@ -348,8 +129,6 @@ pub struct Lambda {
     dotted: bool
 }
 
-// TODO: Implement comparison on datums by hand,
-// these traits are mostly wrong
 impl fmt::Debug for Lambda {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Lambda({:?})", self.arity)
@@ -361,7 +140,10 @@ impl PartialEq for Lambda {
         false
     }
 }
-impl Eq for Lambda {}
+
+// TODO: Why do I need so many levels of indirection
+// to get this to compile?
+pub type Stream = Rc<RefCell<LispIterator>>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Datum {
@@ -379,7 +161,7 @@ pub enum Datum {
     Lambda(Lambda),
     Builtin(LispFn),
     Promise(Promise),
-    Stream(Stream),
+    Stream(Box<Stream>),
     Undefined,
     Nil,
 }
@@ -544,7 +326,6 @@ impl ToDatum for usize {
     }
 }
 
-// TODO: Fix this
 impl Datum {
     fn from(other: &ToDatum) -> Datum {
         other.to_datum()

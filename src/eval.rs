@@ -139,7 +139,7 @@ impl Evaluator {
                     }
                 }
 
-                Ok(TCOWrapper::TailCall((*lambda.body), Rc::new(RefCell::new(child_env))))
+                Ok(TCOWrapper::TailCall(*lambda.body, Rc::new(RefCell::new(child_env))))
             },
             Datum::Builtin(LispFn(fun, arity, name)) => {
                 arity.check(evaled_args.len(), &name);
@@ -275,7 +275,7 @@ impl Evaluator {
         }
     }
 
-    pub fn eval_datum(&mut self, datum: Datum, env_ref: EnvRef) -> LispResult {
+    pub fn eval_datum(&mut self, _datum: Datum, _env_ref: EnvRef) -> LispResult {
         // let preprocessed = preprocess::preprocess(datum, &mut self.symbol_table, &self.builtins, &self.syntax_rules, self.root_aenv.clone())?;
         // self.eval(preprocessed, env_ref)
 

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use rand::{thread_rng, Rng};
+use std::f64;
 
 use LispFn;
 use Datum;
@@ -11,7 +12,6 @@ use builtin::primes::PRIMES;
 use builtin::register;
 use ::eval::Evaluator;
 use ::EnvRef;
-use ::Fsize;
 
 const WITNESSES: [(isize, &[isize]); 10] = [
     (2_047, &[2]),
@@ -26,12 +26,12 @@ const WITNESSES: [(isize, &[isize]); 10] = [
     (341_550_071_728_321, &[2, 3, 5, 7, 11, 13, 17])
 ];
 
-fn modexp(mut base: isize, mut exponent: isize, modulo: isize) -> isize {
+fn modexp(base: isize, exponent: isize, modulo: isize) -> isize {
     let mut c = 1;
 
     let mut base = base as i128;
     let mut exponent = exponent as i128;
-    let mut modulo = modulo as i128;
+    let modulo = modulo as i128;
 
     while exponent != 0 {
         if exponent % 2 == 1 {
@@ -453,6 +453,45 @@ fn pow(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult 
     Ok(Datum::Integer(res))
 }
 
+fn sin(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let v = vs[0].take().as_float()?;
+    Ok(Datum::Float(v.sin()))
+}
+
+fn cos(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let v = vs[0].take().as_float()?;
+    Ok(Datum::Float(v.cos()))
+}
+
+fn tan(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let v = vs[0].take().as_float()?;
+    Ok(Datum::Float(v.tan()))
+}
+
+fn asin(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let v = vs[0].take().as_float()?;
+    Ok(Datum::Float(v.asin()))
+}
+
+fn acos(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let v = vs[0].take().as_float()?;
+    Ok(Datum::Float(v.acos()))
+}
+
+fn atan(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let v = vs[0].take().as_float()?;
+    Ok(Datum::Float(v.atan()))
+}
+
+fn get_pi(_vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    Ok(Datum::Float(f64::consts::PI))
+}
+
+fn radiants(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let v = vs[0].take().as_float()?;
+    Ok(Datum::Float(v * (f64::consts::PI / 180.0)))
+}
+
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "prime?", prime_questionmark, Arity::Exact(1));
     register(hm, "+", add, Arity::Min(2));
@@ -487,5 +526,14 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "floor", floor, Arity::Exact(1));
     register(hm, "round", round, Arity::Exact(1));
     register(hm, "gcd", gcd, Arity::Exact(2));
+    register(hm, "sin", sin, Arity::Exact(1));
+    register(hm, "cos", cos, Arity::Exact(1));
+    register(hm, "tan", tan, Arity::Exact(1));
+    register(hm, "asin", asin, Arity::Exact(1));
+    register(hm, "acos", acos, Arity::Exact(1));
+    register(hm, "atan", atan, Arity::Exact(1));
+    register(hm, "radiants", radiants, Arity::Exact(1));
+    // TODO: Add builtin constants
+    register(hm, "get-pi", get_pi, Arity::Exact(0));
     // register(hm, "pow", pow, Arity::Exact(2));
 }

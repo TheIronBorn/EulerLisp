@@ -4,9 +4,6 @@ use std::result::Result;
 use lexer::{Lexer, LexerError, Token, Literal, Position};
 use symbol_table::SymbolTable;
 
-use numbers;
-use bignum;
-use ::Fsize;
 use ::Datum;
 
 #[derive(Debug)]

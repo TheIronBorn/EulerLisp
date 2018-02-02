@@ -13,7 +13,7 @@ use syntax_rule::SyntaxRule;
 use symbol_table::SymbolTable;
 use env::{AEnv, AEnvRef};
 
-fn process_params(params: &Vec<Datum>, symbol_table: &mut SymbolTable) -> (Vec<Symbol>, Vec<Datum>) {
+fn process_params(params: &Vec<Datum>) -> (Vec<Symbol>, Vec<Datum>) {
     let mut names = Vec::new();
     let mut defaults = Vec::new();
     let mut had_default = false;
@@ -96,13 +96,13 @@ fn preprocess_fn(
     let params = elems.remove(0);
     match params {
         Datum::List(ref elems) => {
-            let res = process_params(elems, symbol_table);
+            let res = process_params(elems);
             names = res.0;
             defaults = res.1;
             dotted = false;
         },
         Datum::DottedList(ref elems, ref tail) => {
-            let res = process_params(elems, symbol_table);
+            let res = process_params(elems);
             names = res.0;
             defaults = res.1;
 
