@@ -2,6 +2,7 @@
 (defn dec (n) (- n 1))
 
 (defn square (x) (* x x))
+(defn square? (n) (= (square (isqrt n)) n))
 
 (defn pow (b e)
   (cond

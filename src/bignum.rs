@@ -2,11 +2,56 @@ use std::ops::Add;
 use std::ops::Mul;
 use std::fmt;
 
+use std::cmp::{PartialOrd, Ordering};
+
 // TODO: Implement real comparison
-#[derive(Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Bignum {
     pub sign: bool,
     pub data: Vec<usize>
+}
+
+impl PartialOrd for Bignum {
+    fn partial_cmp(&self, other: &Bignum) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Bignum {
+    fn cmp(&self, other: &Bignum) -> Ordering {
+        match (self.sign, other.sign) {
+            (true, true) => {
+                let len = self.data.len();
+                let len_other = other.data.len();
+
+                if len > len_other {
+                    Ordering::Less
+                } else if len < len_other {
+                    Ordering::Greater
+                } else {
+                    other.data[len - 1].cmp(&self.data[len - 1])
+                }
+            },
+            (true, false) => {
+                Ordering::Less
+            },
+            (false, true) => {
+                Ordering::Greater
+            },
+            (false, false) => {
+                let len = self.data.len();
+                let len_other = other.data.len();
+
+                if len > len_other {
+                    Ordering::Greater
+                } else if len < len_other {
+                    Ordering::Less
+                } else {
+                    self.data[len - 1].cmp(&other.data[len - 1])
+                }
+            }
+        }
+    }
 }
 
 // 10^9, this way the product of the sum of two parts still fits inside a u64

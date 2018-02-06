@@ -13,6 +13,80 @@ use builtin::register;
 use ::eval::Evaluator;
 use ::EnvRef;
 
+fn isqrt(n: isize) -> isize {
+    (n as f64).sqrt() as isize
+}
+
+fn totient(mut n: isize) -> isize {
+    let mut res = n;
+    let to = isqrt(n);
+
+    for p in 2..(to+1) {
+        if n % p == 0 {
+            while n % p == 0 {
+                n /= p
+            }
+            res -= res / p;
+        }
+    }
+
+    if n > 1 {
+        res -= res / n;
+    }
+
+    res
+}
+
+fn totient_sum(n: isize) -> isize {
+    let l = isqrt(n);
+    let mut v = vec![0; (l + 1) as usize];
+    let floor_nl = n / l;
+    let mut big_v = vec![0; (floor_nl + 1) as usize];
+
+    for x in 1..(l + 1) {
+        let mut res = (x * (x + 1)) / 2;
+        let isqrtx = isqrt(x);
+
+        for g in 2..(isqrtx + 1) {
+            res -= v[(x / g) as usize];
+        }
+
+        for z in 1..(isqrtx + 1) {
+            if z != x / z {
+                res -= ((x / z) - (x / (z + 1))) * v[z as usize] 
+            }
+        }
+
+        v[x as usize] = res;
+    }
+
+    for x_ in 1..(floor_nl + 1) {
+        let x = floor_nl - x_ + 1;
+        let k = n / x;
+        let mut res = (k * (k + 1)) / 2;
+
+        let isqrtk = isqrt(k);
+
+        for g in 2..(isqrtk + 1) {
+            if (k / g) <= l {
+                res -= v[(k / g) as usize];
+            } else {
+                res -= big_v[(x * g) as usize];
+            }
+        }
+
+        for z in 1..(isqrtk + 1) {
+            if z != (k / z) {
+                res -= ((k / z) - (k / (z + 1))) * v[z as usize];
+            }
+        }
+
+        big_v[x as usize] = res;
+    }
+
+    big_v[1]
+}
+
 const WITNESSES: [(isize, &[isize]); 10] = [
     (2_047, &[2]),
     (1_373_653, &[2, 3]),
@@ -492,6 +566,16 @@ fn radiants(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispRe
     Ok(Datum::Float(v * (f64::consts::PI / 180.0)))
 }
 
+fn totient_(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let v = vs[0].take().as_integer()?;
+    Ok(Datum::Integer(totient(v)))
+}
+
+fn totient_sum_(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let v = vs[0].take().as_integer()?;
+    Ok(Datum::Integer(totient_sum(v)))
+}
+
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "prime?", prime_questionmark, Arity::Exact(1));
     register(hm, "+", add, Arity::Min(2));
@@ -515,7 +599,7 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "digits->number", digits_to_number, Arity::Exact(1));
     register(hm, "numerator", numerator, Arity::Exact(1));
     register(hm, "denominator", denominator, Arity::Exact(1));
-    register(hm, "->float", to_float, Arity::Exact(1));
+    register(hm, "number->float", to_float, Arity::Exact(1));
     register(hm, "log10", log10, Arity::Exact(1));
     register(hm, "log2", log2, Arity::Exact(1));
     register(hm, "ln", ln, Arity::Exact(1));
@@ -536,4 +620,6 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     // TODO: Add builtin constants
     register(hm, "get-pi", get_pi, Arity::Exact(0));
     // register(hm, "pow", pow, Arity::Exact(2));
+    register(hm, "totient", totient_, Arity::Exact(1));
+    register(hm, "totient-sum", totient_sum_, Arity::Exact(1));
 }
