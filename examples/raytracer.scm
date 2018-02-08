@@ -56,8 +56,8 @@
     (>= x 800) (loop obj 0 (inc y))
     else
     (do
-      (let (x_ (->float (/ (- x 400) 100))
-            y_ (->float (/ (- y 200) 100)))
+      (let (x_ (number->float (/ (- x 400) 100))
+            y_ (number->float (/ (- y 200) 100)))
         (let (hit (obj
                     (make-ray (make-vec x_ y_ 10)
                               (make-vec 0 0 -1))))

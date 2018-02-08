@@ -2,9 +2,6 @@
 ; Time: 16:41
 ; Solution: 694687
 
-(defn square? (n)
-  (= n (square (floor (sqrt n)))))
-
 (defn on-line (a b)
   (dec (gcd a b)))
 

@@ -17,10 +17,6 @@
 (def max-len (reduce &(max (length &1) &2)       0 candidates))
 (def min-len (reduce &(min (length &1) &2) max-len candidates))
 
-(defn square? (n)
-  (let ([root (sqrt n)])
-    (= (floor root) (ceil root))))
-
 (def buckets
   (~> (range min-len max-len)
       (map (fn (len)

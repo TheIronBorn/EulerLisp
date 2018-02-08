@@ -1,4 +1,5 @@
 use std::ops::Add;
+use std::ops::Sub;
 use std::ops::Mul;
 use std::fmt;
 
@@ -29,7 +30,13 @@ impl Ord for Bignum {
                 } else if len < len_other {
                     Ordering::Greater
                 } else {
-                    other.data[len - 1].cmp(&self.data[len - 1])
+                    for j in 0..len {
+                        let res = other.data[len - j - 1].cmp(&self.data[len - j - 1]);
+                        if res != Ordering::Equal {
+                            return res;
+                        }
+                    }
+                    Ordering::Equal
                 }
             },
             (true, false) => {
@@ -41,13 +48,19 @@ impl Ord for Bignum {
             (false, false) => {
                 let len = self.data.len();
                 let len_other = other.data.len();
-
+                
                 if len > len_other {
                     Ordering::Greater
                 } else if len < len_other {
                     Ordering::Less
                 } else {
-                    self.data[len - 1].cmp(&other.data[len - 1])
+                    for j in 0..len {
+                        let res = self.data[len - j - 1].cmp(&other.data[len - j - 1]);
+                        if res != Ordering::Equal {
+                            return res;
+                        }
+                    }
+                    Ordering::Equal
                 }
             }
         }
@@ -143,20 +156,73 @@ impl Bignum {
     }
 }
 
+// Addition for positive numbers
 fn vector_add(a: &Vec<usize>, b: &Vec<usize>) -> Vec<usize> {
-    let max_len = a.len().max(b.len());
+    // Based on Algorithm A, Section 4.3.1, TAoCP Vol. 2
+    let n = a.len().max(b.len());
     let mut result = Vec::new();
-    let mut carry: usize = 0;
-    for i in 0..max_len {
-        let a = *a.get(i).unwrap_or(&0);
-        let b = *b.get(i).unwrap_or(&0);
+    let mut carry = 0;
 
-        let res = a + b + carry;
+    for j in 0..n {
+        let u = *a.get(j).unwrap_or(&0);
+        let v = *b.get(j).unwrap_or(&0);
+
+        let res = u + v + carry;
         result.push(res % CHUNK);
         carry = res / CHUNK;
     }
+
     if carry > 0 {
         result.push(carry);
+    }
+
+    result
+}
+
+// Subtraction for positive numbers,
+// a - b, assuming a >= b
+//
+// Based on Algorithm S, Section 4.3.1, TAoCP Vol. 2
+// TODO: The handling of negative results is strange,
+// is there a better way to do this?
+fn vector_sub(a: &Vec<usize>, b: &Vec<usize>) -> Vec<usize> {
+    let n = a.len();
+    let mut result = Vec::new();
+    let mut carry = 0_isize;
+
+    for j in 0..n {
+        let u = *a.get(j).unwrap();
+        let v = *b.get(j).unwrap_or(&0);
+
+        let res : isize = (u as isize) - (v as isize) - carry;
+
+        if res < 0 {
+            carry = 1;
+        } else {
+            carry = 0
+        }
+
+        let res_u = if res < 0 {
+           (res + (CHUNK as isize)) as usize
+        } else {
+            res as usize
+        };
+
+        result.push(res_u % CHUNK)
+    }
+
+    // If this is the case, the assumption a >= b was wrong
+    if carry == 1 {
+        panic!("Invalid bignum subtraction, carry was -1 at the end");
+    }
+
+    // Remove leading 0s
+    for j in 0..n {
+        if result[n - j - 1] == 0 {
+            result.pop();
+        } else {
+            break
+        }
     }
 
     result
@@ -199,6 +265,22 @@ impl Add for Bignum {
             panic!("Adding of Bignums < 0 is not implemented yet");
         }
         let new_data = vector_add(&self.data, &other.data);
+
+        Self {
+            sign: false,
+            data: new_data,
+        }
+    }
+}
+
+impl Sub for Bignum {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        if self.sign || other.sign {
+            panic!("Subtraction of Bignums < 0 is not implemented yet");
+        }
+        let new_data = vector_sub(&self.data, &other.data);
 
         Self {
             sign: false,

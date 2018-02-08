@@ -136,3 +136,6 @@
       (last (rst arr))))
 
 (defn flatten (lst) (flatmap (fn (x) x) lst))
+
+(defn each (f lst)
+  (reduce (fn (cur acc) (f cur)) '() lst))

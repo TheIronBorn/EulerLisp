@@ -56,12 +56,14 @@ pub enum Literal {
     Number(bool, usize, String),
     LRoundBracket,
     LSquareBracket,
+    LCurlyBracket,
     HashLRoundBracket,
     HashLSquareBracket,
     AmpersandLRoundBracket,
     AmpersandLSquareBracket,
     RRoundBracket,
     RSquareBracket,
+    RCurlyBracket,
     Quote,
     Quasiquote,
     Unquote,
@@ -144,7 +146,7 @@ impl<'a> Lexer<'a> {
     fn is_peek_delimiter(&mut self) -> bool {
         if let Some(p) = self.peek() {
             match *p {
-                '(' | '[' | ')' | ']' => true,
+                '(' | '[' | '{' | ')' | ']' | '}' => true,
                 ' ' | '\t' | '\n' => true,
                 '"' => true,
                 ';' => true,
@@ -354,8 +356,10 @@ impl<'a> Lexer<'a> {
                 } 
                 '('  => self.make_token(start, Literal::LRoundBracket),
                 '['  => self.make_token(start, Literal::LSquareBracket),
+                '{'  => self.make_token(start, Literal::LCurlyBracket),
                 ')'  => self.make_token(start, Literal::RRoundBracket),
                 ']'  => self.make_token(start, Literal::RSquareBracket),
+                '}'  => self.make_token(start, Literal::RCurlyBracket),
                 // The only tokens that are allowed to begin with `.`
                 // are `.` itself (the dot in dotted lists)
                 // and the identifier `...`

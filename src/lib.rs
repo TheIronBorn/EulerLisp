@@ -208,6 +208,15 @@ impl Sub for Datum {
     fn sub(self, other: Datum) -> Datum {
         match (self, other) {
             (Datum::Integer(a), Datum::Integer(b)) => Datum::Integer(a - b),
+            (Datum::Integer(a), Datum::Bignum(b)) => {
+                Datum::Bignum(bignum::Bignum::new(a) - b)
+            },
+            (Datum::Bignum(a), Datum::Integer(b)) => {
+                Datum::Bignum(a - bignum::Bignum::new(b))
+            },
+            (Datum::Bignum(a), Datum::Bignum(b)) => {
+                Datum::Bignum(a - b)
+            },
             (Datum::Rational(a), Datum::Integer(b)) => (a - b).reduce(),
             (Datum::Integer(a), Datum::Rational(b)) => (a - b).reduce(),
             (Datum::Rational(a), Datum::Rational(b)) => (a - b).reduce(),

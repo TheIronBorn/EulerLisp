@@ -20,7 +20,8 @@ pub enum ParserErrorType {
     UnexpectedDot,
     UnbalancedBracket,
     InvalidDottedList,
-    InvalidNumberLiteral
+    InvalidNumberLiteral,
+    InvalidInfixList
 }
 
 use self::ParserErrorType::*;
@@ -103,14 +104,25 @@ impl<'a> Parser<'a> {
                     Ok(Some(self.process_list(t.start.clone(), Literal::RSquareBracket, true, st)?))
                 },
                 Literal::AmpersandLRoundBracket => {
-                    // TODO: This is not really right, only normal lists are allowed as body
                     let body = self.process_simple_list(t.start.clone(), Literal::RRoundBracket, st)?;
                     Ok(Some(self.convert_hole_lambda_to_lambda(body, st)))
                 },
                 Literal::AmpersandLSquareBracket => {
-                    // TODO: This is not really right, only normal lists are allowed as body
                     let body = self.process_simple_list(t.start.clone(), Literal::RSquareBracket, st)?;
                     Ok(Some(self.convert_hole_lambda_to_lambda(body, st)))
+                },
+                Literal::LCurlyBracket => {
+                    let body = self.process_simple_list(t.start.clone(), Literal::RCurlyBracket, st)?;
+                    match self.convert_infix_to_prefix(body) {
+                        Ok(res) => Ok(Some(res)),
+                        Err(error) => {
+                            Err(ParserError {
+                                start: t.start,
+                                end: t.end,
+                                error: error
+                            })?
+                        }
+                    }
                 },
                 Literal::RRoundBracket => {
                     Err(ParserError {
@@ -120,6 +132,13 @@ impl<'a> Parser<'a> {
                     })?
                 },
                 Literal::RSquareBracket => {
+                    Err(ParserError {
+                        start: t.start,
+                        end: t.end,
+                        error: UnbalancedBracket
+                    })?
+                },
+                Literal::RCurlyBracket => {
                     Err(ParserError {
                         start: t.start,
                         end: t.end,
@@ -366,5 +385,33 @@ impl<'a> Parser<'a> {
         }
 
         Datum::List(vec![self.make_symbol("fn", st), Datum::List(params), body])
+    }
+
+    // Converts a list of the form {1 + 2 + 3} to (+ 1 2 3)
+    fn convert_infix_to_prefix(&mut self, datums: Vec<Datum>) -> Result<Datum, ParserErrorType> {
+        // Infix lists must have an odd number of elements
+        // and at least 3
+        if datums.len() < 3 || (datums.len() % 2 == 0) {
+            return Err(InvalidInfixList);
+        }
+
+        let op = datums.get(1).unwrap().clone();
+        let mut args = vec![
+            op.clone(), 
+            datums.get(0).unwrap().clone(),
+            datums.get(2).unwrap().clone()
+        ];
+
+        for i in 3..datums.len() {
+            if i % 2 == 0 {
+                args.push(datums.get(i).unwrap().clone());
+            } else {
+                if datums.get(i).unwrap() != &op {
+                    return Err(InvalidInfixList);
+                }
+            }
+        }
+
+        Ok(Datum::List(args))
     }
 }

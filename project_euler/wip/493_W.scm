@@ -54,4 +54,4 @@
         (* w6 6) (* w7 7))
      wall))
 
-(println (->float expe))
+(println (number->float expe))
