@@ -1,10 +1,4 @@
-; Solved: 17.12.17
-; Changes:
-; * implement even?, odd?
-; * implement & improve prime_factors method
-; * implement map & reduce
-; * fix parsing of '() as nil
-; * implement pow
+; Solved: 17.12.2017
 
 (defn merge (a1 a2)
       (cond

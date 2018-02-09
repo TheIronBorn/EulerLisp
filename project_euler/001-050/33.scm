@@ -1,7 +1,7 @@
-; Solved 6.1
+; Solved 6.1.2018
+
 ; We can't use the builtin fractions here,
 ; because they are simplified on creation
-
 (defn fraction= (a b)
   (= (* (fst a) (rst b))
      (* (rst a) (fst b))))
@@ -24,12 +24,11 @@
 
 (defn solve (d n (acc '()))
   (cond
-    (>= n d) (solve (inc d) 10 acc)
-    (> d 99) acc
-    (digit-cancelling? (cons n d))
-      (solve d (inc n) (cons (cons n d) acc))
-    else
-      (solve d (inc n) acc)))
+    [(>= n d) (solve (inc d) 10 acc)]
+    [(> d 99) acc]
+    [(digit-cancelling? (cons n d))
+      (solve d (inc n) (cons (cons n d) acc))]
+    [else (solve d (inc n) acc)]))
 
 (defn fraction* (a b)
   (cons
@@ -46,4 +45,4 @@
   (reduce fraction* (cons 1 1))
   simplify
   rst
-  (println "Solution: "))
+  solution)

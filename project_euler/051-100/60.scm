@@ -1,5 +1,4 @@
-; Solved: 27.1.18
-; Time: 45.77s
+; Solved: 27.1.2018
 
 (defn concat (a b)
   (+ b
@@ -41,8 +40,4 @@
                     collect))))
               (range 0 maxl)))
 
-(~>
-  families5
-  fst
-  sum
-  (println "Solution: "))
+(~> families5 fst sum solution)

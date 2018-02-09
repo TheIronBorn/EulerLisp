@@ -1,4 +1,4 @@
-; Solved 11.1
+; Solved 11.1.2018
 
 (~>
   (combinations~ 2 (range 1 99))

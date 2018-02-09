@@ -1,7 +1,4 @@
 ; Solved 6.2.2018
-;
-; Note:
-; * https://en.wikipedia.org/wiki/Pell%27s_equation#The_smallest_solution_of_Pell_equations
 
 ; Code copied from problem 64
 (defn continue_ (n full rest d)

@@ -1,24 +1,8 @@
-; Solved: 13.1.18
-
-(defn triangle (n)
-      (div (* n (inc n)) 2))
-
-; Use the same idea as for problem 44
-(defn pentagonal? (n)
-      (let* ([det (inc (* 24 n))]
-             [root (floor (sqrt det))])
-        (and (= det (* root root))
-             (divides? 6 (inc root)))))
-
-(defn hexagonal? (n)
-      (let* ([det (inc (* 8 n))]
-             [root (floor (sqrt det))])
-        (and (= det (* root root))
-             (divides? 4 (inc root)))))
+; Solved: 13.1.2018
 
 (~>
   (step~ (inc 285))
-  (map~ triangle)
+  (map~ triangular)
   (select~ &(and (pentagonal? &1) (hexagonal? &1)))
   first~
-  (println "Solution: "))
+  solution)

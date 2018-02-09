@@ -1,4 +1,4 @@
-; Solved 5.1
+; Solved 5.1.2018
 
 (~>
   (combinations~ 2 (range 2 100))

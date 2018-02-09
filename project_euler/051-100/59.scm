@@ -1,6 +1,4 @@
-; Solved 14.1
-; 
-; Changes: Add `reduce-sum` and `reduce-product` to lisp stdlib
+; Solved 14.1.2018
 
 (defn split3 (data (cur 0) (acc0 '()) (acc1 '()) (acc2 '()))
       (if (nil? data)
@@ -67,7 +65,7 @@
 (defn sum-split-with-key (split key)
   (reduce-sum &(xor &1 key) split))
 
-(println "Solution: "
+(solution
   (reduce-sum
     &(apply sum-split-with-key &1)
     (zip splits key)))

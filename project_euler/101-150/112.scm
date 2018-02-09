@@ -1,4 +1,4 @@
-; Solved: 26.1.18
+; Solved: 26.1.2018
 
 (defn decreasing? (n (last -1))
   (if (zero? n)
@@ -23,4 +23,4 @@
     [(bouncy? (inc cur)) (solve (inc cur) (inc acc))]
     [else (solve (inc cur) acc)]))
 
-(println (solve 1))
+(solution (solve 1))

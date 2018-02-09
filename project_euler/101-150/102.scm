@@ -1,4 +1,4 @@
-; Solved: 26.1.18
+; Solved: 26.1.2018
 
 (defn parse-triangle (points)
   (list
@@ -10,8 +10,7 @@
       (cons (frrst (rrst points)) (frrrst (rrst points))))
     (cons
       (cons (fst (rrrrst points)) (frst (rrrrst points)))
-      (cons (fst points) (frst points)))
-     ))
+      (cons (fst points) (frst points)))))
 
 
 ; Check if a ray from (0, 0) with direction (0, 1)
@@ -29,11 +28,10 @@
 (defn origin-inside-triangle? (t)
       (= (count hits-line? t) 1))
 
-(def triangles
-     (~> "./project_euler/input-files/102.txt"
-         file-read
-         lines
-         (reject empty?)
-         (map &(~> &1 (string-split ",") (map string->number) parse-triangle))
-         (count origin-inside-triangle?)
-         (println "Solution: ")))
+(~> "./project_euler/input-files/102.txt"
+   file-read
+   lines
+   (reject empty?)
+   (map &(~> &1 (string-split ",") (map string->number) parse-triangle))
+   (count origin-inside-triangle?)
+   solution)

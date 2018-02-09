@@ -1,4 +1,4 @@
-; Solved 1.1
+; Solved 1.1.2018
 
 (defn count-cycles (n a b)
       (if (prime? (+ (* n n) (* a n) b))
@@ -15,4 +15,4 @@
                     (solve (inc a) b a b len)
                     (solve (inc a) b maxa maxb maxlen))))))
 
-(println "Solution: " (solve -999 -1000))
+(solution (solve -999 -1000))

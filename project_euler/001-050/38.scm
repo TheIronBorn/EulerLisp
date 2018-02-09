@@ -1,4 +1,4 @@
-; Solved 8.1
+; Solved 8.1.2018
 
 (def all-digits (range 1 9))
 (defn pandigital? (lst)
@@ -18,4 +18,4 @@
                       (digits->number (reverse ds))))
           (solve n (inc x) max-pan)))))
 
-(println "Solution: " (solve 2))
+(solution (solve 2))

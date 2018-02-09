@@ -4,6 +4,7 @@ use std::io::Read;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::io::{Write};
 
 use ::Datum;
 use ::LispFn;
@@ -27,6 +28,7 @@ pub struct Evaluator {
     symbol_table: SymbolTable,
     pub syntax_rules: HashMap<Symbol, SyntaxRule>,
     pub root_env: EnvRef,
+    pub output: Rc<RefCell<Write>>,
     root_aenv: AEnvRef,
     builtins: HashMap<String, LispFn>,
 }
@@ -37,26 +39,8 @@ pub enum TCOWrapper {
     TailCall(Meaning, EnvRef),
 }
 
-// pub struct ContWrapper {
-//     expression: Meaning,
-//     environment: Env,
-//     continuation: Continuation
-// }
-
-// enum Continuation {
-//     If(Meaning, Meaning, Env, Box<Continuation>),
-//     Print,
-//     Do(Vec<Meaning>, Env),
-//     Set(Symbol, Env),
-//     Define(Symbol, Env),
-// }
-
-// trait Continuation {
-//     fn resume(&self, value: Datum) -> LispResult;
-// }
-
 impl Evaluator {
-    pub fn new(stdlib: bool) -> Self {
+    pub fn new(output: Rc<RefCell<Write>>, stdlib: bool) -> Self {
         let symbol_table = SymbolTable::new();
         let mut builtins: HashMap<String, LispFn> = HashMap::new(); 
         builtin::load(&mut builtins);
@@ -68,9 +52,10 @@ impl Evaluator {
         let aenv_ref = Rc::new(RefCell::new(root_aenv));
 
         let mut ev = Evaluator {
-            symbol_table: symbol_table,
             syntax_rules: HashMap::new(),
-            builtins: builtins,
+            symbol_table,
+            builtins,
+            output,
             level: 0,
             root_env: env_ref,
             root_aenv: aenv_ref

@@ -1,5 +1,4 @@
-; Solved: 15.1,
-; improved to run in < 60s: 31.1.18
+; Solved: 15.1.2018
 
 (def facs (map fac (range 0 9)))
 (defn step (n)

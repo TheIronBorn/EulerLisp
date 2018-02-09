@@ -1,3 +1,3 @@
-; Solved 1.1
+; Solved 1.1.2018
 
-(~> (range~ 1 100) (reduce~ * 1) number->digits sum solution)
+(~> (range~ 1 100) product~ number->digits sum solution)

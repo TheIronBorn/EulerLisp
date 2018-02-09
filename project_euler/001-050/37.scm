@@ -1,4 +1,4 @@
-; Solved 6.1
+; Solved 6.1.2018
 
 (defn truncations (n)
   (cond
@@ -26,10 +26,9 @@
   (and (prime? n)
        (all? prime? (truncations n))))
 
-; This is based on the assumption that all 11 trunc primes are < 1000000
 (~>
   (step~ 11 2)
   (select~ truncatable-prime?)
   (take~ 11)
   sum
-  (println "Solution: "))
+  solution)

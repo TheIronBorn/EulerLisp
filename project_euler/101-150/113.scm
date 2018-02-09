@@ -1,4 +1,4 @@
-; Solved: 28.1.18
+; Solved: 28.1.2018
 
 ; All numbers 1 - 9 are decreasing & increasing
 (def ways-dec '(1 1 1 1 1 1 1 1 1))
@@ -38,4 +38,4 @@
 
 ; Of each n-digit number, 9 are both increasing and decreasing
 ; (11, 22, 33, ...), (111, 222, 333, ...)
-(println "All: " (+ (sum ways-inc) (sum ways-dec) (* n (- 9))))
+(solution (+ (sum ways-inc) (sum ways-dec) (* n (- 9))))

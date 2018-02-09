@@ -1,4 +1,4 @@
-; Solved: 28.1.18
+; Solved: 28.1.2018
 
 (defn digit-sum (n) (sum (number->digits n)))
 
@@ -20,4 +20,4 @@
   (flatmap powers)
   sort
   (nth 29)
-  (println "Solution: "))
+  solution)

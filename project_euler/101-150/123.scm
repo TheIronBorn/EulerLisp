@@ -1,4 +1,4 @@
-; Solved: 28.1.18
+; Solved: 28.1.2018
 ; TODO: Implement something like `.each_with_index` for streams
 
 (defn large-enough? (pn)
@@ -23,4 +23,4 @@
   (select~ large-enough?)
   first~
   rst
-  (println "Solution: "))
+  solution)

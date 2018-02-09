@@ -1,4 +1,4 @@
-; Solved: 22.12.17
+; Solved: 22.12.2017
 
 (defn prime-sum (limit (cur 3) (acc 2))
       (if (> cur limit)
@@ -7,4 +7,4 @@
               (prime-sum limit (+ cur 2) (+ acc cur))
               (prime-sum limit (+ cur 2) acc))))
 
-(println "Solution: " (prime-sum 2000000))
+(solution (prime-sum 2000000))

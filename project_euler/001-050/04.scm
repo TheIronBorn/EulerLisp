@@ -1,4 +1,4 @@
-; Solved: 17.12.17
+; Solved: 17.12.2017
 
 (defn loop (a)
   (~>

@@ -1,4 +1,4 @@
-; Solved 8.1
+; Solved 8.1.2018
 
 (defn substring (n offset)
       (% (div n (pow 10 (- 7 offset))) 1000))
@@ -19,4 +19,4 @@
   (map~ digits->number)
   (select~ substring-divisible?)
   sum~
-  (println "Solution: "))
+  solution)

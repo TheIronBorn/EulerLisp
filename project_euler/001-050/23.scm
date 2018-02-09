@@ -1,6 +1,4 @@
-; Solved 5.1
-; Changes:
-;   * use streams
+; Solved 5.1.2018
 
 ; The Problem descriptions contains a different limit,
 ; but the one below is more accurate
@@ -40,4 +38,4 @@
 (~> (range~ 1 max-n)
     (select~ (fn (x) (not (abundant-sum? x))))
     sum~
-    (println "Solution: "))
+    solution)

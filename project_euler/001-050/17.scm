@@ -1,7 +1,4 @@
-; Solved 1.1
-; Changes:
-;  * add `str` function (like in clojure)
-;  * make `length` work for strings
+; Solved 1.1.2018
 
 (def single '("one" "two" "three" "four" "five" "six" "seven" "eight" "nine"))
 (def teens '("ten" "eleven" "twelve" "thirteen" "fourteen" "fifteen" "sixteen"
@@ -39,4 +36,4 @@
   (range~ 1 1000)
   (map~ &(length (format &1)))
   sum~
-  (println "Solution: "))
+  solution)

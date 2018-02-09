@@ -1,4 +1,4 @@
-; Solved: 29.12.17
+; Solved: 29.12.2017
 
 (def input
      (~> "project_euler/input-files/13.txt"
@@ -31,4 +31,4 @@
             (solve (map rst numbers) (div next-sum 10) p)
             (solve (map rst numbers) next-sum (inc p))))))
 
-(println "Solution: " (solve numbers))
+(solution (solve numbers))

@@ -1,3 +1,7 @@
+use std::io;
+use std::rc::Rc;
+use std::cell::RefCell;
+
 use ::rustyline::error::ReadlineError;
 use ::rustyline::Editor;
 
@@ -6,7 +10,10 @@ use ::Datum;
 
 pub fn run(stdlib: bool) {
     let mut rl = Editor::<()>::new();
-    let mut eval = Evaluator::new(stdlib);
+    let mut eval = Evaluator::new(
+        Rc::new(RefCell::new(io::stdout())),
+        stdlib
+    );
 
     if let Err(_) = rl.load_history("history.txt") {
       println!("No previous history.");

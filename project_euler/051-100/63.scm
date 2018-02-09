@@ -1,4 +1,4 @@
-; Solved 22.1.18
+; Solved 22.1.2018
 
 (defn count-powers (of (cur 1) (acc 0))
     (let ([len (number-of-digits (pow of cur))])

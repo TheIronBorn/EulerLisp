@@ -1,4 +1,4 @@
-; Solved 8.1
+; Solved 8.1.2018
 
 (defn solve (n)
       (~>
@@ -24,4 +24,4 @@
 ; if the sum of its digits is divisible by 3
 ; => can't be prime
 
-(println "Solution: " (max (solve 4) (solve 7)))
+(solution (max (solve 4) (solve 7)))

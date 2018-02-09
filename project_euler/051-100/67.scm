@@ -1,4 +1,4 @@
-; Solved 1.1
+; Solved 1.1.2018
 
 (defn reduce-rows (a b acc)
   (if (nil? b)
@@ -27,4 +27,4 @@
   rst
   (map &(map string->number (words &1)))
   reduce-full
-  (println "Solution: "))
+  solution)

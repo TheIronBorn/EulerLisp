@@ -1,6 +1,4 @@
-; Solved 1.1
-; Changes:
-;  * switch to streams
+; Solved 1.1.2018
 
 (defn factor-sum (n)
       (- (sum (factors n)) n))
@@ -11,8 +9,4 @@
              (!= n fsum)
              (= n (factor-sum fsum)))))
 
-(~>
-  (range~ 1 10000)
-  (select~ amicable?)
-  sum~
-  (println "Solution: "))
+(~> (range~ 1 10000) (select~ amicable?) sum~ solution)

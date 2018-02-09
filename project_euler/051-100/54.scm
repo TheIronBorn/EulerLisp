@@ -1,4 +1,4 @@
-; Solved 22.1.18
+; Solved 22.1.2018
 
 (defn value (cv)
       (cond
@@ -107,4 +107,4 @@
     lines
     (reject empty?)
     (count winner?)
-    (println "Solution: "))
+    solution)

@@ -1,7 +1,4 @@
-; Solved: 17.12.17
-; Changes to the interpreter
-; * implement let syntax sugar
-; * implement let* syntax sugar
+; Solved: 17.12.2017
 
 ; a = fib_n, even
 ; b = fib_n+1
@@ -15,4 +12,4 @@
       (sum_even_fib limit a_ b_ c_ (+ sum a)))
       sum))
 
-(println "Solution: " (sum_even_fib 4000000))
+(solution (sum_even_fib 4000000))

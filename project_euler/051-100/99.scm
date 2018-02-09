@@ -1,4 +1,4 @@
-; Solved: 18.1.18
+; Solved: 18.1.2018
 
 (def numbers
   (~>
@@ -19,4 +19,4 @@
      (solve (rst numbers) (inc line) line (fst numbers))]
     [else (solve (rst numbers) (inc line) max-line max-be)]))
 
-(println (solve (rst numbers) 2 1 (fst numbers)))
+(solution (solve (rst numbers) 2 1 (fst numbers)))

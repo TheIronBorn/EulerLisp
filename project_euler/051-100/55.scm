@@ -1,4 +1,4 @@
-; Solved: 18.1.18
+; Solved: 18.1.2018
 
 (defn number-reverse (n)
   (~> n number->digits reverse digits->bignum))

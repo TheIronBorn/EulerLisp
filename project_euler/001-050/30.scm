@@ -1,4 +1,4 @@
-; Solved 6.1
+; Solved 6.1.2018
 
 (defn digit-power? (n)
       (= n
@@ -14,4 +14,4 @@
   (range~ 2 (* 6 (pow 9 5)))
   (select~ digit-power?)
   sum~
-  (println "Solution: "))
+  solution)

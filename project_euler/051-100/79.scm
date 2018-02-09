@@ -1,4 +1,4 @@
-; Solved 22.1.18
+; Solved 22.1.2018
 
 (def tries
      (~> "./project_euler/input-files/79.txt"
@@ -34,4 +34,4 @@
   (select~ (fn (code) (all? &(matches? &1 code) tries)))
   collect
   (map digits->number)
-  (println "Solutions: "))
+  solution)

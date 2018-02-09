@@ -1,4 +1,4 @@
-; Solved: 26.1.18
+; Solved: 26.1.2018
 
 (def input
      (~>
@@ -42,4 +42,4 @@
         (rst m)
         (reduce-first (fst m))))
 
-(println "Solution: " (last (reduce-full input)))
+(solution (last (reduce-full input)))

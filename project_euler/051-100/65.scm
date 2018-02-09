@@ -1,4 +1,4 @@
-; Solved 26.1.18
+; Solved 26.1.2018
 
 (defn cont (n)
   (if (= 1 (% n 3))
@@ -36,4 +36,4 @@
   fst
   number->digits
   sum
-  (println "Solution: "))
+  solution)

@@ -1,9 +1,4 @@
-; Solved 15.1.18
-; Time: 4:31,
-; improved to 1.67 by using the fact
-; that all permutations of a number map to the same number
-;
-; Solution: 8581146
+; Solved 15.1.2018
 
 (defn digit-squares (n (acc 0))
   (if (zero? n)
@@ -50,4 +45,4 @@
   (select~ &(list-ref lookup (perm-digit-squares &1)))
   (map~ number-of-permutations)
   sum~
-  (println "Solution: "))
+  solution)

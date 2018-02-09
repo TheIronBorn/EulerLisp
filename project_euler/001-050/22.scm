@@ -1,7 +1,4 @@
-; Solved 1.1
-; Changes:
-;  * add thread macro `~>`
-;  * use new char-* functions
+; Solved 1.1.2018
 
 (defn value (name)
       (reduce-sum
@@ -21,4 +18,4 @@
     (string-split ",")
     sort
     solve
-    (println "Solution: "))
+    solution)

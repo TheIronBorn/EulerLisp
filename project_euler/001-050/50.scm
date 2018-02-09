@@ -1,4 +1,4 @@
-; Solved 13.1
+; Solved 13.1.2018
 
 (defn solve-from (n acc best terms best-terms)
   (if (prime? n)
@@ -22,7 +22,6 @@
       (solve-from (+ n 1) acc best terms best-terms)))
 
 (defn solve ((from 0) (best 0) (best-terms 0))
-  (println "Offset = " from)
   (if (>= from 1000000) 
       (cons best best-terms)
       (if (prime? from)
@@ -32,4 +31,4 @@
                 (solve (inc from) best best-terms)))
           (solve (inc from) best best-terms))))
 
-(println "Solution: " (solve))
+(solution (solve))

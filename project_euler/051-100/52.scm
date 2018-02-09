@@ -1,4 +1,4 @@
-; Solved 11.1
+; Solved 11.1.2018
 
 (defn sorted-digits (n)
     (~> n number->digits sort))
@@ -11,8 +11,4 @@
          (sorted-digits (* 5 n))
          (sorted-digits (* 6 n))))
 
-(~>
-  (step~ 1)
-  (select~ matches?)
-  first~
-  (println "Solution: "))
+(~> (step~ 1) (select~ matches?) first~ solution)

@@ -1,9 +1,4 @@
-(defn triangle   (n) (div (* n (+ n 1)) 2))
-(defn square_    (n) (* n n)) 
-(defn pentagonal (n) (div (* n (- (* 3 n) 1)) 2))
-(defn hexagonal  (n) (* n (- (* 2 n) 1))) 
-(defn heptagonal (n) (div (* n (- (* 5 n) 3)) 2))
-(defn octagonal  (n) (* n (- (* 3 n) 2))) 
+; Solved 22.1.2018
 
 (defn valid? (n) (not (zero? (% (div n 10) 10))))
 
@@ -20,7 +15,7 @@
 ; Start w/ octagonal because that has the fewest elements
 (def numbers
      (map find-four-digit
-          (list octagonal heptagonal hexagonal pentagonal square_ triangle)))
+          (list octagonal heptagonal hexagonal pentagonal square triangular)))
 
 (defn find-sequences (start end lists (acc '()))
   (if (= 1 (length lists))
@@ -48,7 +43,6 @@
   permutations
   (flatmap &(sequences (fst numbers) &1))
   fst
-  println-id
   (map &(+ (* 100 (fst &1)) (rst &1)))
   sum
-  (println "Solution: "))
+  solution)

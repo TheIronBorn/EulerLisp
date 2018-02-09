@@ -1,4 +1,4 @@
-; Solved 5.1
+; Solved 5.1.2018
 
 (defn make-stepper (d) &(% (* 10 &1) d))
 (def initial 1)
@@ -45,4 +45,4 @@
               (loop (inc from) from len)
               (loop (inc from) max-n max-len)))))
 
-(println "Solution: " (loop 2))
+(solution (loop 2))

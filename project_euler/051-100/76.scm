@@ -1,4 +1,4 @@
-; Solved 15.1.18
+; Solved 15.1.2018
 
 (def results '(1))
 (def len 1)
@@ -40,4 +40,4 @@
         (loop (inc from))))
     acc))
 
-(println "Solution: " (dec (loop 2)))
+(solution (dec (loop 2)))

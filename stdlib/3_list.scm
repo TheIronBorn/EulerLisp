@@ -43,6 +43,12 @@
 ;           (append (f (fst arr))
 ;                 (flatmap f (rst arr)))))
 
+(defn delete (elem lst)
+  (if (= (fst lst) elem)
+      (rst lst)
+      (cons (fst lst)
+            (delete elem (rst lst)))))
+
 (defn delete-nth (n lst)
   (if (= n 0)
       (rst lst)
@@ -69,6 +75,11 @@
   (reduce (fn (x acc) (max (f x) acc)) init arr))
 (defn reduce-min (f init arr)
   (reduce (fn (x acc) (min (f x) acc)) init arr))
+
+(defn reduce-max~ (f init arr)
+  (reduce~ (fn (x acc) (max (f x) acc)) init arr))
+(defn reduce-min~ (f init arr)
+  (reduce~ (fn (x acc) (min (f x) acc)) init arr))
 
 (defn max-by (f arr)
   (if (nil? arr)
@@ -139,3 +150,5 @@
 
 (defn each (f lst)
   (reduce (fn (cur acc) (f cur)) '() lst))
+
+(defn empty? (lst) {(length lst) = 0})

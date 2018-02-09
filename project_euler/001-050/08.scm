@@ -1,9 +1,4 @@
-; Solved: 18.12.17
-; Changes:
-;  * implement string-bytes method
-;  * implement filter
-; 29.12.17, Refactor to use chunks & product methods
-; 11.1.18, Refactor to use ~> 
+; Solved: 18.12.2017
 
  (~> "project_euler/input-files/8.txt"
      file-read
@@ -12,4 +7,4 @@
      (map char->digit)
      (chunks 13)
      (reduce &(max (product &1) &2) 0)
-     (println "Solution: "))
+     solution)

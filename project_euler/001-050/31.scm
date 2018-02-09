@@ -1,4 +1,4 @@
-; Solved 6.1
+; Solved 6.1.2018
 
 (defn coin-sums (n coins)
       (if (= (length coins) 1)
@@ -10,4 +10,4 @@
 
 (~> (list 200 100 50 20 10 5 2 1)
     (coin-sums 200)
-    (println "Solution: "))
+    solution)

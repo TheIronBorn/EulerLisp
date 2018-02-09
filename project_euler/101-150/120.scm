@@ -1,16 +1,11 @@
-; Solved: 28.1.18
-; Proof: See notes
+; Solved: 28.1.2018
 
 (defn r-max (a)
-  (~> 
-      (if (odd? a)
-          (range~ 1 (* 2 a) 2)
-          (range~ 1 a 2))
+  (~> (range~ 1 (if (odd? a) (* 2 a) a) 2)
       (map~ &(% (* 2 &1 a) (* a a)))
-      collect
-      (reduce-max id 0)))
+      (reduce-max~ id 0)))
 
 (~> (range~ 3 1000)
     (map~ &(max (r-max &1) 2))
     sum~
-    (println "Solution: "))
+    solution)

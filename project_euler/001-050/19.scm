@@ -1,4 +1,4 @@
-; Solved 1.1
+; Solved 1.1.2018
 
 (defn leap-year? (n)
   (cond
@@ -41,8 +41,4 @@
                      acc
                 )))))
 
-(println
-  "Solution: "
-  (step (list 1 1 1900)
-        (list 1 1 2001)
-        0))
+(solution (step (list 1 1 1900) (list 1 1 2001) 0))

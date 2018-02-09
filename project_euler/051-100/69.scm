@@ -1,7 +1,5 @@
-; Solved: 11.1
-; Changes: added (primes n) function,
-; to get the first n primes from a hardcoded list of primes
-;
+; Solved: 11.1.2018
+
 ; phi(n) for n = p_1^k_1 * ... * p_n^k_n (prime factors)
 ; is defined as
 ;
@@ -22,4 +20,4 @@
         acc
         (solve limit next (rst ps)))))
 
-(println "Solution: " (solve 1000000 1 (primes 100)))
+(solution (solve 1000000 1 (primes 100)))

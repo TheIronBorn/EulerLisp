@@ -1,4 +1,4 @@
-; Solved 28.1.18
+; Solved 28.1.2018
 ;
 ; The first version was correct in theory
 ; but would have taken years to solve the problem for high numbers.
@@ -13,7 +13,7 @@
 ; seems to fix that.
 
 (def n 100_000_000)
-(~> (totient-sum n) (* 6) (- (* n (inc n) 3)) (println "Solution: "))
+(~> (totient-sum n) (* 6) (- (* n (inc n) 3)) solution)
 
 ; (def l (isqrt n))
 ; (def v (filled-list (inc l) 0))

@@ -1,8 +1,6 @@
-; Solved 9.1
+; Solved 9.1.2018
 
-(def ranges
-   (map (fn (x) (* x 9 (pow 10 (dec x))))
-        (range 1 7)))
+(def ranges (map &(* &1 9 (pow 10 (dec &1))) (range 1 7)))
 
 (defn find-bracket_ (n cur ranges)
   (if (< n (fst ranges))
@@ -21,5 +19,4 @@
       n
       (~> n dec find-bracket (apply find-digit))))
 
-(println "Solution: "
-         (reduce-product &(digit (pow 10 &1)) (range 0 6)))
+(solution (reduce-product &(digit (pow 10 &1)) (range 0 6)))

@@ -1,4 +1,4 @@
-; Solved 18.1
+; Solved 18.1.2018
 
 (defn ring-numbers (i)
   (let ([sq (square (inc (* 2 i)))])
@@ -11,4 +11,4 @@
                (+ numbers 4)
                (+ ps (count prime? (ring-numbers i))))))
 
-(println "Solution: " (solve))
+(solution (solve))

@@ -1,4 +1,5 @@
-; Solved 6.1
+; Solved 6.1.2018
+
 (def facs (map fac (range 0 9)))
 
 (defn digit-sum (n (acc 0))
@@ -14,4 +15,4 @@
   (range~ 3 (* 7 (fac 9)))
   (select~ digit-fac?)
   sum~
-  (println "Solution: "))
+  solution)

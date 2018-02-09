@@ -1,4 +1,4 @@
-; Solved: 27.1.18
+; Solved: 27.1.2018
 
 (defn digit-sum (n) (sum (number->digits n)))
 (defn harshad? (n) (divides? (digit-sum n) n))

@@ -22,5 +22,5 @@
 (~>
   (range~ 3 (max-outer n))
   (map~ &(find-inner n &1))
-  (sum~)
+  sum~
   solution)

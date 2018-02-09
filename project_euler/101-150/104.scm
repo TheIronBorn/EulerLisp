@@ -1,4 +1,4 @@
-; Solved: 27.1.18
+; Solved: 27.1.2018
 ; Time: 48.48s
 ; TODO: Remove bignum-chunks when % works on bignums
 

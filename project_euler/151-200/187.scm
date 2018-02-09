@@ -1,4 +1,4 @@
-; Solved: 28.1.18
+; Solved: 28.1.2018
 
 (def ps
      (~> (range~ 3 50000000 2)
@@ -23,4 +23,4 @@
     (map~ &(loop (list-ref ps &1) &1))
     sum~
     (+ maxl 1)
-    (println "Solution: "))
+    solution)

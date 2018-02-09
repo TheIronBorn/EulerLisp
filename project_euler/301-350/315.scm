@@ -1,4 +1,4 @@
-; Solved: 26.1.18
+; Solved: 26.1.2018
 
 ; Just work with the transitions saved each step
 ; instead of caluclating the counts of sam and max
@@ -37,4 +37,4 @@
   (select~ prime?)
   (map~ process-saved)
   sum~
-  (println "Solution: "))
+  solution)

@@ -1,4 +1,4 @@
-; Solved 14.1
+; Solved 14.1.2018
 
 (defn fac-from (from to)
   (product~ (range~ from to)))
@@ -24,4 +24,4 @@
                 (+ greater (- 100 (- n 1))))
          (solve r (inc n) greater))]))
 
-(println "Solution: " (solve 1 1))
+(solution (solve 1 1))

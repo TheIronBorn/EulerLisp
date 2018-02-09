@@ -1,7 +1,4 @@
-; Solved: 29.12.17
-; Changes:
-;  * add `any?`, `all?`, `zip`, `sum`, `product`, `take`, `chunks` list functions
-;  * add `curry` fn functions
+; Solved: 29.12.2017
 
 (def input
      (~> "project_euler/input-files/11.txt"
@@ -34,7 +31,7 @@
 (defn max-product (lst)
       (apply max (map product lst)))
 
-(println
+(solution
   (max
     (max-product row-chunks)
     (max-product col-chunks)

@@ -1,4 +1,4 @@
-; Solved 1.1
+; Solved 1.1.2018
 
 (defn permutation (index candidates)
       (if (not (empty? candidates))
@@ -10,9 +10,10 @@
                     (% index f)
                     (delete-nth first candidates))))))
 
-; Permutations are 0-indexed
+; Permutations are 0-indexed,
+; `permutations~` won't work here because it is not ordered the right way
 (~>
   (range 0 9)
   (permutation 999999)
   (apply str)
-  (println "Solution: "))
+  solution)

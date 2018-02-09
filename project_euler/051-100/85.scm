@@ -1,4 +1,4 @@
-; Solved: 28.1.18
+; Solved: 28.1.2018
 
 (defn rects (a b) (* (/ (* a (inc a)) 2)
                      (/ (* b (inc b)) 2)))
@@ -15,8 +15,9 @@
       (find-best a (inc b)))))
 
 (~>
-  (range 1 2000)
-  (map &(find-best &1 &1))
+  (range~ 1 2000)
+  (map~ &(find-best &1 &1))
+  collect
   (min-by fst)
   frst
-  (println "Solution: "))
+  solution)

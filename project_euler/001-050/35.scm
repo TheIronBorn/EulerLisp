@@ -1,4 +1,4 @@
-; Solved 6.1
+; Solved 6.1.2018
 
 (defn rotations (n)
       (cond
@@ -33,14 +33,8 @@
   (and (prime? n)
        (all? prime? (rotations n))))
 
-; This is based on the assumption that all 11 trunc primes are < 1000000
-(defn solve (cur (acc 1))
-  (if (>= cur 1000000)
-      acc
-      (if (rotatable-prime? cur)
-          (do
-            (println "Rotatable prime: " cur)
-            (solve (+ cur 2) (inc acc)))
-          (solve (+ cur 2) acc))))
-
-(println "Solution: " (solve 3))
+(~>
+  (range~ 3 999_999 2)
+  (count~ rotatable-prime?)
+  inc ; 2 is a rotatable prime, too
+  solution)

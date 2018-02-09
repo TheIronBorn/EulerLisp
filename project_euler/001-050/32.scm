@@ -1,4 +1,4 @@
-; Solved 6.1
+; Solved 6.1.2018
 
 (def all-digits (range 1 9))
 
@@ -37,4 +37,4 @@
   sort
   uniq
   sum
-  (println "Solution: "))
+  solution)

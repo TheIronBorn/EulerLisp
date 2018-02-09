@@ -1,4 +1,4 @@
-; Solved 15.1.18
+; Solved 15.1.2018
 
 (defn coin-sums (n coins)
       (cond
@@ -21,4 +21,4 @@
   (step~ 2)
   (select~ &(> (coin-sums &1 ps) 5000))
   first~
-  (println "Solution: "))
+  solution)

@@ -1,5 +1,4 @@
-; Solved 1.1
-; Idea: See notebook
+; Solved 1.1.2018
 
 (defn ring-sum (i)
     (if (zero? i)
@@ -11,4 +10,4 @@
   (range~ 0 (div 1001 2))
   (map~ ring-sum)
   sum~
-  (println "Solution: "))
+  solution)

@@ -1,4 +1,4 @@
-; Solved 8.1
+; Solved 8.1.2018
 
 (def myprimes 
    (~> (range~ 1000 9999)
@@ -58,7 +58,6 @@
 (defn ascending? (seq)
       (ascending?_ (rst seq) (- (frst seq) (fst seq))))
 
-(println
-  "Solutions: "
+(solution
   (map &(apply str &1)
        (~> all-sequences (map sort) (select ascending?))))

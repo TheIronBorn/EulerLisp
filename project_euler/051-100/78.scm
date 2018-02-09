@@ -1,7 +1,4 @@
-; Solved 27.1.28
-; Time: 54.91s
-
-(defn pentagonal (n) (div (* n (dec (* 3 n))) 2))
+; Solved 27.1.2018
 
 ; Assume that P(0) = 1
 (def partitions '(1))
@@ -30,7 +27,7 @@
   (let ([p (% (next-partitions from) 1000000)])
     (push! partitions p)
     (if (zero? p)
-        (println "Solution: " from)
+        from
         (loop (inc from)))))
 
-(loop 1)
+(solution (loop 1))

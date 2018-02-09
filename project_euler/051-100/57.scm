@@ -1,4 +1,4 @@
-; Solved 14.1
+; Solved 14.1.2018
 
 (defn next (frac)
   (cons

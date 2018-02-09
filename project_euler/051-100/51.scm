@@ -1,4 +1,4 @@
-; Solved: 20.1.18
+; Solved: 20.1.2018
 
 (defn replace (n i d)
   (let ([p1 (pow 10 i)])
@@ -53,7 +53,7 @@
             (select prime?)
             sort
             fst
-            (println "Solution: "))
+            solution)
           #f)))
 
 (defn has-family? (n)

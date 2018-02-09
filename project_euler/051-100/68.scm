@@ -1,4 +1,4 @@
-; Solved: 27.1.18
+; Solved: 27.1.2018
 
 (defn to-ring (p)
   (list
@@ -18,8 +18,6 @@
 (defn rotate-ring (r)
   (rotate-ring_ r (reduce-min fst 11 r)))
 
-(defn flatten (a) (flatmap id a))
-
 (~>
   (permutations~ (range 1 9))
   (select~ (fn (p)
@@ -35,5 +33,5 @@
   (map~ &(apply str &1))
   collect
   (apply max)
-  println)
+  solution)
 

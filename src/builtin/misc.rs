@@ -12,33 +12,33 @@ use ::builtin::register;
 use ::eval::Evaluator;
 use ::EnvRef;
 
-fn println(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+fn println(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let mut output = eval.output.borrow_mut();
     for v in vs.iter() {
         match *v {
-            // Print string without " around them
-            Datum::String(ref x) => print!("{}", x),
-            ref other => print!("{}", other),
+            Datum::String(ref x) => {
+                if let Err(_err) = write!(output, "{}", x) {
+                    return Err(IOError)
+                }
+            },
+            ref other => {
+                if let Err(_err) = write!(output, "{}", other) {
+                    return Err(IOError)
+                }
+            }
         };
     }
-    print!("\n");
+    if let Err(_err) = write!(output, "\n") {
+        return Err(IOError)
+    }
     Ok(Datum::Undefined)
 }
 
-fn print(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    for v in vs.iter() {
-        match *v {
-            // Print string without " around them
-            Datum::String(ref x) => print!("{}", x),
-            ref other => print!("{}", other),
-        };
+fn inspect(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    match writeln!(eval.output.borrow_mut(), "{:?}", vs[0]) {
+        Err(_err) => Err(IOError),
+        Ok(_) => Ok(Datum::Undefined)
     }
-    print!("\n");
-    Ok(Datum::Undefined)
-}
-
-fn inspect(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    println!("{:?}", vs[0]);
-    Ok(Datum::Undefined)
 }
 
 fn not(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -92,7 +92,6 @@ fn apply(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult 
 
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "println", println, Arity::Min(0));
-    register(hm, "print", print, Arity::Min(0));
     register(hm, "inspect", inspect, Arity::Exact(1));
     register(hm, "not", not, Arity::Exact(1));
     register(hm, "file-read", file_read, Arity::Exact(1));

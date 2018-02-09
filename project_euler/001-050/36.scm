@@ -1,4 +1,4 @@
-; Solved 6.1
+; Solved 6.1.2018
 
 (defn number->digits2 (n (acc '()))
       (if (= n 0)
@@ -18,4 +18,4 @@
   (select~ &(< &1 1_000_000))
   (select~ &(palindromic? (number->digits2 &1)))
   sum~
-  (println "Solution: "))
+  solution)
