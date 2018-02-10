@@ -13,7 +13,7 @@ use syntax_rule::SyntaxRule;
 use symbol_table::SymbolTable;
 use env::{AEnv, AEnvRef};
 
-fn process_params(params: &Vec<Datum>) -> (Vec<Symbol>, Vec<Datum>) {
+fn process_params(params: &Vec<Datum>) -> Result<(Vec<Symbol>, Vec<Datum>), LispErr> {
     let mut names = Vec::new();
     let mut defaults = Vec::new();
     let mut had_default = false;
@@ -26,7 +26,9 @@ fn process_params(params: &Vec<Datum>) -> (Vec<Symbol>, Vec<Datum>) {
                 }
                 names.push(v);
             }, 
-            Datum::List(ref elems) => {
+            Datum::Pair(ref ptr) => {
+                let elems = ptr.borrow().collect_list()?;
+
                 let name = elems.get(0).unwrap();
                 let default = elems.get(1).unwrap_or(&Datum::Nil);
                 had_default = true;
@@ -43,7 +45,7 @@ fn process_params(params: &Vec<Datum>) -> (Vec<Symbol>, Vec<Datum>) {
         }
     }
 
-    (names, defaults)
+    Ok((names, defaults))
 }
 
 fn preprocess_list(
@@ -95,26 +97,33 @@ fn preprocess_fn(
 
     let params = elems.remove(0);
     match params {
-        Datum::List(ref elems) => {
-            let res = process_params(elems);
-            names = res.0;
-            defaults = res.1;
-            dotted = false;
-        },
-        Datum::DottedList(ref elems, ref tail) => {
-            let res = process_params(elems);
-            names = res.0;
-            defaults = res.1;
+        Datum::Pair(ref ptr) => {
+            let mut elems = ptr.borrow().collect();
+            let tail = elems.pop().unwrap();
 
-            if let Datum::Symbol(v) = **tail {
-                names.push(v);
+            if tail.is_nil() {
+                let res = process_params(&elems)?;
+                names = res.0;
+                defaults = res.1;
+                dotted = false;
             } else {
-                panic!("Dotted lambda `. rest` must be a symbol")
+                let res = process_params(&elems)?;
+                names = res.0;
+                defaults = res.1;
+
+                if let Datum::Symbol(v) = tail {
+                    names.push(v);
+                } else {
+                    panic!("Dotted lambda `. rest` must be a symbol")
+                }
+                dotted = true;
             }
-            dotted = true;
         },
         ref other => {
-            panic!("Lambda parameters must be (a b ...) or (a b ... . c), found {}", other);
+            panic!(
+                "Lambda parameters must be (a b ...) or (a b ... . c), found {}",
+                other.to_string(symbol_table)
+            );
         }
     }
 
@@ -134,7 +143,8 @@ pub fn preprocess(
     env_ref: AEnvRef
     ) -> Result<Meaning, LispErr> {
     match datum {
-        Datum::List(mut elems) => {
+        Datum::Pair(ptr) => {
+            let mut elems = ptr.borrow().collect_list()?;
             if elems.len() == 0 {
                 panic!("Empty lists are not allowed");
             }
@@ -176,23 +186,6 @@ pub fn preprocess(
                                 Err(InvalidTypeOfArguments)
                             }
                         },
-                        "list-ref"       => {
-                            check_arity!(elems, 2);
-
-                            let key = elems.remove(0);
-
-                            if let Datum::Symbol(symbol) = key {
-                                let foo = env_ref.borrow_mut().lookup(&symbol);
-                                if let Some(binding) = foo {
-                                    let index = preprocess(elems.remove(0), symbol_table, builtins, syntax_rules, env_ref.clone())?;
-                                    Ok(Meaning::ListRef(binding, Box::new(index)))
-                                } else {
-                                    panic!("Trying to list-ref undefined variable");
-                                }
-                            } else {
-                                Err(InvalidTypeOfArguments)
-                            }
-                        },
                         "set!"       => {
                             check_arity!(elems, 2);
 
@@ -203,42 +196,6 @@ pub fn preprocess(
                                 if let Some(binding) = foo {
                                     let value = preprocess(elems.remove(0), symbol_table, builtins, syntax_rules, env_ref.clone())?;
                                     Ok(Meaning::Assignment(binding, Box::new(value)))
-                                } else {
-                                    panic!("Trying to set! undefined variable");
-                                }
-                            } else {
-                                Err(InvalidTypeOfArguments)
-                            }
-                        },
-                        "push!"       => {
-                            check_arity!(elems, 2);
-
-                            let key = elems.remove(0);
-
-                            if let Datum::Symbol(symbol) = key {
-                                let foo = env_ref.borrow_mut().lookup(&symbol);
-                                if let Some(binding) = foo {
-                                    let value = preprocess(elems.remove(0), symbol_table, builtins, syntax_rules, env_ref.clone())?;
-                                    Ok(Meaning::ListPush(binding, Box::new(value)))
-                                } else {
-                                    panic!("Trying to set! undefined variable");
-                                }
-                            } else {
-                                Err(InvalidTypeOfArguments)
-                            }
-                        },
-                        "set-nth!"       => {
-                            check_arity!(elems, 3);
-
-                            let key = elems.remove(0);
-
-                            if let Datum::Symbol(symbol) = key {
-                                let foo = env_ref.borrow_mut().lookup(&symbol);
-                                if let Some(binding) = foo {
-                                    let index = preprocess(elems.remove(0), symbol_table, builtins, syntax_rules, env_ref.clone())?;
-                                    let value = preprocess(elems.remove(0), symbol_table, builtins, syntax_rules, env_ref.clone())?;
-
-                                    Ok(Meaning::ListSet(binding, Box::new(index), Box::new(value)))
                                 } else {
                                     panic!("Trying to set! undefined variable");
                                 }
@@ -262,8 +219,21 @@ pub fn preprocess(
                         },
                         other => {
                             if let Some(sr) = syntax_rules.get(&s) {
-                                let expanded = sr.apply(elems);
-                                return preprocess(expanded, symbol_table, builtins, syntax_rules, env_ref.clone());
+                                // println!("\nConverted {}",
+                                //          Datum::make_list_from_vec(elems.clone()).to_string(symbol_table)
+                                //          );
+                                let expanded = sr.apply(elems.clone());
+                                match expanded {
+                                    Some(ex) => {
+                                        // println!("To {}", ex.to_string(symbol_table));
+                                        return preprocess(ex, symbol_table, builtins, syntax_rules, env_ref.clone());
+                                    },
+                                    None => {
+                                        panic!("No matching in {} pattern for {}",
+                                               symbol_table.lookup(s),
+                                               Datum::make_list_from_vec(elems).to_string(symbol_table));
+                                    }
+                                }
                             }
 
                             let exprs = preprocess_list(elems, symbol_table, builtins, syntax_rules, env_ref.clone());
@@ -304,7 +274,6 @@ pub fn preprocess(
             }
 
         },
-        Datum::DottedList(_, _) => panic!("Malformed expression"),
         other => Ok(Meaning::self_evaluating(other)),
     }
 }

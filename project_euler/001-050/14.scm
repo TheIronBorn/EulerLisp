@@ -1,11 +1,10 @@
 ; Solved 31.12.2017
 
-(def known '(0 1 2))
-(def known-len 2)
+(def known #(0 1 2))
 
 (defn collatz-length (n (len 1))
-  (if (<= n known-len)
-      (+ len (list-ref known n))
+  (if (< n (vector-length known))
+      (+ len (vector-ref known n))
       (case (% n 4)
         [0 (collatz-length (div n 4) (+ len 2))]
         [1 (collatz-length (+ (* 3 (div n 4)) 1) (+ len 3))]
@@ -17,8 +16,7 @@
       (if (> from 1000000)
           max-n
           (let ([cur-len (collatz-length from)])
-            (push! known cur-len)
-            (set! known-len (inc known-len))
+            (vector-push! known cur-len)
             (if (> cur-len max-len)
               (solve (inc from) from cur-len)
               (solve (inc from) max-n max-len)))))

@@ -379,7 +379,9 @@ impl<'a> Lexer<'a> {
                         self.make_token(start, Literal::Dot)
                     }
                 },
-                '\'' => self.make_token(start, Literal::Quote),
+                '\'' => {
+                    self.make_token(start, Literal::Quote)
+                },
                 '`'  => self.make_token(start, Literal::Quasiquote),
                 ','  => {
                     if self.is_peek_eq('@') {

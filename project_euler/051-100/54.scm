@@ -103,8 +103,6 @@
             [else #f]))))
 
 (~> "./project_euler/input-files/54.txt"
-    file-read
-    lines
-    (reject empty?)
+    input-file-lines
     (count winner?)
     solution)

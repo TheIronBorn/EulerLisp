@@ -1,5 +1,4 @@
 extern crate lisp;
-extern crate glob;
 
 use std::env;
 use std::io;
@@ -8,7 +7,6 @@ use std::cell::RefCell;
 use std::time::{Duration, Instant};
 
 use lisp::eval::Evaluator;
-use glob::glob;
 
 fn main() {
     let mut args: Vec<String> = env::args().collect();
@@ -43,7 +41,7 @@ fn main() {
                 let mut full = Duration::new(0, 0);
 
                 let from = args.get(0).unwrap().parse::<i64>().unwrap();
-                let to = args.get(0).unwrap().parse::<i64>().unwrap();
+                let to = args.get(1).unwrap().parse::<i64>().unwrap();
 
                 for problem in from..(to+1) {
                     let subfolder = (problem - 1) / 50;

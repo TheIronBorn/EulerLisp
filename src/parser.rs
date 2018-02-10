@@ -149,17 +149,18 @@ impl<'a> Parser<'a> {
                     match self.next_datum(st)? {
                         Some(d) => {
                             match d {
-                                Datum::List(elems) => {
-                                    if elems.len() == 0 {
-                                        Ok(Some(Datum::Nil))
-                                    } else {
-                                        Ok(Some(Datum::List(
-                                            vec![self.make_symbol("quote", st), Datum::List(elems)]
-                                        )))
-                                    }
+                                Datum::Pair(elems) => {
+                                    Ok(Some(Datum::make_list_from_vec(
+                                        vec![self.make_symbol("quote", st), Datum::Pair(elems)]
+                                    )))
+                                },
+                                // TODO: Fix this, using next_datum here is not good
+                                // because it uses `make_pair` and that returns Nil for empty pairs
+                                Datum::Nil => {
+                                    Ok(Some(Datum::Nil))
                                 },
                                 other => {
-                                    Ok(Some(Datum::List(vec![self.make_symbol("quote", st), other])))
+                                    Ok(Some(Datum::make_list_from_vec(vec![self.make_symbol("quote", st), other])))
                                 }
                             }
                         },
@@ -175,7 +176,7 @@ impl<'a> Parser<'a> {
                 Literal::Quasiquote => {
                     match self.next_datum(st)? {
                         Some(d) => {
-                            Ok(Some(Datum::List(vec![self.make_symbol("quasiquote", st), d])))
+                            Ok(Some(Datum::make_list_from_vec(vec![self.make_symbol("quasiquote", st), d])))
                         },
                         None => {
                             Err(ParserError {
@@ -189,7 +190,7 @@ impl<'a> Parser<'a> {
                 Literal::Unquote => {
                     match self.next_datum(st)? {
                         Some(d) => {
-                            Ok(Some(Datum::List(vec![self.make_symbol("unquote", st), d])))
+                            Ok(Some(Datum::make_list_from_vec(vec![self.make_symbol("unquote", st), d])))
                         },
                         None => {
                             Err(ParserError {
@@ -203,7 +204,7 @@ impl<'a> Parser<'a> {
                 Literal::UnquoteSplicing => {
                     match self.next_datum(st)? {
                         Some(d) => {
-                            Ok(Some(Datum::List(vec![self.make_symbol("unquote-splicing", st), d])))
+                            Ok(Some(Datum::make_list_from_vec(vec![self.make_symbol("unquote-splicing", st), d])))
                         },
                         None => {
                             Err(ParserError {
@@ -323,7 +324,7 @@ impl<'a> Parser<'a> {
                     })?
                 }
 
-                return Ok(Datum::DottedList(res, Box::new(tail)));
+                return Ok(Datum::make_dotted_list_from_vec(res, tail));
             } else {
                 if let Some(n) = self.next_datum(st)? {
                     res.push(n);
@@ -334,10 +335,9 @@ impl<'a> Parser<'a> {
         }
 
         if is_vector {
-            // TODO: Add vectors that are different in some way
-            Ok(Datum::List(res))
+            Ok(Datum::make_vector_from_vec(res))
         } else {
-            Ok(Datum::List(res))
+            Ok(Datum::make_list_from_vec(res))
         }
     }
 
@@ -349,9 +349,10 @@ impl<'a> Parser<'a> {
     fn find_max_hole(&mut self, datum: &Datum, st: &mut SymbolTable) -> isize {
         let mut max = 0;
         match datum {
-            &Datum::List(ref elems) => {
+            &Datum::Pair(ref ptr) => {
+                let elems = ptr.borrow().collect_list().unwrap();
                 for d in elems {
-                    let res = self.find_max_hole(d, st);
+                    let res = self.find_max_hole(&d, st);
                     if res > max {
                         max = res;
                     }
@@ -374,7 +375,7 @@ impl<'a> Parser<'a> {
     }
 
     fn convert_hole_lambda_to_lambda(&mut self, datums: Vec<Datum>, st: &mut SymbolTable) -> Datum {
-        let body = Datum::List(datums);
+        let body = Datum::make_list_from_vec(datums);
         let max = self.find_max_hole(&body, st);
 
         let mut params: Vec<Datum> = Vec::new();
@@ -384,7 +385,7 @@ impl<'a> Parser<'a> {
             params.push(self.make_symbol(&param, st));
         }
 
-        Datum::List(vec![self.make_symbol("fn", st), Datum::List(params), body])
+        Datum::make_list_from_vec(vec![self.make_symbol("fn", st), Datum::make_list_from_vec(params), body])
     }
 
     // Converts a list of the form {1 + 2 + 3} to (+ 1 2 3)
@@ -412,6 +413,6 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Ok(Datum::List(args))
+        Ok(Datum::make_list_from_vec(args))
     }
 }

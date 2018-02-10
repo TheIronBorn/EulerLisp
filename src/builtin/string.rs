@@ -15,7 +15,7 @@ fn string_bytes(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> Li
         let bytes = string.as_bytes().iter().map(
             |b| Datum::Integer(*b as isize)
             ).collect();
-        return Ok(Datum::List(bytes));
+        return Ok(Datum::make_list_from_vec(bytes));
     }
     Err(InvalidTypeOfArguments)
 }
@@ -48,19 +48,19 @@ fn string_split(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> Li
                 string.split(splitter)
                 .map( |l| Datum::String(l.to_string()) )
                 .collect();
-            return Ok(Datum::List(lines));
+            return Ok(Datum::make_list_from_vec(lines));
         }
     }
     Err(InvalidTypeOfArguments)
 }
 
-fn string_join(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+fn string_join(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let mut result = String::new();
 
     for v in vs.into_iter() {
         match v {
             &mut Datum::String(ref s) => result += s,
-            other => result += &other.to_string(),
+            other => result += &other.to_string(&mut eval.symbol_table),
         }
     }
     return Ok(Datum::String(result));
@@ -70,7 +70,7 @@ fn string_join(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> Lis
 fn string_to_chars(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let string = vs[0].take().as_string().unwrap();
 
-    Ok(Datum::List(string.chars().map(|c| Datum::Char(c) ).collect()))
+    Ok(Datum::make_list_from_vec(string.chars().map(|c| Datum::Char(c) ).collect()))
 }
 
 fn char_to_integer(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {

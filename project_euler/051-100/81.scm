@@ -3,9 +3,7 @@
 (def input
      (~>
        "./project_euler/input-files/81.txt"
-       file-read
-       lines
-       (reject empty?)
+       input-file-lines
        (map &(map string->number (string-split "," &1)))))
 
 (defn reduce-rows (a b (last '()) (acc '()))

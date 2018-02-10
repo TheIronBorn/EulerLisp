@@ -1,10 +1,7 @@
 ; Solved: 29.12.2017
 
 (def input
-     (~> "project_euler/input-files/13.txt"
-         file-read
-         lines
-         (reject empty?)))
+  (input-file-lines "project_euler/input-files/13.txt"))
 
 (defn parse-number (x)
    (map char->digit

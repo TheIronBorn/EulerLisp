@@ -1,17 +1,16 @@
 ; Solved: 15.1.2018
 
-(def facs (map fac (range 0 9)))
+(def facs (~> (range 0 9) (map fac) list->vector))
 (defn step (n)
-      (reduce &(+ &2 (list-ref facs &1))
+      (reduce &(+ &2 (vector-ref facs &1))
               0
               (number->digits n)))
 
-(def lens '(1 1))
-(def length-lens 2)
+(def lens #(1 1))
 
 (defn solve (n (acc 0))
-  (if (< n length-lens)
-      (+ acc (list-ref lens n))
+  (if (< n (vector-length lens))
+      (+ acc (vector-ref lens n))
       (case n
         [145 (+ acc 1)]
         [169 (+ acc 3)]
@@ -33,8 +32,7 @@
   (if (>= n 1000000)
     acc
     (let ([len (solve n)])
-      (push! lens len)
-      (set! length-lens (inc length-lens))
+      (vector-push! lens len)
       (fill (inc n) (if (= len 60) (inc acc) acc)))))
 
 (solution (fill 2))

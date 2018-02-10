@@ -7,31 +7,32 @@
 (defn factor-sum (n) (- (sum (factors n)) n))
 (defn abundant? (n) (> (factor-sum n) n))
 
-(def abundant-sums (filled-list max-n #f))
-(defn abundant-sum? (n) (list-ref abundant-sums (dec n)))
+(def abundant-sums (make-vector max-n #f))
+(defn abundant-sum? (n) (vector-ref abundant-sums (dec n)))
 
 (def abundants
   (~> (range~ 12 (inc max-n))
       (select~ abundant?)
-      collect))
+      collect
+      list->vector))
 
-(def len (dec (length abundants)))
-(def init (list-ref abundants 0))
+(def len (dec (vector-length abundants)))
+(def init (vector-ref abundants 0))
 
-(push! abundants 0)
+(vector-push! abundants 0)
 
 (defn loop2 (pa pb va vb limit)
       (if (< pb len)
         (if (or (>= pa len)
                 (>= va limit))
-          (let ([next-vb (list-ref abundants (inc pb))])
+          (let ([next-vb (vector-ref abundants (inc pb))])
             (loop2 0 (inc pb)
                    init next-vb
                    (- max-n next-vb)))
           (do
-            (set-nth! abundant-sums (dec (+ va vb)) #t)
+            (vector-set! abundant-sums (dec (+ va vb)) #t)
             (loop2 (inc pa) pb
-                   (list-ref abundants (inc pa)) vb
+                   (vector-ref abundants (inc pa)) vb
                    limit)))))
 (loop2 0 0 init init (- max-n init))
 

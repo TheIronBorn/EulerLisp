@@ -25,12 +25,13 @@ use preprocess;
 
 pub struct Evaluator {
     level: isize,
-    symbol_table: SymbolTable,
+    pub symbol_table: SymbolTable,
     pub syntax_rules: HashMap<Symbol, SyntaxRule>,
     pub root_env: EnvRef,
     pub output: Rc<RefCell<Write>>,
     root_aenv: AEnvRef,
     builtins: HashMap<String, LispFn>,
+    unique_id: usize,
 }
 
 pub type TCOResult = Result<TCOWrapper, LispErr>;
@@ -57,6 +58,7 @@ impl Evaluator {
             builtins,
             output,
             level: 0,
+            unique_id: 0,
             root_env: env_ref,
             root_aenv: aenv_ref
         };
@@ -78,6 +80,11 @@ impl Evaluator {
         ev
     }
 
+    pub fn get_unique_id(&mut self) -> usize {
+        self.unique_id += 1;
+        self.unique_id
+    }
+
     pub fn apply(&mut self, f: Datum, mut evaled_args: Vec<Datum>, env_ref: EnvRef) -> TCOResult {
         match f {
             Datum::Lambda(mut lambda) => {
@@ -89,7 +96,7 @@ impl Evaluator {
 
                     if given > takes {
                         let rest = evaled_args.split_off(takes);
-                        evaled_args.push(Datum::List(rest));
+                        evaled_args.push(Datum::make_list_from_vec(rest));
                         child_env.extend(evaled_args);
                     } else {
                         let defaults = lambda.defaults.len();
@@ -100,7 +107,7 @@ impl Evaluator {
                         } else {
                             let mut defs = lambda.defaults.split_off(defaults - missing);
                             evaled_args.append(&mut defs);
-                            evaled_args.push(Datum::List(vec!()));
+                            evaled_args.push(Datum::make_list_from_vec(vec!()));
                             child_env.extend(evaled_args);
                         }
                     }
@@ -130,7 +137,7 @@ impl Evaluator {
                 arity.check(evaled_args.len(), &name);
                 Ok(TCOWrapper::Return(fun(evaled_args.as_mut_slice(), self, env_ref)?))
             },
-            a => panic!("Tried to apply {}", a)
+            a => panic!("Tried to apply {:?}", a)
         } 
     }
 
@@ -199,67 +206,6 @@ impl Evaluator {
         Ok(TCOWrapper::Return(Datum::Undefined))
     }
 
-    fn eval_sf_list_push(&mut self, key: BindingRef, value: Meaning, env_ref: EnvRef) -> TCOResult {
-        let value = self.eval(value, env_ref.clone())?;
-        let env = env_ref.borrow();
-
-        let binding = env.get_binding(key);
-        (*binding.borrow_mut()).push(value);
-        Ok(TCOWrapper::Return(Datum::Undefined))
-    }
-
-    fn eval_sf_list_ref(&mut self, key: BindingRef, index: Meaning, env_ref: EnvRef) -> TCOResult {
-        let vindex = self.eval(index, env_ref.clone())?;
-        if let Datum::Integer(index) = vindex {
-            let env = env_ref.borrow();
-
-            let binding = env.get_binding(key);
-            let mut bm = binding.borrow_mut();
-            match *bm {
-                Datum::List(ref mut elements) => {
-                    if let Some(elem) = elements.get(index as usize) {
-                        Ok(TCOWrapper::Return(elem.clone()))
-                    } else {
-                        panic!("Index out of bounds")
-                    }
-                },
-                _ => {
-                    panic!("Usage: (list-ref <id> <index>)")
-                }
-            }
-        } else {
-            panic!("Usage: (list-ref <id> <index>)")
-        }
-    }
-
-    fn eval_sf_list_set(&mut self, key: BindingRef, index: Meaning, value: Meaning, env_ref: EnvRef) -> TCOResult {
-        let vindex = self.eval(index, env_ref.clone())?;
-        let value = self.eval(value, env_ref.clone())?;
-
-        if let Datum::Integer(index) = vindex {
-            let env = env_ref.borrow();
-
-            let binding = env.get_binding(key);
-            let mut bm = binding.borrow_mut();
-            match *bm {
-                Datum::List(ref mut elements) => {
-                    if let Some(elem) = elements.get_mut(index as usize) {
-                        *elem = value;
-                        Ok(TCOWrapper::Return(Datum::Undefined))
-                    } else {
-                        // TODO: Index out of bounds
-                        Err(InvalidTypeOfArguments)
-                    }
-                },
-                _ => {
-                    Err(InvalidTypeOfArguments)
-                }
-            }
-        } else {
-            Err(InvalidTypeOfArguments)
-        }
-    }
-
     pub fn eval_datum(&mut self, _datum: Datum, _env_ref: EnvRef) -> LispResult {
         // let preprocessed = preprocess::preprocess(datum, &mut self.symbol_table, &self.builtins, &self.syntax_rules, self.root_aenv.clone())?;
         // self.eval(preprocessed, env_ref)
@@ -293,9 +239,6 @@ impl Evaluator {
                     Ok(TCOWrapper::Return(Datum::Nil))
                 },
                 Meaning::Assignment(name, value) => self.eval_sf_assignment(name, *value, env_ref),
-                Meaning::ListPush(name, value) => self.eval_sf_list_push(name, *value, env_ref),
-                Meaning::ListRef(name, value) => self.eval_sf_list_ref(name, *value, env_ref),
-                Meaning::ListSet(name, index, value) => self.eval_sf_list_set(name, *index, *value, env_ref),
                 Meaning::BindingRef(key) => {
                     let env = env_ref.borrow();
                     let binding = env.get_binding(key);
@@ -315,6 +258,7 @@ impl Evaluator {
                 Meaning::LambdaDef(arity, defaults, body, dotted) => {
                     Ok(TCOWrapper::Return(Datum::Lambda(
                         Lambda{
+                            id: self.get_unique_id(),
                             env: env_ref,
                             arity: arity,
                             defaults: defaults,
@@ -324,7 +268,6 @@ impl Evaluator {
                     )))
                 },
                 Meaning::SelfEvaluating(v) => Ok(TCOWrapper::Return(*v)),
-                _ => panic!("Meaning not valid in this context")
             };
 
             match res? {

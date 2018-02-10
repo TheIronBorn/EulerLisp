@@ -9,6 +9,10 @@
   ((and test1 test2 ...)
    (if test1 (and test2 ...) #f))))
 
+(defsyntax defn () (
+  ((defn name args body ...)
+   (def name (fn args body ...)))))
+
 ; TODO: The additional `let` makes this much slower
 ; (defsyntax or () (
 ;   ((or) #f)
@@ -25,25 +29,25 @@
 (defsyntax cond (else =>) (
   ((cond (else result1 result2 ...))
    (do result1 result2 ...))
-  ((cond (test => result))
-   (let ((temp test))
+  ((cond (test1 => result))
+   (let ((temp test1))
      (if temp (result temp))))
-  ((cond (test => result) clause1 clause2 ...)
-   (let ((temp test))
+  ((cond (test2 => result) clause1 clause2 ...)
+   (let ((temp test2))
      (if temp
        (result temp)
        (cond clause1 clause2 ...))))
-  ((cond (test)) test)
-  ((cond (test) clause1 clause2 ...)
-   (let ((temp test))
+  ((cond (test3)) test3)
+  ((cond (test4) clause1 clause2 ...)
+   (let ((temp test4))
      (if temp
        temp
        (cond clause1 clause2 ...))))
-  ((cond (test result1 result2 ...))
-   (if test (do result1 result2 ...)))
-  ((cond (test result1 result2 ...)
+  ((cond (test5 result1 result2 ...))
+   (if test5 (do result1 result2 ...)))
+  ((cond (test6 result1 result2 ...)
          clause1 clause2 ...)
-   (if test
+   (if test6
      (do result1 result2 ...)
      (cond clause1 clause2 ...)))))
 
@@ -61,6 +65,7 @@
        (case key rest ...)))))
 
 (defsyntax let () (
+  ((let () body ...) (do body ...))
   ((let ((name val) ...) body1 body2 ...)
    ((fn (name ...) body1 body2 ...) val ...))))
 
@@ -74,10 +79,6 @@
    (let ((name1 val1))
      (let* (rest ...)
        body1 body2 ...)))))
-
-(defsyntax defn () (
-  ((defn name args body ...)
-   (def name (fn args body ...)))))
 
 (defsyntax when () (
   ((when test body ...)

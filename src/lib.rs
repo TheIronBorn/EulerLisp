@@ -30,6 +30,8 @@ use std::fmt;
 use std::cmp::Ordering;
 use std::boxed::Box;
 use std::mem;
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 
 use std::ops::Add;
 use std::ops::Sub;
@@ -48,7 +50,9 @@ pub type LispResult = Result<Datum, LispErr>;
 #[derive(Debug, PartialEq)]
 pub enum LispErr {
     InvalidNumberOfArguments,
+    InvalidList,
     InvalidTypeOfArguments,
+    IndexOutOfBounds,
     DefinitionAlreadyDefined,
     DefinitionNotFound,
     IOError,
@@ -59,7 +63,9 @@ impl fmt::Display for LispErr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             LispErr::InvalidNumberOfArguments => write!(f, "Invalid number of arguments"),
+            LispErr::InvalidList => write!(f, "Invalid list"),
             LispErr::InvalidTypeOfArguments => write!(f, "Invalid types of arguments"),
+            LispErr::IndexOutOfBounds => write!(f, "Index out of bounds"),
             LispErr::DefinitionNotFound => write!(f, "Definition not found"),
             LispErr::DefinitionAlreadyDefined => write!(f, "Definition is already defined"),
             LispErr::IOError => write!(f, "IO Error"),
@@ -70,7 +76,7 @@ impl fmt::Display for LispErr {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Arity {
     Exact(usize),
     Range(usize, usize),
@@ -102,6 +108,13 @@ impl Arity {
 #[derive(Clone)]
 pub struct LispFn(fn(&mut [Datum], &mut eval::Evaluator, EnvRef) -> LispResult, Arity, String);
 
+impl Hash for LispFn {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.2.hash(state);
+        self.1.hash(state);
+    }
+}
+
 impl fmt::Debug for LispFn {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "LispFn with arity {:?}", self.1)
@@ -114,14 +127,15 @@ impl PartialEq for LispFn {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum Promise {
-    Delayed(EnvRef, Box<Datum>),
-    Result(Box<Datum>),
-}
+// #[derive(Clone, Debug, PartialEq)]
+// pub enum Promise {
+//     Delayed(EnvRef, Box<Datum>),
+//     Result(Box<Datum>),
+// }
 
 #[derive(Clone)]
 pub struct Lambda {
+    id: usize,
     env: EnvRef,
     arity: usize,
     defaults: Vec<Datum>,
@@ -145,7 +159,48 @@ impl PartialEq for Lambda {
 // to get this to compile?
 pub type Stream = Rc<RefCell<LispIterator>>;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Pair(Datum, Datum);
+
+impl Pair {
+    pub fn compare(&self, other: &Pair) -> Result<Ordering, LispErr> {
+        let res1 = self.0.compare(&other.0)?;
+        if res1 == Ordering::Equal {
+            self.1.compare(&other.1)
+        } else {
+            Ok(res1)
+        }
+    }
+
+    fn collect(&self) -> Vec<Datum> {
+        match &self.1 {
+            &Datum::Pair(ref ptr) => {
+                let mut rest = ptr.borrow().collect();
+                rest.insert(0, self.0.clone());
+                rest
+            },
+            other => {
+                vec![self.0.clone(), other.clone()]
+            }
+        }
+    }
+
+    fn collect_list(&self) -> Result<Vec<Datum>, LispErr> {
+        let mut v = self.collect();
+        let last = v.pop().unwrap();
+
+        if Datum::Nil == last {
+            Ok(v)
+        } else {
+            Err(LispErr::InvalidList)
+        }
+    }
+}
+
+pub type PairRef = Rc<RefCell<Pair>>;
+pub type VectorRef = Rc<RefCell<Vec<Datum>>>;
+
+#[derive(Clone, Debug)]
 pub enum Datum {
     Bool(bool),
     Integer(isize),
@@ -155,15 +210,105 @@ pub enum Datum {
     Char(char),
     String(String),
     Symbol(Symbol),
-    Pair(Box<Datum>, Box<Datum>),
-    List(Vec<Datum>),
-    DottedList(Vec<Datum>, Box<Datum>),
+    Pair(PairRef),
+    Vector(VectorRef),
     Lambda(Lambda),
     Builtin(LispFn),
-    Promise(Promise),
-    Stream(Box<Stream>),
+    Stream(usize, Box<Stream>),
+    // Promise(Promise),
+    HashMap(usize, HashMap<Datum, Datum>),
     Undefined,
     Nil,
+}
+
+impl PartialEq for Datum {
+    fn eq(&self, other: &Datum) -> bool {
+        match (self, other) {
+            (&Datum::Bool(a), &Datum::Bool(b)) => a == b,
+            (&Datum::Char(a), &Datum::Char(b)) => a == b,
+            (&Datum::Symbol(a), &Datum::Symbol(b)) => a == b,
+            (&Datum::String(ref a), &Datum::String(ref b)) => a == b,
+            (&Datum::Integer(a), &Datum::Integer(b)) => a == b,
+            (&Datum::Rational(ref a), &Datum::Rational(ref b)) => a == b,
+            (&Datum::Bignum(ref a), &Datum::Bignum(ref b)) => a == b,
+            (&Datum::Float(a), &Datum::Float(b)) => {
+                // This is pretty bit hacky but better than not allowing floats
+                // to be used as hash keys.
+                // This eq is only meant to be used for hashmaps,
+                // so it's not that bad.
+                a.to_string() == b.to_string()
+            },
+            (&Datum::Pair(ref a1), &Datum::Pair(ref b1)) => {
+                a1 == b1
+            },
+            (&Datum::Vector(ref a), &Datum::Vector(ref b)) => a == b,
+            (&Datum::Lambda(ref a), &Datum::Lambda(ref b)) => a.id == b.id,
+            (&Datum::Builtin(ref a), &Datum::Builtin(ref b)) => a == b,
+            (&Datum::HashMap(id_a, _), &Datum::HashMap(id_b, _)) => id_a == id_b,
+            (&Datum::Stream(id_a, _), &Datum::Stream(id_b, _)) => id_a == id_b,
+            (&Datum::Undefined, &Datum::Undefined) => true,
+            (&Datum::Nil, &Datum::Nil) => true,
+            _ => false
+        }
+    }
+}
+impl Eq for Datum {}
+
+// NOTE: The strings are there so that (pair a b) != (cons a b) != (list a b)
+impl Hash for Datum {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match *self {
+            Datum::Bool(v) => v.hash(state),
+            Datum::Integer(v) => v.hash(state),
+            Datum::Rational(ref v) => v.hash(state),
+            Datum::Bignum(ref v) => v.hash(state),
+            Datum::Char(v) => v.hash(state),
+            Datum::String(ref v) => {
+                "string".hash(state);
+                v.hash(state)
+            },
+            Datum::Symbol(v) => v.hash(state),
+            Datum::Pair(ref ptr) => {
+                "pair".hash(state);
+                ptr.borrow().hash(state);
+            },
+            Datum::Vector(ref ptr) => {
+                "vector".hash(state);
+                for a in ptr.borrow().iter() {
+                    a.hash(state);
+                }
+            },
+            Datum::Undefined => {
+                "undefined".hash(state);
+            },
+            Datum::Nil => {
+                "nil".hash(state);
+            },
+            Datum::Lambda(ref l) => {
+                "lambda".hash(state);
+                l.id.hash(state);
+            },
+            Datum::Builtin(ref f) => {
+                f.hash(state);
+            },
+            Datum::HashMap(id, _) => {
+                "hashmap".hash(state);
+                id.hash(state);
+            },
+            Datum::Stream(id, _) => {
+                "stream".hash(state);
+                id.hash(state);
+            },
+            Datum::Float(v) => {
+                // This is pretty bit hacky but better than not allowing floats
+                // to be used as hash keys.
+                // This eq is only meant to be used for hashmaps,
+                // so it's not that bad.
+                "float".hash(state);
+                v.to_string().hash(state);
+            }
+        }
+    }
 }
 
 impl Add for Datum {
@@ -197,7 +342,7 @@ impl Add for Datum {
             (Datum::Rational(a), Datum::Rational(b)) => (a + b).reduce(),
             (Datum::Float(f), other) => Datum::Float(f + other.as_float().unwrap()),
             (other, Datum::Float(f)) => Datum::Float(f + other.as_float().unwrap()),
-            (a, b) => panic!("Addition not implemented for {} and {}", a, b)
+            (a, b) => panic!("Addition not implemented for {:?} and {:?}", a, b)
         }
     }
 }
@@ -222,7 +367,7 @@ impl Sub for Datum {
             (Datum::Rational(a), Datum::Rational(b)) => (a - b).reduce(),
             (Datum::Float(f), other) => Datum::Float(f - other.as_float().unwrap()),
             (other, Datum::Float(f)) => Datum::Float(other.as_float().unwrap() - f),
-            (a, b) => panic!("Subtraction not implemented for {} and {}", a, b)
+            (a, b) => panic!("Subtraction not implemented for {:?} and {:?}", a, b)
         }
     }
 }
@@ -235,7 +380,7 @@ impl Neg for Datum {
             Datum::Integer(a) => Datum::Integer(-a),
             Datum::Float(a) => Datum::Float(-a),
             Datum::Rational(a) => Datum::Rational(-a),
-            a => panic!("Negation not implemented for {}", a)
+            a => panic!("Negation not implemented for {:?}", a)
         }
     }
 }
@@ -270,7 +415,7 @@ impl Mul for Datum {
             (Datum::Rational(a), Datum::Rational(b)) => (a * b).reduce(),
             (Datum::Float(f), other) => Datum::Float(f * other.as_float().unwrap()),
             (other, Datum::Float(f)) => Datum::Float(f * other.as_float().unwrap()),
-            (a, b) => panic!("Multiplication not implemented for {} and {}", a, b)
+            (a, b) => panic!("Multiplication not implemented for {:?} and {:?}", a, b)
         }
     }
 }
@@ -292,7 +437,7 @@ impl Div for Datum {
             (Datum::Rational(a), Datum::Rational(b)) => (a / b).reduce(),
             (Datum::Float(f), other) => Datum::Float(f / other.as_float().unwrap()),
             (other, Datum::Float(f)) => Datum::Float(other.as_float().unwrap() / f),
-            (a, b) => panic!("Division not implemented for {} and {}", a, b)
+            (a, b) => panic!("Division not implemented for {:?} and {:?}", a, b)
         }
     }
 }
@@ -303,7 +448,7 @@ impl Rem for Datum {
     fn rem(self, other: Datum) -> Datum {
         match (self, other) {
             (Datum::Integer(a), Datum::Integer(b)) => Datum::Integer(a % b),
-            (a, b) => panic!("Remainder not implemented for {} and {}", a, b)
+            (a, b) => panic!("Remainder not implemented for {:?} and {:?}", a, b)
         }
     }
 }
@@ -314,7 +459,7 @@ impl Rem<isize> for Datum {
     fn rem(self, other: isize) -> isize {
         match (self, other) {
             (Datum::Integer(a), b) => a % b,
-            (a, b) => panic!("Remainder not implemented for {} and {}", a, b)
+            (a, b) => panic!("Remainder not implemented for {:?} and {:?}", a, b)
         }
     }
 }
@@ -336,14 +481,53 @@ impl ToDatum for usize {
 }
 
 impl Datum {
+    fn make_list(elems: &mut [Datum]) -> Datum {
+        let mut res = Datum::Nil;
+        for next in elems.into_iter().rev() {
+            let pair = Pair(next.take(), res);
+            res = Datum::Pair(Rc::new(RefCell::new(pair)));
+        }
+        res
+    }
+
+    fn make_list_from_vec(elems: Vec<Datum>) -> Datum {
+        let mut res = Datum::Nil;
+        for mut next in elems.into_iter().rev() {
+            let pair = Pair(next.take(), res);
+            res = Datum::Pair(Rc::new(RefCell::new(pair)));
+        }
+        res
+    }
+
+    fn make_vector(elems: &mut [Datum]) -> Datum {
+        Datum::Vector(Rc::new(RefCell::new(elems.to_vec())))
+    }
+
+    fn make_vector_from_vec(elems: Vec<Datum>) -> Datum {
+        Datum::Vector(Rc::new(RefCell::new(elems)))
+    }
+
+    fn make_dotted_list_from_vec(elems: Vec<Datum>, tail: Datum) -> Datum {
+        let mut res = tail;
+        for mut next in elems.into_iter().rev() {
+            let pair = Pair(next.take(), res);
+            res = Datum::Pair(Rc::new(RefCell::new(pair)));
+        }
+        res
+    }
+
+    fn make_pair(fst: Datum, rst: Datum) -> Datum {
+        let pair = Pair(fst, rst);
+        Datum::Pair(Rc::new(RefCell::new(pair)))
+    }
+
     fn from(other: &ToDatum) -> Datum {
         other.to_datum()
     }
 
     fn is_pair(&self) -> bool {
         match *self {
-          Datum::DottedList(_, _) => true,
-          Datum::List(_) => true,
+          Datum::Pair(_) => true,
           _ => false,
         }
     }
@@ -359,62 +543,77 @@ impl Datum {
         mem::replace(self, Datum::Undefined)
     }
 
-    fn replace(&mut self, other: Datum) {
-        mem::replace(self, other);
-    }
-
-    fn push(&mut self, value: Datum) {
-        if let Datum::List(ref mut elems) = *self {
-            elems.push(value);
-        } else if self.is_nil() {
-            self.replace(Datum::List(vec![value]));
-        } else {
-            panic!("push! only works on lists and '()");
-        }
-    }
-
     fn as_float(&self) -> Result<Fsize, LispErr> {
         match self {
             &Datum::Integer(n) => Ok(n as Fsize),
             &Datum::Rational(ref r) => Ok((r.num as Fsize) / (r.denom as Fsize)),
             &Datum::Float(r) => Ok(r),
-            a => panic!("Can't convert {} to float", a)
+            a => panic!("Can't convert {:?} to float", a)
         }
     }
 
     fn as_integer(&self) -> Result<isize, LispErr> {
         match self {
             &Datum::Integer(n) => Ok(n),
-            a => panic!("Can't convert {} to integer", a)
+            a => panic!("Can't convert {:?} to integer", a)
         }
     }
 
     fn as_symbol(&self) -> Result<Symbol, LispErr> {
         match self {
             &Datum::Symbol(n) => Ok(n),
-            a => panic!("Can't convert {} to string", a)
+            a => panic!("Can't convert {:?} to string", a)
         }
     }
 
     fn as_string(&self) -> Result<String, LispErr> {
         match self {
             &Datum::String(ref n) => Ok(n.clone()),
-            a => panic!("Can't convert {} to string", a)
+            a => panic!("Can't convert {:?} to string", a)
         }
     }
 
     fn as_char(&self) -> Result<char, LispErr> {
         match self {
             &Datum::Char(n) => Ok(n),
-            a => panic!("Can't convert {} to string", a)
+            a => panic!("Can't convert {:?} to string", a)
         }
     }
 
+    // TODO: Remove some borrow & clones
     fn as_list(&self) -> Result<Vec<Datum>, LispErr> {
         match self {
-            &Datum::List(ref n) => Ok(n.clone()),
+            &Datum::Pair(ref ptr) => {
+                let mut cur = ptr.clone();
+                let mut res = Vec::new();
+                loop {
+                    res.push(cur.borrow().0.clone());
+                    let rst = cur.borrow().1.clone();
+                    match rst {
+                        Datum::Pair(ptr) => {
+                            cur = ptr.clone();
+                            continue
+                        },
+                        Datum::Nil => {
+                            break
+                        },
+                        _ => {
+                            return Err(LispErr::InvalidList)
+                        }
+                    }
+                }
+                Ok(res)
+            },
             &Datum::Nil => Ok(Vec::new()),
-            a => panic!("Can't convert {} to a list", a)
+            a => panic!("Can't convert {:?} to a list", a)
+        }
+    }
+
+    // TODO: Find a way to do this without clone
+    fn as_hashmap(&self) -> Result<HashMap<Datum, Datum>, LispErr> {
+        match self {
+            &Datum::HashMap(_, ref n) => Ok(n.clone()),
+            a => panic!("Can't convert {:?} to a hashmap", a)
         }
     }
 
@@ -458,69 +657,76 @@ impl Datum {
             },
             (&Datum::String(ref a), &Datum::String(ref b)) => Ok(a.cmp(b)),
             (&Datum::Char(ref a), &Datum::Char(ref b)) => Ok(a.cmp(b)),
-            (&Datum::Pair(ref a1, ref a2), &Datum::Pair(ref b1, ref b2)) => {
-                let res1 = a1.compare(b1)?;
-
-                if res1 == Ordering::Equal {
-                    a2.compare(b2)
-                } else {
-                    Ok(res1)
-                }
-            },
-            (a, b) => panic!("Can't compare {} and {}", a, b)
+            (&Datum::Pair(ref a), &Datum::Pair(ref b)) => a.borrow().compare(&b.borrow()),
+            (a, b) => panic!("Can't compare {:?} and {:?}", a, b)
         }
     }
-}
 
-impl fmt::Display for Datum {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn to_string(&self, symbol_table: &mut symbol_table::SymbolTable) -> String {
         match *self {
-            Datum::Symbol(ref x) => write!(f, "{}", x),
+            Datum::Symbol(x) => symbol_table.lookup(x),
             Datum::Bool(x) => {
                 if x {
-                    write!(f, "#t")
+                    String::from("#t")
                 } else {
-                    write!(f, "#f")
+                    String::from("#f")
                 }
             },
-            Datum::Char(c) => write!(f, "#\\{}", c),
-            Datum::Pair(ref fst, ref rst) => write!(f, "({} . {})", fst, rst),
-            Datum::List(ref elems) => {
+            Datum::Char(c) => format!("#\\{}", c),
+            Datum::Pair(ref ptr) => {
+                let pair = ptr.borrow();
+                let elems = pair.collect();
+                let head = &elems[..(elems.len() - 1)];
+                let tail = &elems[elems.len() - 1];
+
                 let mut result = String::new();
                 result.push_str("(");
-                for (i, e) in elems.iter().enumerate() {
+
+                for (i, e) in head.iter().enumerate() {
                     if i != 0 {
                         result.push_str(" ");
                     }
-                    result.push_str(&e.to_string());
+                    result.push_str(&e.to_string(symbol_table));
                 }
-                result.push_str(")");
-                write!(f, "{}", result)
-            },
-            Datum::DottedList(ref elems, ref tail) => {
+
+                match tail {
+                    &Datum::Nil => {
+                        result.push_str(")");
+                    },
+                    other => {
+                        result.push_str(" . ");
+                        result.push_str(&other.to_string(symbol_table));
+                        result.push_str(")");
+                    },
+                }
+
+                format!("{}", result)
+            }
+            Datum::Vector(ref elems) => {
                 let mut result = String::new();
-                result.push_str("(");
-                for e in elems.iter() {
-                    result.push_str(&e.to_string());
-                    result.push_str(" ");
+                result.push_str("#(");
+                for (i, e) in elems.borrow().iter().enumerate() {
+                    if i != 0 {
+                        result.push_str(" ");
+                    }
+                    result.push_str(&e.to_string(symbol_table));
                 }
-                result.push_str(". ");
-                result.push_str(&tail.to_string());
                 result.push_str(")");
-                write!(f, "{}", result)
+                format!("{}", result)
             },
-            Datum::Integer(x) => write!(f, "{}", x),
-            Datum::Rational(ref x) => write!(f, "{}", x),
-            Datum::Bignum(ref x) => write!(f, "{}", x),
-            Datum::Float(x) => write!(f, "{}", x),
-            Datum::String(ref s) => write!(f, "\"{}\"", s),
-            Datum::Nil => write!(f, "'()"),
-            Datum::Undefined => write!(f, "undefined"),
-            Datum::Lambda(_) => write!(f, "<lambda>"),
-            Datum::Builtin(_) => write!(f, "<builtin>"),
-            Datum::Stream(_) => write!(f, "<stream>"),
-            Datum::Promise(Promise::Delayed(_, _)) => write!(f, "promise(?)"),
-            Datum::Promise(Promise::Result(ref r)) => write!(f, "promise({})", r),
+            Datum::Integer(x) => format!("{}", x),
+            Datum::Rational(ref x) => format!("{}", x),
+            Datum::Bignum(ref x) => format!("{}", x),
+            Datum::Float(x) => format!("{}", x),
+            Datum::String(ref s) => format!("\"{}\"", s),
+            Datum::Nil => format!("'()"),
+            Datum::Undefined => format!("undefined"),
+            Datum::Lambda(_) => format!("<lambda>"),
+            Datum::Builtin(_) => format!("<builtin>"),
+            Datum::Stream(_, _) => format!("<stream>"),
+            Datum::HashMap(_, _) => format!("<hashmap>"),
+            // Datum::Promise(Promise::Delayed(_, _)) => write!(f, "promise(?)"),
+            // Datum::Promise(Promise::Result(ref r)) => write!(f, "promise({})", r),
         }
     }
 }
@@ -539,14 +745,13 @@ pub enum Meaning {
     Quote(Box<Datum>),
     Definition(Box<Meaning>),
     Assignment(BindingRef, Box<Meaning>),
-    ListPush(BindingRef, Box<Meaning>),
-    ListRef(BindingRef, Box<Meaning>),
-    ListSet(BindingRef, Box<Meaning>, Box<Meaning>),
+    // ListPush(BindingRef, Box<Meaning>),
+    // ListRef(BindingRef, Box<Meaning>),
+    // ListSet(BindingRef, Box<Meaning>, Box<Meaning>),
     BuiltinFunctionCall(fn(&mut [Datum], &mut eval::Evaluator, EnvRef)->LispResult, Vec<Meaning>),
     FunctionCall(Box<Meaning>, Vec<Meaning>),
     SelfEvaluating(Box<Datum>),
     BindingRef(BindingRef),
-    DottedList(Vec<Datum>, Box<Datum>),
     SyntaxRuleDefinition(Symbol, Box<syntax_rule::SyntaxRule>),
 }
 

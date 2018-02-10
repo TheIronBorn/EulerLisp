@@ -170,7 +170,7 @@ impl LispIterator for CombinationStream {
         } else {
             let ret = self.indices.clone().into_iter().map(|i| self.array[i].clone()).collect();
             self.step();
-            Some(Datum::List(ret))
+            Some(Datum::make_list_from_vec(ret))
         }
     }
 }
@@ -199,7 +199,7 @@ impl LispIterator for PermutationStream {
                 }
             }
 
-            Some(Datum::List(ret))
+            Some(Datum::make_list_from_vec(ret))
         }
     }
 }

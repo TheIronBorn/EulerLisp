@@ -1,35 +1,24 @@
 ; Solved: 29.12.2017
 
-(def input
-     (~> "project_euler/input-files/11.txt"
-         file-read
-         lines
-         (reject empty?)))
-
-(def chunks4 (curry chunks 4))
+(def input (input-file-lines "project_euler/input-files/11.txt"))
 
 (def grid
   (map &(map string->number (words &1)) input))
 
-(defn transpose (lst)
-      (map
-        &(map (curry nth &1) lst)
-        (range 0 (dec (length (fst lst))))))
-
 (defn diagonals (rows)
-      (zip
+    (transpose
+      (list
         (fst rows)
         (rst (frst rows))
         (rrst (frrst rows))
-        (rrrst (frrrst rows))))
+        (rrrst (frrrst rows)))))
 
-(def row-chunks (flatmap chunks4 grid))
-(def col-chunks (flatmap chunks4 (transpose grid)))
-(def diagonal-chunks (flatmap diagonals (chunks4 grid)))
-(def antidiagonal-chunks (flatmap diagonals (chunks4 (map reverse grid))))
+(def row-chunks (flatmap &(chunks 4 &1) grid))
+(def col-chunks (flatmap &(chunks 4 &1) (transpose grid)))
+(def diagonal-chunks (flatmap diagonals (chunks 4 grid)))
+(def antidiagonal-chunks (flatmap diagonals (chunks 4 (map reverse grid))))
 
-(defn max-product (lst)
-      (apply max (map product lst)))
+(defn max-product (lst) (apply max (map product lst)))
 
 (solution
   (max

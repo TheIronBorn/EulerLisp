@@ -31,14 +31,14 @@
 ; increase the entry in sieve for (a + b + c) * factor
 ; by one
 
-(def sieve (filled-list max-len 0))
+(def sieve (make-vector max-len 0))
 
 (defn update-multiples (base cur)
   (when (< cur max-len)
-    (set-nth! sieve cur (inc (list-ref sieve cur)))
+    (vector-set! sieve cur (inc (vector-ref sieve cur)))
     (update-multiples base (+ cur base))))
 
 (defn process-item (item) (update-multiples item (dec item)))
 (each process-item all)
 
-(solution (count &(= 1 &1) sieve))
+(solution (count &(= 1 &1) (vector->list sieve)))

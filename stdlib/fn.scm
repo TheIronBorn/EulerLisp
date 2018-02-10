@@ -1,6 +1,7 @@
-(defn curry (f arg)
-      (fn (. args)
-          (apply f (cons arg args))))
+; TODO: (. foo) is broken
+; (defn curry (f arg)
+;       (fn (. args)
+;           (apply f (cons arg args))))
 
 ; These are useful for injecting debugging ~> chains
 (defn id (x) x)

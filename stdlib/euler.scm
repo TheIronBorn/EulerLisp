@@ -22,3 +22,9 @@
   (let ([solutions (solve-quadratic 2 -1 (- n))])
     (and (not (empty? solutions))
          (integral? (frst solutions)))))
+
+(defn input-file-lines (file)
+     (~> file
+         file-read
+         lines
+         (reject &(= "" &1))))

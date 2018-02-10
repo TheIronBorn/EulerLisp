@@ -1,7 +1,6 @@
 ; Solved 15.1.2018
 
-(def results '(1))
-(def len 1)
+(def results #(1))
 
 (defn index (n limit)
   (dec (+ limit (div (* n (dec n)) 2))))
@@ -12,7 +11,7 @@
       (partition-sum n
                      (dec limit)
                      (+ acc
-                        (list-ref results
+                        (vector-ref results
                                   (index (- n limit)
                                          (min (- n limit) limit)))))))
 
@@ -25,8 +24,7 @@
 (defn inner-loop (n (limit 1))
   (if (<= limit n)
     (let ([val (first-partitions n limit)])
-         (push! results val)
-         (set! len (inc len))
+         (vector-push! results val)
          (inner-loop n (inc limit)))))
 
 (defn loop (from (acc 0))
@@ -34,9 +32,9 @@
     (do
       (inner-loop from)
       (~>
-        len
+        (vector-length results)
         dec
-        (list-ref results)
+        (vector-ref results)
         (loop (inc from))))
     acc))
 

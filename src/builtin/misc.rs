@@ -22,7 +22,7 @@ fn println(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResu
                 }
             },
             ref other => {
-                if let Err(_err) = write!(output, "{}", other) {
+                if let Err(_err) = write!(output, "{}", other.to_string(&mut eval.symbol_table)) {
                     return Err(IOError)
                 }
             }
@@ -66,12 +66,8 @@ fn file_read(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispR
 
 fn apply(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
     let f = vs[0].take();
-    let argslist = vs[1].take();
-    if let Datum::List(args_) = argslist {
-        Ok(eval.full_apply(f, args_, env_ref))
-    } else {
-        panic!("Usage: (apply fun (arg1 arg2 arg3 ...))")
-    }
+    let args = vs[1].take().as_list()?;
+    Ok(eval.full_apply(f, args, env_ref))
 }
 
 // fn read(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {

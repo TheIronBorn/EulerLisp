@@ -29,9 +29,7 @@
       (= (count hits-line? t) 1))
 
 (~> "./project_euler/input-files/102.txt"
-   file-read
-   lines
-   (reject empty?)
+   input-file-lines
    (map &(~> &1 (string-split ",") (map string->number) parse-triangle))
    (count origin-inside-triangle?)
    solution)

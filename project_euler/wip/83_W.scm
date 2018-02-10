@@ -3,11 +3,9 @@
 
 (def nodes
   (~>
-    (file-read "./project_euler/input-files/82.txt")
-    lines
-    (reject empty?)
-    (map &(map string->number (string-split "," &1)))
-    ))
+    "./project_euler/input-files/82.txt"
+    input-file-lines
+    (map &(map string->number (string-split "," &1)))))
 
 (defn neighbors (pos)
   (~>

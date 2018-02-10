@@ -1,9 +1,9 @@
 ; Solved 1.1.2018
 
-(def single '("one" "two" "three" "four" "five" "six" "seven" "eight" "nine"))
-(def teens '("ten" "eleven" "twelve" "thirteen" "fourteen" "fifteen" "sixteen"
+(def single (list "one" "two" "three" "four" "five" "six" "seven" "eight" "nine"))
+(def teens (list "ten" "eleven" "twelve" "thirteen" "fourteen" "fifteen" "sixteen"
             "seventeen" "eighteen" "nineteen"))
-(def tens '("twenty" "thirty" "forty" "fifty" "sixty" "seventy" "eighty" "ninety"))
+(def tens (list "twenty" "thirty" "forty" "fifty" "sixty" "seventy" "eighty" "ninety"))
 
 (defn format-ten (n)
     (cond
@@ -14,6 +14,7 @@
              (str
                (nth (- (div n 10) 2) tens)
                (nth (dec (% n 10)) single)))]))
+
 
 (defn format-hundred (n)
       (if (zero? (% n 100))
@@ -34,6 +35,6 @@
 
 (~>
   (range~ 1 1000)
-  (map~ &(length (format &1)))
+  (map~ &(string-length (format &1)))
   sum~
   solution)

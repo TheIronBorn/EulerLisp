@@ -6,7 +6,7 @@
         (string->chars name)))
 
 (defn solve (names (index 1) (acc 0))
-      (if (empty? names)
+      (if (nil? names)
         acc
         (solve
           (rst names)
@@ -16,6 +16,7 @@
 (~> "project_euler/input-files/22.txt"
     file-read
     (string-split ",")
+    (reject &(= "" &1))
     sort
     solve
     solution)

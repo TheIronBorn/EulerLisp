@@ -3,13 +3,12 @@ use std::ops::Mul;
 use std::ops::Sub;
 use std::ops::Neg;
 use std::ops::Div;
-// use std::ops::Rem;
 
 use ::Datum;
 
 use std::fmt;
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Rational {
     pub num: isize,
     pub denom: isize // Not needed but makes calculations easier

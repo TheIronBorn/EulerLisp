@@ -4,23 +4,24 @@
    (~> (range~ 1000 9999)
        (select~ prime?)
        (map~ number->digits)
-       collect))
+       collect
+       list->vector))
 
 (defn find-permutations_ (sds b max-b acc)
   (if (>= b max-b)
       acc
-      (let* ([elem (list-ref myprimes b)]
+      (let* ([elem (vector-ref myprimes b)]
              [sds_ (sort elem)])
         (if (= sds sds_)
             (find-permutations_ sds (inc b) max-b (cons elem acc))
             (find-permutations_ sds (inc b) max-b acc)))))
 
 (defn find-permutations (a)
-  (let ([elem (list-ref myprimes a)])
+  (let ([elem (vector-ref myprimes a)])
     (find-permutations_
       (sort elem)
       (inc a)
-      (length myprimes)
+      (vector-length myprimes)
       (list elem))))
 
 (defn subsequences (seq len)
@@ -44,7 +45,7 @@
           (solve (inc from) to (cons (map digits->number perm) acc))
           (solve (inc from) to acc)))))
 
-(def sequences (solve 0 (length myprimes)))
+(def sequences (solve 0 (vector-length myprimes)))
 (def all-sequences (flatmap (fn (x) (subsequences x 3)) sequences))
 
 (defn ascending?_ (seq diff)

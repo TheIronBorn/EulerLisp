@@ -39,24 +39,24 @@ impl SyntaxRule {
         }
     }
 
-    pub fn apply(&self, mut datums: Vec<Datum>) -> Datum {
+    pub fn apply(&self, mut datums: Vec<Datum>) -> Option<Datum> {
         // Inside the preprocessing step,
         // each function application only has access to its arguments,
         // not its own name,
         // to have the patterns work (somewhat) like specified in R5RS,
         // we need to put it in front again
         datums.insert(0, Datum::Symbol(self.name));
-        let datum = Datum::List(datums);
+        let datum = Datum::make_list_from_vec(datums);
 
         for rule in self.rules.iter() {
             let &Rule(ref pattern, ref template) = rule;
 
             let mut bindings: HashMap<Symbol, Datum> = HashMap::new();
             if self.matches(pattern, datum.clone(), &mut bindings) {
-                return template.apply(&mut bindings);
+                return Some(template.apply(&mut bindings));
             }
         }
-        panic!("No matching pattern for {:?} in {:?}", datum, self);
+        None
     }
 
     pub fn matches(&self, pattern: &Pattern, datum: Datum, bindings: &mut HashMap<Symbol, Datum>) -> bool {
@@ -75,55 +75,64 @@ impl SyntaxRule {
                 }
             },
             Pattern::List(ref patterns) => {
-                if let Datum::List(s) = datum {
-                    if s.len() != patterns.len() {
-                        return false;
-                    }
+                match datum {
+                    Datum::Pair(ptr) => {
+                        // TODO: Handle errors
+                        let elems = ptr.borrow().collect_list().unwrap();
 
-                    for (s, p) in s.into_iter().zip(patterns.iter()) {
-                        if !self.matches(p, s, bindings) {
+                        if elems.len() != patterns.len() {
                             return false;
                         }
-                    }
-                    return true;
-                } else {
-                    false
+
+                        for (s, p) in elems.into_iter().zip(patterns.iter()) {
+                            if !self.matches(p, s, bindings) {
+                                return false;
+                            }
+                        }
+                        true
+                    },
+                    Datum::Nil => patterns.len() == 0,
+                    _ => false,
                 }
             },
             Pattern::ListWithRest(ref patterns, ref rest) => {
-                if let Datum::List(mut s) = datum {
-                    if s.len() < patterns.len() {
-                        return false;
-                    }
+                match datum {
+                    Datum::Pair(ptr) => {
+                        let mut elems = ptr.borrow().collect_list().unwrap();
 
-                    let remaining = s.split_off(patterns.len());
-                    for (s, p) in s.into_iter().zip(patterns.iter()) {
-                        if !self.matches(p, s, bindings) {
+                        if elems.len() < patterns.len() {
                             return false;
                         }
-                    }
 
-                    let mut subbindings = Vec::new();
-                    for s in remaining.into_iter() {
-                        let mut b = HashMap::new();
-                        if !self.matches(rest, s, &mut b) {
-                            return false;
+                        let remaining = elems.split_off(patterns.len());
+                        for (s, p) in elems.into_iter().zip(patterns.iter()) {
+                            if !self.matches(p, s, bindings) {
+                                return false;
+                            }
                         }
-                        subbindings.push(b);
-                    }
 
-                    let keys = rest.keys();
-                    for k in keys {
-                        let mut coll = Vec::new();
-                        for subbinding in subbindings.iter() {
-                            coll.push(subbinding.get(&k).unwrap().clone());
+                        let mut subbindings = Vec::new();
+                        for s in remaining.into_iter() {
+                            let mut b = HashMap::new();
+                            if !self.matches(rest, s, &mut b) {
+                                return false;
+                            }
+                            subbindings.push(b);
                         }
-                        bindings.insert(k.clone(), Datum::List(coll));
-                    }
 
-                    return true;
-                } else {
-                    false
+                        let keys = rest.keys();
+                        for k in keys {
+                            let mut coll = Vec::new();
+                            for subbinding in subbindings.iter() {
+                                coll.push(subbinding.get(&k).unwrap().clone());
+                            }
+                            bindings.insert(k.clone(), Datum::make_list_from_vec(coll));
+                        }
+
+                        true
+                    },
+                    // Datum::Nil => patterns.len() == 0,
+                    _ => false
                 }
             }
         }
@@ -151,26 +160,25 @@ fn is_ellipsis(datum: Datum, symbol_table: &SymbolTable) -> bool {
 impl Pattern {
     pub fn parse(expr: Datum, symbol_table: &SymbolTable) -> Pattern {
         match expr {
-            Datum::List(mut s) => {
-                if s.len() == 0 {
-                    return Pattern::List(vec!());
-                } 
+            Datum::Pair(ptr) => {
+                let mut elems = ptr.borrow().collect_list().unwrap();
 
-                let last = s.get(s.len() - 1).unwrap().clone();
+                let last = elems.get(elems.len() - 1).unwrap().clone();
                 if is_ellipsis(last, symbol_table) {
-                    s.pop();
-                    let rest = Pattern::parse(s.pop().unwrap(), symbol_table);
+                    elems.pop();
+                    let rest = Pattern::parse(elems.pop().unwrap(), symbol_table);
                     Pattern::ListWithRest(
-                        s.into_iter().map( |d| Pattern::parse(d, symbol_table) ).collect(),
+                        elems.into_iter().map( |d| Pattern::parse(d, symbol_table) ).collect(),
                         Box::new(rest)
                     )
                 } else {
                     Pattern::List(
-                        s.into_iter().map( |d| Pattern::parse(d, symbol_table) ).collect()
+                        elems.into_iter().map( |d| Pattern::parse(d, symbol_table) ).collect()
                     )
                 }
 
             },
+            Datum::Nil => Pattern::List(vec!()),
             Datum::Symbol(s) => {
                 Pattern::Ident(s)
             },
@@ -222,7 +230,8 @@ impl Template {
     pub fn parse(datum: Datum, symbol_table: &SymbolTable) -> Template {
         match datum {
             Datum::Symbol(s) => Template::Ident(s),
-            Datum::List(mut elems) => {
+            Datum::Pair(ptr) => {
+                let mut elems = ptr.borrow().collect_list().unwrap();
                 let mut res = Vec::new();
                 loop {
                     if elems.len() == 0 {
@@ -247,6 +256,7 @@ impl Template {
                 }
                 Template::List(res)
             },
+            Datum::Nil => Template::List(vec!()),
             other => Template::Constant(other)
         }
     }
@@ -272,16 +282,22 @@ impl Template {
                         Element::Ellipsed(ref t) => {
                             let foo = t.apply(bindings);
 
-                            if let Datum::List(mut inner) = foo {
-                                res.append(&mut inner);
-                            } else {
-                                panic!("macro templates `<identifier> ...` only work if binding is list");
+                            match foo {
+                                Datum::Pair(ptr) => {
+                                    let mut inner = ptr.borrow().collect_list().unwrap();
+                                    res.append(&mut inner);
+                                },
+                                Datum::Nil => {
+                                    // Do nothing
+                                },
+                                _ => panic!("macro templates `<identifier> ...` only work if binding is list,
+                                            not in {:?}", foo),
                             }
                         }
                     }
                 }
 
-                Datum::List(res)
+                Datum::make_list_from_vec(res)
             }
         }
     }

@@ -5,8 +5,7 @@ use std::fmt;
 
 use std::cmp::{PartialOrd, Ordering};
 
-// TODO: Implement real comparison
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub struct Bignum {
     pub sign: bool,
     pub data: Vec<usize>

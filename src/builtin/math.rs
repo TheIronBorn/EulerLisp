@@ -256,9 +256,9 @@ fn modulo(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResu
 fn divmod(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     if let Datum::Integer(a) = vs[0] {
         if let Datum::Integer(b) = vs[1] {
-            return Ok(Datum::DottedList(
-                vec![Datum::Integer(a / b)],
-                Box::new(Datum::Integer(a % b)),
+            return Ok(Datum::make_pair(
+                Datum::Integer(a / b),
+                Datum::Integer(a % b),
             ));
         }
     }
@@ -289,7 +289,7 @@ fn prime_factors(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> L
     if let Datum::Integer(mut a) = vs[0] {
         let mut result = Vec::new();
         if a < 2 {
-            return Ok(Datum::List(result));
+            return Ok(Datum::make_list_from_vec(result));
         }
 
         for i in PRIMES.iter() {
@@ -299,9 +299,9 @@ fn prime_factors(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> L
                     a /= i;
                     count += 1;
                 }
-                result.push(Datum::DottedList(
-                    vec![Datum::Integer(*i)],
-                    Box::new(Datum::Integer(count))
+                result.push(Datum::make_pair(
+                    Datum::Integer(*i),
+                    Datum::Integer(count)
                 ));
             }
             if *i > a {
@@ -318,9 +318,9 @@ fn prime_factors(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> L
                         a /= i;
                         count += 1;
                     }
-                    result.push(Datum::DottedList(
-                        vec![Datum::Integer(i)],
-                        Box::new(Datum::Integer(count))
+                    result.push(Datum::make_pair(
+                        Datum::Integer(i),
+                        Datum::Integer(count)
                     ));
                 }
                 i += 2;
@@ -329,7 +329,7 @@ fn prime_factors(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> L
                 }
             }
         }
-        return Ok(Datum::List(result));
+        return Ok(Datum::make_list_from_vec(result));
     }
     Err(InvalidTypeOfArguments)
 }
@@ -353,7 +353,7 @@ fn factors(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispRes
                 }
             }
         }
-        return Ok(Datum::List(result));
+        return Ok(Datum::make_list_from_vec(result));
     }
     Err(InvalidTypeOfArguments)
 }
@@ -372,7 +372,7 @@ fn primes(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResu
         let primes = PRIMES[0..to].to_vec().iter().map(|p|
             Datum::from(p)
         ).collect();
-        return Ok(Datum::List(primes));
+        return Ok(Datum::make_list_from_vec(primes));
     }
     Err(InvalidTypeOfArguments)
 }
@@ -387,11 +387,11 @@ fn digits(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResu
                 a /= 10;
             }
 
-            return Ok(Datum::List(result))
+            return Ok(Datum::make_list_from_vec(result))
         },
         Datum::Bignum(ref a) => {
             let digits = a.digits();
-            return Ok(Datum::List(
+            return Ok(Datum::make_list_from_vec(
                     digits.into_iter().map(|d| Datum::Integer(d)).collect()
             ));
         },
@@ -413,12 +413,13 @@ fn num_digits(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> Lisp
 }
 
 fn digits_to_number(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::List(ref digits) = vs[0] {
+    if let Datum::Pair(ref ptr) = vs[0] {
+        let digits = ptr.borrow().collect_list()?;
         let mut pow = 1;
         let mut result = 0;
 
         for digit in digits {
-            if let Datum::Integer(n) = *digit {
+            if let Datum::Integer(n) = digit {
                 result += n * pow;
                 pow *= 10;
             } else {
@@ -507,24 +508,6 @@ fn gcd(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult 
     }
 
     Ok(Datum::Integer(x))
-}
-
-fn pow(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let mut b = vs[0].take().as_integer()?;
-    let mut e = vs[1].take().as_integer()?;
-    let mut res = 1;
-
-    while e > 0 {
-        if (e % 2) == 0 {
-            b *= b;
-            e /= 2;
-        } else {
-            res *= b;
-            e -= 1;
-        }
-    }
-
-    Ok(Datum::Integer(res))
 }
 
 fn sin(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -619,7 +602,6 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "radiants", radiants, Arity::Exact(1));
     // TODO: Add builtin constants
     register(hm, "get-pi", get_pi, Arity::Exact(0));
-    // register(hm, "pow", pow, Arity::Exact(2));
     register(hm, "totient", totient_, Arity::Exact(1));
     register(hm, "totient-sum", totient_sum_, Arity::Exact(1));
 }

@@ -13,7 +13,7 @@
     [(= n 89) #t]
     [else (trace (digit-squares n))]))
 
-(def lookup (map trace (range 0 567)))
+(def lookup (list->vector (map trace (range 0 567))))
 
 (defn generate (size missing)
   (if (= 1 missing)
@@ -26,7 +26,7 @@
       )
     ))
 
-(def perms (generate 7 10))
+(def perms (list->vector (generate 7 10)))
 
 (def base (fac 7))
 (defn number-of-permutations (dcs)
@@ -40,9 +40,9 @@
                               (+ acc (* (fst perm) d d)))))
 
 (~> 
-  (range~ 0 (dec (length perms)))
-  (map~ &(list-ref perms &1))
-  (select~ &(list-ref lookup (perm-digit-squares &1)))
+  (range~ 0 (dec (vector-length perms)))
+  (map~ &(vector-ref perms &1))
+  (select~ &(vector-ref lookup (perm-digit-squares &1)))
   (map~ number-of-permutations)
   sum~
   solution)

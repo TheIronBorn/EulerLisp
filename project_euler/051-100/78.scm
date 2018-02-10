@@ -1,8 +1,8 @@
 ; Solved 27.1.2018
 
 ; Assume that P(0) = 1
-(def partitions '(1))
-(defn lookup (n) (if (>= n 0) (list-ref partitions n) 0))
+(def partitions #(1))
+(defn lookup (n) (if (>= n 0) (vector-ref partitions n) 0))
 
 ; This uses the recursive formula w/ pantagonal numbers
 ; from wikipedia
@@ -25,7 +25,7 @@
 ; This doesn't affect the result but we can clean it up anyway
 (defn loop (from)
   (let ([p (% (next-partitions from) 1000000)])
-    (push! partitions p)
+    (vector-push! partitions p)
     (if (zero? p)
         from
         (loop (inc from)))))

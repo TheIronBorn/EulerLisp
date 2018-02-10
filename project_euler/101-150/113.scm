@@ -1,8 +1,8 @@
 ; Solved: 28.1.2018
 
 ; All numbers 1 - 9 are decreasing & increasing
-(def ways-dec '(1 1 1 1 1 1 1 1 1))
-(def ways-inc '(1 1 1 1 1 1 1 1 1))
+(def ways-dec #(1 1 1 1 1 1 1 1 1))
+(def ways-inc #(1 1 1 1 1 1 1 1 1))
 
 ; Number of ways we can build a `n` digit
 ; decreasing integer starting with `last`
@@ -14,7 +14,7 @@
   (~>
     (range~ 1 last)
     (map~ &(+ (dec &1) (* (- n 2) 9)))
-    (map~ &(list-ref ways-dec &1))
+    (map~ &(vector-ref ways-dec &1))
     sum~
     inc))
 
@@ -22,13 +22,13 @@
   (~>
     (range~ last 9)
     (map~ &(+ (dec &1) (* (- n 2) 9)))
-    (map~ &(list-ref ways-inc &1))
+    (map~ &(vector-ref ways-inc &1))
     sum~))
 
 (defn step-n (n (last 1))
   (when (<= last 9)
-      (push! ways-dec (ways-dec-to-sum n last))
-      (push! ways-inc (ways-inc-to-sum n last))
+      (vector-push! ways-dec (ways-dec-to-sum n last))
+      (vector-push! ways-inc (ways-inc-to-sum n last))
       (step-n n (inc last))))
 
 (def n 100)
@@ -36,6 +36,12 @@
     (map~ (fn (x) (step-n x)))
     collect)
 
+(defn vector-sum (v)
+  (~>
+    (range~ 0 (dec (vector-length v)))
+    (map~ &(vector-ref v &1))
+    sum~))
+
 ; Of each n-digit number, 9 are both increasing and decreasing
 ; (11, 22, 33, ...), (111, 222, 333, ...)
-(solution (+ (sum ways-inc) (sum ways-dec) (* n (- 9))))
+(solution (+ (vector-sum ways-inc) (vector-sum ways-dec) (* n (- 9))))

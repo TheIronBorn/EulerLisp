@@ -8,6 +8,7 @@ use ::eval::Evaluator;
 use ::EnvRef;
 
 mod list;
+mod hashmap;
 mod primes;
 mod math;
 mod misc;
@@ -32,6 +33,7 @@ pub fn register(
 
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     list::load(hm);
+    hashmap::load(hm);
     math::load(hm);
     misc::load(hm);
     string::load(hm);

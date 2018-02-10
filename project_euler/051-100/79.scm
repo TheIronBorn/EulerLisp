@@ -2,9 +2,7 @@
 
 (def tries
      (~> "./project_euler/input-files/79.txt"
-         file-read
-         lines
-         (reject empty?)
+         input-file-lines
          (map string->number)
          (map number->digits)))
 

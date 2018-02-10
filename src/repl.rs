@@ -28,7 +28,7 @@ pub fn run(stdlib: bool) {
             match eval.eval_str(&line) {
                 Ok(res) => {
                     if res != Datum::Undefined {
-                        println!("=> {}", res);
+                        println!("=> {}", res.to_string(&mut eval.symbol_table));
                     }
                 },
                 Err(msg) => println!("!! {}", msg)
