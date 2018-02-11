@@ -119,6 +119,11 @@ fn preprocess_fn(
                 dotted = true;
             }
         },
+        Datum::Nil => {
+            names = vec![];
+            defaults = vec![];
+            dotted = false;
+        }
         ref other => {
             panic!(
                 "Lambda parameters must be (a b ...) or (a b ... . c), found {}",

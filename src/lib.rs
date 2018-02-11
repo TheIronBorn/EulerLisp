@@ -42,7 +42,7 @@ use std::ops::Rem;
 
 use numbers::Rational;
 use std::rc::Rc;
-use std::cell::RefCell;
+use std::cell::{Ref, RefMut, RefCell};
 
 pub type Fsize = f64;
 pub type LispResult = Result<Datum, LispErr>;
@@ -198,7 +198,9 @@ impl Pair {
 }
 
 pub type PairRef = Rc<RefCell<Pair>>;
-pub type VectorRef = Rc<RefCell<Vec<Datum>>>;
+
+pub type Vector = Vec<Datum>;
+pub type VectorRef = Rc<RefCell<Vector>>;
 
 #[derive(Clone, Debug)]
 pub enum Datum {
@@ -468,6 +470,12 @@ trait ToDatum {
     fn to_datum(&self) -> Datum;
 }
 
+impl ToDatum for u8 {
+    fn to_datum(&self) -> Datum {
+        Datum::Integer(*self as isize)
+    }
+}
+
 impl ToDatum for isize {
     fn to_datum(&self) -> Datum {
         Datum::Integer(*self)
@@ -548,35 +556,76 @@ impl Datum {
             &Datum::Integer(n) => Ok(n as Fsize),
             &Datum::Rational(ref r) => Ok((r.num as Fsize) / (r.denom as Fsize)),
             &Datum::Float(r) => Ok(r),
-            a => panic!("Can't convert {:?} to float", a)
+            other => Err(LispErr::TypeError("convert", "float", other.clone()))
         }
     }
 
     fn as_integer(&self) -> Result<isize, LispErr> {
         match self {
             &Datum::Integer(n) => Ok(n),
-            a => panic!("Can't convert {:?} to integer", a)
+            other => Err(LispErr::TypeError("convert", "integer", other.clone()))
+        }
+    }
+
+    fn as_uinteger(&self) -> Result<usize, LispErr> {
+        match self {
+            &Datum::Integer(n) => {
+                if n > 0 {
+                    Ok(n as usize)
+                } else {
+                    Err(LispErr::TypeError("convert", "uinteger", self.clone()))
+                }
+            },
+            other => Err(LispErr::TypeError("convert", "uinteger", other.clone()))
         }
     }
 
     fn as_symbol(&self) -> Result<Symbol, LispErr> {
         match self {
             &Datum::Symbol(n) => Ok(n),
-            a => panic!("Can't convert {:?} to string", a)
+            other => Err(LispErr::TypeError("convert", "symbol", other.clone()))
         }
     }
 
     fn as_string(&self) -> Result<String, LispErr> {
         match self {
             &Datum::String(ref n) => Ok(n.clone()),
-            a => panic!("Can't convert {:?} to string", a)
+            other => Err(LispErr::TypeError("convert", "string", other.clone()))
         }
     }
 
     fn as_char(&self) -> Result<char, LispErr> {
         match self {
             &Datum::Char(n) => Ok(n),
-            a => panic!("Can't convert {:?} to string", a)
+            other => Err(LispErr::TypeError("convert", "char", other.clone()))
+        }
+    }
+
+    fn as_pair(&self) -> Result<Ref<Pair>, LispErr> {
+        match self {
+            &Datum::Pair(ref ptr) => Ok(ptr.borrow()),
+            other => Err(LispErr::TypeError("convert", "pair", other.clone()))
+        }
+    }
+
+    fn as_mut_pair(&self) -> Result<RefMut<Pair>, LispErr> {
+        match self {
+            &Datum::Pair(ref ptr) => Ok(ptr.borrow_mut()),
+            other => Err(LispErr::TypeError("convert", "pair", other.clone()))
+        }
+    }
+
+    fn as_vector(&self) -> Result<Ref<Vector>, LispErr> {
+        match self {
+            &Datum::Vector(ref ptr) => Ok(ptr.borrow()),
+            other => Err(LispErr::TypeError("convert", "vector", other.clone()))
+        }
+    }
+
+    fn as_mut_vector(&self) -> Result<RefMut<Vector>, LispErr> {
+        match self {
+            &Datum::Vector(ref ptr) => Ok(ptr.borrow_mut()),
+            other => Err(LispErr::TypeError("convert", "vector", other.clone()))
         }
     }
 

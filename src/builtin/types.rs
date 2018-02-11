@@ -14,11 +14,7 @@ fn pair_questionmark(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) 
 }
 
 fn nil_questionmark(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Nil = vs[0] {
-        Ok(Datum::Bool(true))
-    } else {
-        Ok(Datum::Bool(false))
-    }
+    Ok(Datum::Bool(vs[0].is_nil()))
 }
 
 fn integer_questionmark(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {

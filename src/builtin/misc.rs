@@ -65,8 +65,8 @@ fn file_read(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispR
 }
 
 fn apply(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
-    let f = vs[0].take();
-    let args = vs[1].take().as_list()?;
+    let f = vs[0].clone();
+    let args = vs[1].clone().as_list()?;
     Ok(eval.full_apply(f, args, env_ref))
 }
 
@@ -83,7 +83,7 @@ fn apply(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult 
 // TODO: Fix the way environments are handled here
 // fn eval(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
 //     let env = eval.root_env.clone();
-//     eval.eval_datum(vs[0].take(), env)
+//     eval.eval_datum(vs[0].clone(), env)
 // }
 
 pub fn load(hm: &mut HashMap<String, LispFn>) {

@@ -60,20 +60,20 @@ fn gte(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult 
 }
 
 fn max(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let mut max = vs[0].take();
+    let mut max = vs[0].clone();
     for v in vs.into_iter().skip(1) {
         if max.compare(v).unwrap() == Ordering::Less {
-            max = v.take();
+            max = v.clone();
         }
     }
     Ok(max)
 }
 
 fn min(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let mut min = vs[0].take();
+    let mut min = vs[0].clone();
     for v in vs.into_iter().skip(1) {
         if min.compare(v).unwrap() == Ordering::Greater {
-            min = v.take();
+            min = v.clone();
         }
     }
     Ok(min)

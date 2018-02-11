@@ -32,35 +32,31 @@ fn step(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult 
 }
 
 fn permutations(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let array = vs[0].take().as_list()?;
+    let array = vs[0].as_list()?;
     Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(PermutationStream::new(array))))))
 }
 
 fn combinations(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let size = vs[0].take().as_integer()?;
-    let array = vs[1].take().as_list()?;
+    let size = vs[0].as_integer()?;
+    let array = vs[1].as_list()?;
     Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(CombinationStream::new(array, size as usize))))))
 }
 
 fn range(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Integer(from) = vs[0].take() {
-        if let Datum::Integer(to) = vs[1].take() {
-            if vs.len() == 3 {
-                if let Datum::Integer(step) = vs[2].take() {
-                    return Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(RangeStream::new(from, to, step))))))
-                } 
-            } else {
-                return Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(RangeStream::new(from, to, 1))))))
-            }
-        }
+    let from = vs[0].as_integer()?;
+    let to = vs[1].as_integer()?;
+    if vs.len() == 3 {
+        let step = vs[2].as_integer()?;
+        Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(RangeStream::new(from, to, step))))))
+    } else {
+        Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(RangeStream::new(from, to, 1))))))
     }
-    Err(InvalidTypeOfArguments)
 }
 
 fn map(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let fun = vs[0].take();
+    let fun = vs[0].clone();
 
-    if let Datum::Stream(_id, s) = vs[1].take() {
+    if let Datum::Stream(_id, s) = vs[1].clone() {
         Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(MapStream::new(*s, fun))))))
     } else {
         Err(InvalidTypeOfArguments)
@@ -68,9 +64,9 @@ fn map(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
 }
 
 fn flatmap_list(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let fun = vs[0].take();
+    let fun = vs[0].clone();
 
-    if let Datum::Stream(_id, s) = vs[1].take() {
+    if let Datum::Stream(_id, s) = vs[1].clone() {
         Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(FlatMapStream::new(*s, fun))))))
     } else {
         Err(InvalidTypeOfArguments)
@@ -78,9 +74,9 @@ fn flatmap_list(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> Lis
 }
 
 fn select(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let fun = vs[0].take();
+    let fun = vs[0].clone();
 
-    if let Datum::Stream(_id, s) = vs[1].take() {
+    if let Datum::Stream(_id, s) = vs[1].clone() {
         Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(SelectStream::new(*s, fun))))))
     } else {
         Err(InvalidTypeOfArguments)
@@ -108,32 +104,33 @@ fn collect(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResul
 }
 
 fn nth(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
-    if let Datum::Integer(mut n) = vs[0].take() {
-        if let Datum::Stream(_id, ref mut s) = vs[1].take() {
-            let mut source = s.borrow_mut();
-            loop {
-                let next = source.next(eval, env_ref.clone());
-                match next {
-                    Some(v) => {
-                        if n == 0 {
-                            return Ok(v)
-                        } else {
-                            n -= 1;
-                        }
+    let mut n = vs[0].as_integer()?;
+
+    if let Datum::Stream(_id, ref mut s) = vs[1].clone() {
+        let mut source = s.borrow_mut();
+        loop {
+            let next = source.next(eval, env_ref.clone());
+            match next {
+                Some(v) => {
+                    if n == 0 {
+                        return Ok(v)
+                    } else {
+                        n -= 1;
                     }
-                    None => return Ok(Datum::Nil)
                 }
+                None => return Ok(Datum::Nil)
             }
         }
     }
-    Err(InvalidTypeOfArguments)
+
+    Ok(Datum::Nil)
 }
 
 fn reduce(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
-    let fun = vs[0].take();
-    let mut res = vs[1].take();
+    let fun = vs[0].clone();
+    let mut res = vs[1].clone();
 
-    if let Datum::Stream(_id, ref mut s) = vs[2].take() {
+    if let Datum::Stream(_id, ref mut s) = vs[2].clone() {
         let mut source = s.borrow_mut();
         loop {
             let next = source.next(eval, env_ref.clone());
@@ -152,10 +149,10 @@ fn reduce(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult
 }
 
 fn count(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
-    let fun = vs[0].take();
+    let fun = vs[0].clone();
     let mut res = 0;
 
-    if let Datum::Stream(_id, ref mut s) = vs[1].take() {
+    if let Datum::Stream(_id, ref mut s) = vs[1].clone() {
         loop {
             let next = (*s).borrow_mut().next(eval, env_ref.clone());
             match next {
@@ -175,9 +172,9 @@ fn count(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult 
     }
 }
 
-fn take(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
-    let len = vs[0].take().as_integer()?;
-    if let Datum::Stream(_id, ref mut s) = vs[1].take() {
+fn clone(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult {
+    let len = vs[0].clone().as_integer()?;
+    if let Datum::Stream(_id, ref mut s) = vs[1].clone() {
         let mut res = Vec::new();
         for _ in 0..len {
             let next = (*s).borrow_mut().next(eval, env_ref.clone());
@@ -203,6 +200,6 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "select~", select, Arity::Exact(2));
     register(hm, "count~", count, Arity::Exact(2));
     register(hm, "reduce~", reduce, Arity::Exact(3));
-    register(hm, "take~", take, Arity::Exact(2));
+    register(hm, "clone~", clone, Arity::Exact(2));
     register(hm, "collect", collect, Arity::Exact(1));
 }

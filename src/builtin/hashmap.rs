@@ -12,8 +12,8 @@ use ::EnvRef;
 use ::builtin::register;
 
 fn hashmap(vs: &mut[Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let keys = vs[0].take().as_list()?;
-    let values = vs[1].take().as_list()?;
+    let keys = vs[0].clone().as_list()?;
+    let values = vs[1].clone().as_list()?;
 
     let mut res: HashMap<Datum, Datum> = HashMap::new();
 
@@ -25,8 +25,8 @@ fn hashmap(vs: &mut[Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResul
 }
 
 fn get(vs: &mut[Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let key = vs[0].take();
-    let map = vs[1].take().as_hashmap()?;
+    let key = vs[0].clone();
+    let map = vs[1].clone().as_hashmap()?;
 
     match map.get(&key) {
         Some(v) => Ok(v.clone()),

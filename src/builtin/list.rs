@@ -13,53 +13,27 @@ use ::EnvRef;
 use ::builtin::register;
 
 fn cons(vs: &mut[Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let fst = vs[0].take();
-    let rst = vs[1].take();
+    let fst = vs[0].clone();
+    let rst = vs[1].clone();
     Ok(Datum::make_pair(fst, rst))
 }
 
 fn fst(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
-        Datum::Pair(ptr) => {
-            let pair = ptr.borrow();
-            Ok(pair.0.clone())
-        },
-        _ => panic!("fst only works on pairs")
-    }
-}
-
-fn set_fst(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
-        Datum::Pair(ptr) => {
-            let value = vs[1].take();
-            let mut pair = ptr.borrow_mut();
-            pair.0 = value;
-            Ok(Datum::Undefined)
-        },
-        _ => panic!("set-fst! only works on pairs")
-    }
-}
-
-fn set_rst(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
-        Datum::Pair(ptr) => {
-            let value = vs[1].take();
-            let mut pair = ptr.borrow_mut();
-            pair.1 = value;
-            Ok(Datum::Undefined)
-        },
-        _ => panic!("set-rst! only works on pairs")
-    }
+    Ok(vs[0].as_pair()?.0.clone())
 }
 
 fn rst(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
-        Datum::Pair(ptr) => {
-            let pair = ptr.borrow();
-            Ok(pair.1.clone())
-        },
-        _ => panic!("rst only works on pairs")
-    }
+    Ok(vs[0].as_pair()?.1.clone())
+}
+
+fn set_fst(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    vs[0].as_mut_pair()?.0 = vs[1].clone();
+    Ok(Datum::Undefined)
+}
+
+fn set_rst(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    vs[0].as_mut_pair()?.1 = vs[1].clone();
+    Ok(Datum::Undefined)
 }
 
 fn list(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -71,21 +45,18 @@ fn vector(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResu
 }
 
 fn make_vector(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Integer(len) = vs[0] {
-        let default = if vs.len() == 2 {
-            vs[1].take()
-        } else {
-            Datum::Undefined
-        };
-        let vector = vec![default; len as usize];
-        Ok(Datum::make_vector_from_vec(vector))
+    let len = vs[0].as_uinteger()?;
+    let default = if vs.len() == 2 {
+        vs[1].clone()
     } else {
-        Err(InvalidTypeOfArguments)
-    }
+        Datum::Undefined
+    };
+    let vector = vec![default; len as usize];
+    Ok(Datum::make_vector_from_vec(vector))
 }
 
 fn sort(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
+    match vs[0].clone() {
         Datum::Pair(ptr) => {
             let mut elems = ptr.borrow().collect_list()?;
             let mut es = elems.as_mut_slice();
@@ -160,79 +131,67 @@ fn quicksort_helper (arr: &mut [Datum], left: isize, right: isize) -> Result<boo
     Ok(true)
 }
 
+// Heap's algorithm
 fn permutations(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Pair(ptr) = vs[0].take() {
-        let mut elems = ptr.borrow().collect_list()?;
-        let mut result: Vec<Datum> = Vec::new();
+    let mut elems = vs[0].as_pair()?.collect_list()?;
+    let mut result: Vec<Datum> = Vec::new();
 
-        // Heap's algorithm
-        let n = elems.len();
-        let mut c = vec![0; n]; 
+    let n = elems.len();
+    let mut c = vec![0; n]; 
 
-        result.push(Datum::make_list_from_vec(elems.clone()));
-        let mut i = 0;
-        while i < n {
-            if c[i] < i {
-                if i % 2 == 0 {
-                    elems.swap(0, i);
-                } else {
-                    elems.swap(c[i], i);
-                }
-                result.push(Datum::make_list_from_vec(elems.clone()));
-                c[i] += 1;
-                i = 0;
+    result.push(Datum::make_list_from_vec(elems.clone()));
+    let mut i = 0;
+    while i < n {
+        if c[i] < i {
+            if i % 2 == 0 {
+                elems.swap(0, i);
             } else {
-                c[i] = 0;
-                i += 1;
+                elems.swap(c[i], i);
             }
+            result.push(Datum::make_list_from_vec(elems.clone()));
+            c[i] += 1;
+            i = 0;
+        } else {
+            c[i] = 0;
+            i += 1;
         }
-
-        Ok(Datum::make_list_from_vec(result))
-    } else {
-        Err(InvalidTypeOfArguments)
     }
+
+    Ok(Datum::make_list_from_vec(result))
 }
 
 fn combinations(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    if let Datum::Integer(len) = vs[0].take() {
-        if let Datum::Pair(ptr) = vs[1].take() {
-            let elems = ptr.borrow().collect_list()?;
-            let max = elems.len();
-            let mut counters = vec![0; len as usize];
-            let mut result: Vec<Datum> = Vec::new();
-            let mut done = false;
+    let len = vs[0].as_uinteger()?;
+    let elems = vs[1].as_pair()?.collect_list()?;
 
-            let len = len as usize;
+    let max = elems.len();
+    let mut counters = vec![0; len];
+    let mut result: Vec<Datum> = Vec::new();
+    let mut done = false;
 
-            while !done {
-                let cur : Vec<Datum> = counters.iter().map(|c| elems[*c].clone()).collect();
-                result.push(Datum::make_list_from_vec(cur));
+    while !done {
+        let cur : Vec<Datum> = counters.iter().map(|c| elems[*c].clone()).collect();
+        result.push(Datum::make_list_from_vec(cur));
 
-                for i in 0..len {
-                    let new = counters[i] + 1;
-                    if new >= max {
-                        counters[i] = 0;
-                        if i == (len - 1) {
-                            done = true;
-                        }
-                    } else {
-                        counters[i] = new;
-                        break;
-                    }
+        for i in 0..len {
+            let new = counters[i] + 1;
+            if new >= max {
+                counters[i] = 0;
+                if i == (len - 1) {
+                    done = true;
                 }
+            } else {
+                counters[i] = new;
+                break;
             }
-
-            Ok(Datum::make_list_from_vec(result))
-        } else {
-            Err(InvalidTypeOfArguments)
         }
-    } else {
-        Err(InvalidTypeOfArguments)
     }
+
+    Ok(Datum::make_list_from_vec(result))
 }
 
 fn uniq(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
+    match vs[0].clone() {
         Datum::Pair(ptr) => {
             let mut elems = ptr.borrow().collect_list()?;
             elems.dedup();
@@ -244,76 +203,44 @@ fn uniq(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult
 }
 
 fn vector_ref(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
-        Datum::Vector(ptr) => {
-            let index = vs[1].take().as_integer()?;
-            match ptr.borrow().get(index as usize) {
-                Some(e) => Ok(e.clone()),
-                None => Err(IndexOutOfBounds)
-            }
-        },
-        _ => Err(InvalidTypeOfArguments),
+    let vector = vs[0].as_vector()?;
+    match vector.get(vs[1].as_uinteger()?) {
+        Some(e) => Ok(e.clone()),
+        None => Err(IndexOutOfBounds)
     }
 }
 
 fn vector_set(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
-        Datum::Vector(ptr) => {
-            let index = vs[1].take().as_integer()?;
-            let value = vs[2].take();
-            let mut vector = ptr.borrow_mut();
-            if index > 0 && (index as usize) < vector.len() {
-                vector[index as usize] = value;
-                Ok(Datum::Undefined)
-            } else {
-                Err(IndexOutOfBounds)
-            }
-        },
-        _ => Err(InvalidTypeOfArguments),
+    let mut vector = vs[0].as_mut_vector()?;
+    let index = vs[1].as_uinteger()?;
+    if index > 0 && index < vector.len() {
+        vector[index] = vs[2].clone();
+        Ok(Datum::Undefined)
+    } else {
+        Err(IndexOutOfBounds)
     }
 }
 
 fn vector_push(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
-        Datum::Vector(ptr) => {
-            let value = vs[1].take();
-            ptr.borrow_mut().push(value);
-            Ok(Datum::Undefined)
-        },
-        _ => Err(InvalidTypeOfArguments),
-    }
+    let mut vector = vs[0].as_mut_vector()?;
+    vector.push(vs[1].clone());
+    Ok(Datum::Undefined)
 }
 
 fn vector_length(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
-        Datum::Vector(ptr) => {
-            let len = ptr.borrow().len();
-            Ok(Datum::Integer(len as isize))
-        },
-        _ => Err(InvalidTypeOfArguments),
-    }
+    let vector = vs[0].as_vector()?;
+    Ok(Datum::from(&vector.len()))
 }
 
 fn list_to_vector(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
-        Datum::Pair(ptr) => {
-            let mut elems = ptr.borrow().collect_list()?;
-            Ok(Datum::make_vector_from_vec(elems))
-        },
-        Datum::Nil => Ok(Datum::Nil),
-        _ => Err(InvalidTypeOfArguments),
-    }
+    let pair = vs[0].as_pair()?;
+    let elems = pair.collect_list()?;
+    Ok(Datum::make_vector_from_vec(elems))
 }
 
 fn vector_to_list(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    match vs[0].take() {
-        Datum::Vector(ptr) => {
-            let elems = ptr.borrow().clone();
-            Ok(Datum::make_list_from_vec(elems))
-        },
-        Datum::Nil => Ok(Datum::Nil),
-        _ => Err(InvalidTypeOfArguments),
-    }
+    let vector = vs[0].as_vector()?;
+    Ok(Datum::make_list_from_vec(vector.clone()))
 }
 
 pub fn load(hm: &mut HashMap<String, LispFn>) {
