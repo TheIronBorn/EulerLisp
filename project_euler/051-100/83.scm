@@ -1,21 +1,19 @@
-; Solved: 12.2.2018
-;
-; Problems 81, 82 and 83 can be solved the same way
-; using dijkstras algorithm.
+; Solved: 9.2.2018
 
 (def nodes
   (~>
-    "./project_euler/input-files/81.txt"
+    "./project_euler/input-files/83.txt"
     input-file-lines
     (map &(list->vector (map string->number (string-split "," &1))))
     list->vector))
 
-; fst is y, rst is x
 (defn neighbors (pos)
   (~>
     (list 
       (cons {(fst pos) + 1} (rst pos))
-      (cons (fst pos) {(rst pos) + 1}))
+      (cons {(fst pos) - 1} (rst pos))
+      (cons (fst pos) {(rst pos) + 1})
+      (cons (fst pos) {(rst pos) - 1}))
     (select
       &(and
          {-1 < (fst &1) < 80}

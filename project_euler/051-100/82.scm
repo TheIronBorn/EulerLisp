@@ -1,30 +1,31 @@
 ; Solved: 12.2.2018
-;
-; Problems 81, 82 and 83 can be solved the same way
-; using dijkstras algorithm.
 
+; Placing a 0 in front of and at the end of each row
+; makes it possible to use the same algorithm as before
+; to find paths that start and end at any y position
 (def nodes
   (~>
-    "./project_euler/input-files/81.txt"
+    "./project_euler/input-files/82.txt"
     input-file-lines
-    (map &(list->vector (map string->number (string-split "," &1))))
+    (map &(list->vector
+            (cons 0 (append (map string->number (string-split "," &1)) (list 0)))))
     list->vector))
 
-; fst is y, rst is x
 (defn neighbors (pos)
   (~>
     (list 
       (cons {(fst pos) + 1} (rst pos))
+      (cons {(fst pos) - 1} (rst pos))
       (cons (fst pos) {(rst pos) + 1}))
     (select
       &(and
          {-1 < (fst &1) < 80}
-         {-1 < (rst &1) < 80}))))
+         {-1 < (rst &1) < 82}))))
 
 (def q (list (cons 0 0)))
-(def dist (make-vector {80 * 80} 99999999))
+(def dist (make-vector {80 * 82} 99999999))
 
-(defn index (pos) {{(fst pos) * 80} + (rst pos)})
+(defn index (pos) {{(fst pos) * 82} + (rst pos)})
 (vector-set! dist (index (cons 0 0)) 0)
 
 (defn lookup-node (pos)
@@ -52,4 +53,4 @@
 
 (dijkstra (cons 0 0))
 (solution
-  {(vector-ref dist (index (cons 79 79))) + (lookup-node (cons 0 0))})
+  (vector-ref dist (index (cons 79 81))))
