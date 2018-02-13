@@ -176,10 +176,18 @@ fn prime_questionmark(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef)
 
 fn add(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let mut res = vs[0].clone();
-    for v in &vs[1..] {
+    for v in &mut vs[1..] {
         res = res + v.clone();
     }
     Ok(res)
+}
+
+fn fx_add(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let mut res = 0;
+    for v in vs {
+        res += v.as_integer()?; 
+    }
+    Ok(Datum::Integer(res))
 }
 
 fn subtract(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -514,6 +522,7 @@ fn totient_sum_(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> Li
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "prime?", prime_questionmark, Arity::Exact(1));
     register(hm, "+", add, Arity::Min(2));
+    register(hm, "fx+", fx_add, Arity::Min(2));
     register(hm, "-", subtract, Arity::Min(1));
     register(hm, "*", mult, Arity::Min(2));
     register(hm, "divides?", divides_questionmark, Arity::Exact(2));

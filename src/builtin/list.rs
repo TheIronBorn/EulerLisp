@@ -213,7 +213,7 @@ fn vector_ref(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> Lisp
 fn vector_set(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let mut vector = vs[0].as_mut_vector()?;
     let index = vs[1].as_uinteger()?;
-    if index > 0 && index < vector.len() {
+    if index < vector.len() {
         vector[index] = vs[2].clone();
         Ok(Datum::Undefined)
     } else {

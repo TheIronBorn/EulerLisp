@@ -570,7 +570,7 @@ impl Datum {
     fn as_uinteger(&self) -> Result<usize, LispErr> {
         match self {
             &Datum::Integer(n) => {
-                if n > 0 {
+                if n >= 0 {
                     Ok(n as usize)
                 } else {
                     Err(LispErr::TypeError("convert", "uinteger", self.clone()))
@@ -788,15 +788,11 @@ pub struct BindingRef(usize, usize);
 #[derive(Clone)]
 pub enum Meaning {
     If(Box<Meaning>, Box<Meaning>, Box<Meaning>),
-    // TODO: No need to keep the param names in the lambda
     LambdaDef(usize, Vec<Datum>, Box<Meaning>, bool),
     Do(Vec<Meaning>, Box<Meaning>),
     Quote(Box<Datum>),
     Definition(Box<Meaning>),
     Assignment(BindingRef, Box<Meaning>),
-    // ListPush(BindingRef, Box<Meaning>),
-    // ListRef(BindingRef, Box<Meaning>),
-    // ListSet(BindingRef, Box<Meaning>, Box<Meaning>),
     BuiltinFunctionCall(fn(&mut [Datum], &mut eval::Evaluator, EnvRef)->LispResult, Vec<Meaning>),
     FunctionCall(Box<Meaning>, Vec<Meaning>),
     SelfEvaluating(Box<Datum>),

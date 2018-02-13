@@ -62,6 +62,76 @@ impl MapStream {
     }
 }
 
+impl LispIterator for MapStream {
+    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
+        let next = self.source.borrow_mut().next(eval, env_ref.clone());
+
+        match next {
+            Some(v) => Some(eval.full_apply((*self.fun).clone(), vec![v], env_ref)),
+            None => None
+        }
+    }
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct EnumerateStream {
+    source: Box<Stream>,
+    index: isize,
+}
+
+impl EnumerateStream {
+    pub fn new(source: Stream) -> Self {
+        Self { source: Box::new(source), index: -1 }
+    }
+}
+
+impl LispIterator for EnumerateStream {
+    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
+        let next = self.source.borrow_mut().next(eval, env_ref.clone());
+        self.index += 1;
+        match next {
+            Some(v) => Some(Datum::make_pair(v, Datum::Integer(self.index))),
+            None => None
+        }
+    }
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct AccumulateStream {
+    source: Box<Stream>,
+    fun: Box<Datum>,
+    acc: Box<Datum>
+}
+
+impl AccumulateStream {
+    pub fn new(source: Stream, fun: Datum, acc: Datum) -> Self {
+        Self {
+            source: Box::new(source),
+            fun: Box::new(fun),
+            acc: Box::new(acc)
+        }
+    }
+}
+
+impl LispIterator for AccumulateStream {
+    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
+        let next = self.source.borrow_mut().next(eval, env_ref.clone());
+
+        match next {
+            Some(v) => {
+                let new_acc = eval.full_apply(
+                    (*self.fun).clone(),
+                    vec![v, *self.acc.clone()],
+                    env_ref
+                );
+                self.acc = Box::new(new_acc.clone());
+                Some(new_acc)
+            }
+            None => None
+        }
+    }
+}
+
 #[derive(PartialEq, Clone, Debug)]
 pub struct FlatMapStream {
     source: Box<Stream>,
@@ -224,17 +294,6 @@ impl LispIterator for RangeStream {
             let ret = self.current;
             self.current += self.step;
             Some(Datum::Integer(ret))
-        }
-    }
-}
-
-impl LispIterator for MapStream {
-    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
-        let next = self.source.borrow_mut().next(eval, env_ref.clone());
-
-        match next {
-            Some(v) => Some(eval.full_apply((*self.fun).clone(), vec![v], env_ref)),
-            None => None
         }
     }
 }

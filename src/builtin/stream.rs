@@ -13,6 +13,8 @@ use stream::RangeStream;
 use stream::StepStream;
 use stream::MapStream;
 use stream::FlatMapStream;
+use stream::AccumulateStream;
+use stream::EnumerateStream;
 use stream::SelectStream;
 use stream::PermutationStream;
 use stream::CombinationStream;
@@ -68,6 +70,25 @@ fn flatmap_list(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> Lis
 
     if let Datum::Stream(_id, s) = vs[1].clone() {
         Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(FlatMapStream::new(*s, fun))))))
+    } else {
+        Err(InvalidTypeOfArguments)
+    }
+}
+
+fn accumulate(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let fun = vs[0].clone();
+    let acc = vs[1].clone();
+
+    if let Datum::Stream(_id, s) = vs[2].clone() {
+        Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(AccumulateStream::new(*s, fun, acc))))))
+    } else {
+        Err(InvalidTypeOfArguments)
+    }
+}
+
+fn enumerate(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    if let Datum::Stream(_id, s) = vs[0].clone() {
+        Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(EnumerateStream::new(*s))))))
     } else {
         Err(InvalidTypeOfArguments)
     }
@@ -196,6 +217,8 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "combinations~", combinations, Arity::Exact(2));
     register(hm, "map~", map, Arity::Exact(2));
     register(hm, "flatmap-list~", flatmap_list, Arity::Exact(2));
+    register(hm, "accumulate~", accumulate, Arity::Exact(3));
+    register(hm, "enumerate~", enumerate, Arity::Exact(1));
     register(hm, "nth~", nth, Arity::Exact(2));
     register(hm, "select~", select, Arity::Exact(2));
     register(hm, "count~", count, Arity::Exact(2));

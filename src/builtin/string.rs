@@ -30,8 +30,8 @@ fn string_to_number(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -
 }
 
 fn string_split(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let string = vs[0].as_string()?;
-    let splitter = vs[1].as_string()?;
+    let string = vs[1].as_string()?;
+    let splitter = vs[0].as_string()?;
     let lines: Vec<Datum> =
         string.split(&splitter)
         .map( |l| Datum::String(l.to_string()) )
