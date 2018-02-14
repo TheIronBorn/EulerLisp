@@ -36,19 +36,18 @@
 (def mylines
   (~> (range~ 1 5000)
       (map~ (fn (_) (list (blum) (blum) (blum) (blum))))
-      collect))
-
-(defn flatten (a) (flatmap id a))
+      collect
+      list->vector))
 
 (~>
   (range~ 0 4998)
   (map~
     (fn (ai)
-        (let ([a (list-ref mylines ai)])
+        (let ([a (vector-ref mylines ai)])
           (~>
             (range~ (inc ai) 4999)
             (map~ (fn (bi)
-              (let ([b (list-ref mylines bi)])
+              (let ([b (vector-ref mylines bi)])
                 (intersection
                   (fst a) (frst a)
                   (frrst a) (frrrst a)

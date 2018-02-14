@@ -2,12 +2,7 @@
 ; Time: x3:19
 ;        1:50 using phi in rust
 
-(def n 1_000_000)
-
-; (defn phi (n)
-;   (reduce (fn (pf acc) (- acc (div acc (fst pf))))
-;           n
-;           (prime-factors n)))
+(def n 10_000_000)
 
 (defn permutation? (a)
       (let ([ds1 (number->digits (fst a))]

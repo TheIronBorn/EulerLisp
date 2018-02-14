@@ -63,5 +63,3 @@
   (map saved)
   sum
   solution)
-
-; (println (format 16))
