@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use ::Datum;
 use ::LispFn;
+use ::LispErr;
 use ::LispErr::*;
 use ::LispResult;
 use ::Arity;
@@ -52,10 +53,17 @@ fn string_join(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> Lisp
     return Ok(Datum::String(result));
 }
 
-
 fn string_to_chars(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let string = vs[0].as_string()?;
     Ok(Datum::make_list_from_vec(string.chars().map(|c| Datum::Char(c) ).collect()))
+}
+
+fn chars_to_string(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let pair = vs[0].as_pair()?;
+    let chars = pair.collect_list()?;
+
+    let s: Result<String, LispErr> = chars.into_iter().map(|c| c.as_char()).collect();
+    Ok(Datum::String(s?))
 }
 
 fn char_to_integer(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -104,6 +112,7 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "string-length", string_length, Arity::Exact(1));
     register(hm, "string->number", string_to_number, Arity::Exact(1));
     register(hm, "string->chars", string_to_chars, Arity::Exact(1));
+    register(hm, "chars->string", chars_to_string, Arity::Exact(1));
     register(hm, "string-split", string_split, Arity::Exact(2));
     register(hm, "str", string_join, Arity::Min(0));
     register(hm, "char-alphabetic?", char_is_alphabetic, Arity::Exact(1));
