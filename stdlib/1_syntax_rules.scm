@@ -100,3 +100,53 @@
    (~> (second args ... first) rest ...))
   ((~> first second rest ...)
    (~> (second first) rest ...))))
+
+; (defsyntax letrec_generate_temp_names () (
+;   ((letrec_generate_temp_names
+;      ()
+;      (temp1 ...)
+;      ((var1 init1) ...)
+;      body ...)
+;    (let ((var1 <undefined>) ...)
+;      (let ((temp1 init1) ...)
+;        (set! var1 temp1)
+;        ...
+;        body ...)))
+;   ((letrec_generate_temp_names
+;      (x y ...)
+;      (temp ...)
+;      ((var1 init1) ...)
+;      body ...)
+;    (letrec_generate_temp_names
+;      (y ...)
+;      (newtemp temp ...)
+;      ((var1 init1) ...)
+;      body ...))))
+
+; (defsyntax letrec () (
+;   ((letrec ((var1 init1) ...) body ...)
+;    (letrec_generate_temp_names
+;      (var1 ...)
+;      ()
+;      ((var1 init1) ...)
+;      body ...))))
+
+; (defsyntax for_step () (
+;   ((for_step x) x)
+;   ((for_step x y) y)))
+
+; (defsyntax for () (
+;   ((do ((var init step ...) ...)
+;        (test expr ...)
+;        command ...)
+;    (letrec
+;      ((loop
+;         (lambda (var ...)
+;                 (if test
+;                   (do
+;                     (if #f #f)
+;                     expr ...)
+;                   (do
+;                     command ...
+;                     (loop (for_step var step ...) ...))))))
+;      (loop init ...)))))

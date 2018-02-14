@@ -200,4 +200,7 @@
 (defn each (f lst)
   (reduce (fn (cur acc) (f cur)) '() lst))
 
+(defn each~ (f lst)
+  (reduce~ (fn (cur acc) (f cur)) '() lst))
+
 (defn empty? (lst) {(length lst) = 0})
