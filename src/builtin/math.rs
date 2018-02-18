@@ -239,7 +239,12 @@ fn odd_questionmark(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -
 }
 
 fn div(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    Ok(vs[0].clone() / vs[1].clone())
+    let mut res = vs[0].clone();
+
+    for v in &mut vs[1..] {
+        res = res / v.clone();
+    }
+    Ok(res)
 }
 
 fn modulo(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -275,6 +280,7 @@ fn prime_factors(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> L
         return Ok(Datum::make_list_from_vec(result));
     }
 
+    let max = (a as f64).sqrt().ceil() as isize;
     for i in PRIMES.iter() {
         if a % i == 0 {
             let mut count = 0;
@@ -284,28 +290,29 @@ fn prime_factors(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> L
             }
             result.push(Datum::make_pair(Datum::Integer(*i), Datum::Integer(count)));
         }
-        if *i > a {
+        if *i > max {
             break;
         }
     }
 
     let mut i = PRIMES[PRIMES.len() - 1] + 2;
-    if a > i {
-        loop {
-            if a % i == 0 {
-                let mut count = 0;
-                while a % i == 0 {
-                    a /= i;
-                    count += 1;
-                }
-                result.push(Datum::make_pair(Datum::Integer(i), Datum::Integer(count)));
+    while i <= max {
+        if a % i == 0 {
+            let mut count = 0;
+            while a % i == 0 {
+                a /= i;
+                count += 1;
             }
-            i += 2;
-            if i > a {
-                break;
-            }
+            result.push(Datum::make_pair(Datum::Integer(i), Datum::Integer(count)));
         }
+        i += 2;
     }
+
+    // a is prime
+    if a != 1 {
+        result.push(Datum::make_pair(Datum::Integer(a), Datum::Integer(1)));
+    }
+
     Ok(Datum::make_list_from_vec(result))
 }
 
@@ -529,7 +536,7 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "zero?", zero_questionmark, Arity::Exact(1));
     register(hm, "even?", even_questionmark, Arity::Exact(1));
     register(hm, "odd?", odd_questionmark, Arity::Exact(1));
-    register(hm, "/", div, Arity::Exact(2));
+    register(hm, "/", div, Arity::Min(2));
     register(hm, "%", modulo, Arity::Exact(2));
     register(hm, "div", fx_div, Arity::Exact(2));
     register(hm, "divmod", divmod, Arity::Exact(2));
