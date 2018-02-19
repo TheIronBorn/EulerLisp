@@ -1,12 +1,15 @@
 use std::collections::HashMap;
 use rand::{thread_rng, Rng};
 use std::f64;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use LispFn;
 use Datum;
 use LispErr::*;
 use LispResult;
 use Arity;
+use Pair;
 
 use builtin::primes::PRIMES;
 use builtin::register;
@@ -275,45 +278,70 @@ fn rand(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult
 
 fn prime_factors(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let mut a = vs[0].as_integer()?;
-    let mut result = Vec::new();
-    if a < 2 {
-        return Ok(Datum::make_list_from_vec(result));
+    let mut res = Datum::Nil;
+
+    if a == 1 {
+        return Ok(res);
     }
 
-    let max = (a as f64).sqrt().ceil() as isize;
-    for i in PRIMES.iter() {
+    for i_ in PRIMES.iter() {
+        let i = *i_ as isize;
+
         if a % i == 0 {
-            let mut count = 0;
+            let mut count = 1;
+            a /= i;
             while a % i == 0 {
                 a /= i;
                 count += 1;
             }
-            result.push(Datum::make_pair(Datum::Integer(*i), Datum::Integer(count)));
+
+            let factor = Datum::make_pair(Datum::Integer(i), Datum::Integer(count));
+            let pair = Pair(factor, res);
+            res = Datum::Pair(Rc::new(RefCell::new(pair)));
         }
-        if *i > max {
+        if (i * i) > a {
             break;
         }
     }
 
-    let mut i = PRIMES[PRIMES.len() - 1] + 2;
-    while i <= max {
+    let mut i = PRIMES[PRIMES.len() - 1];
+    let mut double_step = (i % 3) == 1;
+
+    while i * i <= a {
         if a % i == 0 {
-            let mut count = 0;
+            let mut count = 1;
+            a /= i;
             while a % i == 0 {
                 a /= i;
                 count += 1;
             }
-            result.push(Datum::make_pair(Datum::Integer(i), Datum::Integer(count)));
+
+            let factor = Datum::make_pair(Datum::Integer(i), Datum::Integer(count));
+            let pair = Pair(factor, res);
+            res = Datum::Pair(Rc::new(RefCell::new(pair)));
         }
-        i += 2;
+
+        // Assuming i is >= 5 (congruent to 2 mod 3)
+        // the first step of 2 would yield (1 mod 3)
+        // and the second (0 mod 3), which can't be a prime factor,
+        // so instead, we can make a step of 4, to get back to (2 mod 3)
+        if double_step {
+            i += 4;
+            double_step = false;
+        } else {
+            i += 2;
+            double_step = true;
+        }
     }
 
     // a is prime
     if a != 1 {
-        result.push(Datum::make_pair(Datum::Integer(a), Datum::Integer(1)));
+        let factor = Datum::make_pair(Datum::Integer(a), Datum::Integer(1));
+        let pair = Pair(factor, res);
+        res = Datum::Pair(Rc::new(RefCell::new(pair)));
     }
 
-    Ok(Datum::make_list_from_vec(result))
+    Ok(res)
 }
 
 fn factors(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
