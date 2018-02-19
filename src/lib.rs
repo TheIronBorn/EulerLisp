@@ -629,6 +629,13 @@ impl Datum {
         }
     }
 
+    fn as_stream(&self) -> Result<Box<Stream>, LispErr> {
+        match self {
+            &Datum::Stream(_id, ref ptr) => Ok(ptr.clone()),
+            other => Err(LispErr::TypeError("convert", "stream", other.clone()))
+        }
+    }
+
     // TODO: Remove some borrow & clones
     fn as_list(&self) -> Result<Vec<Datum>, LispErr> {
         match self {

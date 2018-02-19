@@ -13,7 +13,6 @@ use ::LispErr;
 use ::Lambda;
 use ::Meaning;
 use ::Symbol;
-use ::BindingRef;
 use ::LispErr::*;
 
 use symbol_table::SymbolTable;
@@ -24,7 +23,6 @@ use builtin;
 use preprocess;
 
 pub struct Evaluator {
-    level: isize,
     pub symbol_table: SymbolTable,
     pub syntax_rules: HashMap<Symbol, SyntaxRule>,
     pub root_env: EnvRef,
@@ -54,13 +52,10 @@ impl Evaluator {
 
         let mut ev = Evaluator {
             syntax_rules: HashMap::new(),
-            symbol_table,
-            builtins,
-            output,
-            level: 0,
             unique_id: 0,
             root_env: env_ref,
-            root_aenv: aenv_ref
+            root_aenv: aenv_ref,
+            symbol_table, builtins, output
         };
 
         if stdlib {
@@ -167,43 +162,8 @@ impl Evaluator {
         Ok(ret)
     }
 
-    fn eval_list(&mut self, exprs: Vec<Meaning>, env_ref: EnvRef) -> Vec<Datum> {
-        exprs.into_iter().map(|a| self.eval(a, env_ref.clone()).unwrap()).collect()
-    }
-
-    fn eval_sf_if(&mut self, cond: Meaning, cons: Meaning, alt: Meaning, env_ref: EnvRef) -> TCOResult {
-        let result = self.eval(cond, env_ref.clone())?;
-        if result.is_false() {
-            Ok(TCOWrapper::TailCall(alt, env_ref))
-        } else {
-            Ok(TCOWrapper::TailCall(cons, env_ref))
-        }
-    }
-
-    fn eval_sf_do(&mut self, expressions: Vec<Meaning>, last: Meaning, env_ref: EnvRef) -> TCOResult {
-        for e in expressions.into_iter() {
-            self.eval(e, env_ref.clone())?;
-        }
-        Ok(TCOWrapper::TailCall(last, env_ref))
-    }
-
-    fn eval_sf_definition(&mut self, value: Meaning, env_ref: EnvRef) -> TCOResult {
-        // TODO: Check if this would use the correct binding?
-        // (env.counter + 1 == key.index)
-        let value = self.eval(value, env_ref.clone())?;
-        let mut env_ = env_ref.borrow_mut();
-
-        env_.extend(vec![value]);
-        Ok(TCOWrapper::Return(Datum::Undefined))
-    }
-
-    fn eval_sf_assignment(&mut self, key: BindingRef, value: Meaning, env_ref: EnvRef) -> TCOResult {
-        let value = self.eval(value, env_ref.clone())?;
-        let env = env_ref.borrow();
-
-        let binding = env.get_binding(key);
-        (*binding.borrow_mut()) = value;
-        Ok(TCOWrapper::Return(Datum::Undefined))
+    fn eval_list(&mut self, exprs: Vec<Meaning>, env_ref: EnvRef) -> Result<Vec<Datum>, LispErr> {
+        exprs.into_iter().map(|a| self.eval(a, env_ref.clone())).collect()
     }
 
     pub fn eval_datum(&mut self, _datum: Datum, _env_ref: EnvRef) -> LispResult {
@@ -224,66 +184,81 @@ impl Evaluator {
         }
     }
 
-    pub fn eval(&mut self, expr: Meaning, mut env_ref: EnvRef) -> LispResult {
-        self.level += 1;
-        let mut maybe_expr = Some(expr);
+    pub fn eval(&mut self, mut expr: Meaning, mut env_ref: EnvRef) -> LispResult {
+        loop {
+            let res = match expr {
+                Meaning::If(cond, cons, alt) => {
+                    let result = self.eval(*cond, env_ref.clone())?;
+                    if result.is_false() {
+                        TCOWrapper::TailCall(*alt, env_ref)
+                    } else {
+                        TCOWrapper::TailCall(*cons, env_ref)
+                    }
+                },
+                Meaning::Do(es, last) => {
+                    for e in es.into_iter() {
+                        self.eval(e, env_ref.clone())?;
+                    }
+                    TCOWrapper::TailCall(*last, env_ref)
+                },
+                Meaning::Definition(value) => {
+                    // TODO: Check if this would use the correct binding?
+                    // (env.counter + 1 == key.index)
+                    let value = self.eval(*value, env_ref.clone())?;
+                    let mut env_ = env_ref.borrow_mut();
 
-        while let Some(e) = maybe_expr {
-            let res = match e {
-                Meaning::If(cond, cons, alt) => self.eval_sf_if(*cond, *cons, *alt, env_ref),
-                Meaning::Do(es, last) => self.eval_sf_do(es, *last, env_ref),
-                Meaning::Quote(datum) => Ok(TCOWrapper::Return(*datum)),
-                Meaning::Definition(value) => self.eval_sf_definition(*value, env_ref),
+                    env_.extend(vec![value]);
+                    TCOWrapper::Return(Datum::Undefined)
+                },
                 Meaning::SyntaxRuleDefinition(name, rule) => {
                     self.syntax_rules.insert(name, *rule);
-                    Ok(TCOWrapper::Return(Datum::Nil))
+                    TCOWrapper::Return(Datum::Nil)
                 },
-                Meaning::Assignment(name, value) => self.eval_sf_assignment(name, *value, env_ref),
+                Meaning::Assignment(name, value) => {
+                    let value = self.eval(*value, env_ref.clone())?;
+                    let binding = env_ref.borrow().get_binding(name);
+                    *binding.borrow_mut() = value;
+                    TCOWrapper::Return(Datum::Undefined)
+                },
                 Meaning::BindingRef(key) => {
                     let env = env_ref.borrow();
                     let binding = env.get_binding(key);
                     let value = binding.borrow().clone();
-
-                    Ok(TCOWrapper::Return(value))
+                    TCOWrapper::Return(value)
                 },
                 Meaning::FunctionCall(fun, args) => {
                     let f = self.eval(*fun, env_ref.clone())?;
-                    let evaled_args = self.eval_list(args, env_ref.clone());
-                    self.apply(f, evaled_args, env_ref)
+                    let evaled_args = self.eval_list(args, env_ref.clone())?;
+                    self.apply(f, evaled_args, env_ref)?
                 },
                 Meaning::BuiltinFunctionCall(fun, args) => {
-                    let mut evaled_args = self.eval_list(args, env_ref.clone());
-                    Ok(TCOWrapper::Return(fun(evaled_args.as_mut_slice(), self, env_ref)?))
+                    // For this kind of function call,
+                    // the arity is checked in the preprocessing phase
+                    let mut evaled_args = self.eval_list(args, env_ref.clone())?;
+                    TCOWrapper::Return(fun(evaled_args.as_mut_slice(), self, env_ref)?)
                 },
                 Meaning::LambdaDef(arity, defaults, body, dotted) => {
-                    Ok(TCOWrapper::Return(Datum::Lambda(
+                    TCOWrapper::Return(Datum::Lambda(
                         Lambda{
                             id: self.get_unique_id(),
                             env: env_ref,
-                            arity: arity,
-                            defaults: defaults,
-                            body: body,
-                            dotted: dotted
+                            arity, defaults, body, dotted
                         }
-                    )))
+                    ))
                 },
-                Meaning::SelfEvaluating(v) => Ok(TCOWrapper::Return(*v)),
+                Meaning::Quote(datum) => TCOWrapper::Return(*datum),
+                Meaning::SelfEvaluating(datum) => TCOWrapper::Return(*datum)
             };
 
-            match res? {
+            match res {
                 TCOWrapper::Return(v) => {
-                    self.level -= 1;
                     return Ok(v)
                 },
-                TCOWrapper::TailCall(a, e) => {
-                    maybe_expr = Some(a);
-                    env_ref = e;
-                    continue;
+                TCOWrapper::TailCall(new_expr, new_env_ref) => {
+                    expr = new_expr;
+                    env_ref = new_env_ref;
                 }
             }
         }
-
-        self.level -= 1;
-        Ok(Datum::Undefined)
     }
 }
