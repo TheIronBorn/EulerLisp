@@ -159,7 +159,7 @@ impl PartialEq for Lambda {
 // to get this to compile?
 pub type Stream = Rc<RefCell<LispIterator>>;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Pair(Datum, Datum);
 
 impl Pair {
@@ -172,17 +172,28 @@ impl Pair {
         }
     }
 
+    // TODO: Find a cleaner way to do this
     fn collect(&self) -> Vec<Datum> {
-        match &self.1 {
-            &Datum::Pair(ref ptr) => {
-                let mut rest = ptr.borrow().collect();
-                rest.insert(0, self.0.clone());
-                rest
-            },
-            other => {
-                vec![self.0.clone(), other.clone()]
+        let mut cur = Rc::new(RefCell::new(self.clone()));
+        let mut res = Vec::new();
+
+        loop {
+            let a = cur.borrow().0.clone();
+            let b = cur.borrow().1.clone();
+
+            res.push(a);
+            match b {
+                Datum::Pair(ref ptr) => {
+                    cur = ptr.clone();
+                },
+                other => {
+                    res.push(other);
+                    break;
+                }
             }
         }
+
+        res
     }
 
     fn collect_list(&self) -> Result<Vec<Datum>, LispErr> {
