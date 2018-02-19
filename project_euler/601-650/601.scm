@@ -2,14 +2,18 @@
 
 
 ; streak(n) >= k
-; <=> forall 1 < i <= k : k + 1 | n + k 
-; <=> forall 1 < i <= k : k + 1 | (n - 1) + (k + 1) 
-; <=> forall 1 < i < k : k | (n - 1) + k 
-; <=> forall 1 < i < k : k | (n - 1)
-; <=> lcm(1, ..., (k - 1)) | (n - 1)
+; <=> forall 1 < i <= k : i | n + (i - 1)
+; <=> forall 1 < i <= k : i | (n - 1) + i
+; <=> forall 1 < i <= k : i | (n - 1)
+; <=> lcm(1, ..., k) | (n - 1)
 ;
 ; streak(n) = k
 ; <=> streak(n) >= k & !(streak(n) >= (k + 1))
+;
+; number of n < N with streak(n) = k:
+; ((n - 2) / lcm(1, ..., k)) - ((n - 2) / lcm(1, ..., k + 1))
+;     \
+;      \ because n < n and we were working with n - 1 before
 
 (def lcms
   (~>
