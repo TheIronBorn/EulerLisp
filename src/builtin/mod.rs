@@ -11,6 +11,7 @@ mod list;
 mod hashmap;
 mod primes;
 mod math;
+mod bitwise;
 mod misc;
 mod types;
 mod comparison;
@@ -35,6 +36,7 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     list::load(hm);
     hashmap::load(hm);
     math::load(hm);
+    bitwise::load(hm);
     misc::load(hm);
     string::load(hm);
     types::load(hm);

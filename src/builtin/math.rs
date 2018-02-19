@@ -220,6 +220,23 @@ fn fx_div(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResu
     Ok(Datum::Integer(a / b))
 }
 
+fn shift_left(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let a = vs[0].as_integer()?;
+    let b = vs[1].as_integer()?;
+    Ok(Datum::Integer(a << b))
+}
+
+fn shift_right(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let a = vs[0].as_integer()?;
+    let b = vs[1].as_integer()?;
+    Ok(Datum::Integer(a >> b))
+}
+
+fn popcount(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let a = vs[0].as_integer()?;
+    Ok(Datum::Integer(a.count_ones() as isize))
+}
+
 fn zero_questionmark(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let a = vs[0].as_integer()?;
     Ok(Datum::Bool(a == 0))
@@ -560,6 +577,9 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "fx+", fx_add, Arity::Min(2));
     register(hm, "-", subtract, Arity::Min(1));
     register(hm, "*", mult, Arity::Min(2));
+    register(hm, "<<", shift_left, Arity::Exact(2));
+    register(hm, ">>", shift_right, Arity::Exact(2));
+    register(hm, "popcount", popcount, Arity::Exact(1));
     register(hm, "divides?", divides_questionmark, Arity::Exact(2));
     register(hm, "zero?", zero_questionmark, Arity::Exact(1));
     register(hm, "even?", even_questionmark, Arity::Exact(1));
