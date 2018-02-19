@@ -510,16 +510,32 @@ fn round(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResul
     Ok(Datum::Integer(a.round() as isize))
 }
 
-fn gcd(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let mut x = vs[0].as_integer()?;
-    let mut y = vs[1].as_integer()?;
+fn gcd_single(mut x : isize, mut y : isize) -> isize {
     while y != 0 {
         let t = y;
         y = x % y;
         x = t;
     }
+    x
+}
+fn lcm_single(x : isize, y : isize) -> isize {
+    (x * y) / gcd_single(x, y)
+}
 
-    Ok(Datum::Integer(x))
+fn gcd(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let mut res = vs[0].as_integer()?;
+    for v in &mut vs[1..] {
+        res = gcd_single(res, v.as_integer()?);
+    }
+    Ok(Datum::Integer(res))
+}
+
+fn lcm(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let mut res = vs[0].as_integer()?;
+    for v in &mut vs[1..] {
+        res = lcm_single(res, v.as_integer()?);
+    }
+    Ok(Datum::Integer(res))
 }
 
 fn sin(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -608,7 +624,8 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "ceil", ceil, Arity::Exact(1));
     register(hm, "floor", floor, Arity::Exact(1));
     register(hm, "round", round, Arity::Exact(1));
-    register(hm, "gcd", gcd, Arity::Exact(2));
+    register(hm, "gcd", gcd, Arity::Min(2));
+    register(hm, "lcm", lcm, Arity::Min(2));
     register(hm, "sin", sin, Arity::Exact(1));
     register(hm, "cos", cos, Arity::Exact(1));
     register(hm, "tan", tan, Arity::Exact(1));
