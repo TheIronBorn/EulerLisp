@@ -21,8 +21,7 @@
          (any? (fn (try)
                    (< (~> try sort uniq length)
                       (length try)))
-               tries
-               ))
+               tries))
 
 ; This is not guaranteed to work in every case,
 ; (e.g. tries 12 and 21)
