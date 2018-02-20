@@ -84,13 +84,32 @@ impl<'a> Parser<'a> {
                             let number = if sign { i } else { -i };
                             Ok(Some(Datum::Integer(number)))
                         },
-                        Err(_err) => Err(ParserError {
-                            start: t.start.clone(),
-                            end: self.end.clone(),
-                            error: InvalidNumberLiteral
-                        })?
+                        Err(_err) => {
+                            if base == 10 {
+                                let num = body.parse::<f64>();
+                                match num {
+                                    Ok(i) => {
+                                        let number = if sign { i } else { -i };
+                                        Ok(Some(Datum::Float(number)))
+                                    },
+                                    Err(_err) => {
+                                        Err(ParserError {
+                                            start: t.start.clone(),
+                                            end: self.end.clone(),
+                                            error: InvalidNumberLiteral
+                                        })?
+                                    }
+                                }
+                            } else {
+                                Err(ParserError {
+                                    start: t.start.clone(),
+                                    end: self.end.clone(),
+                                    error: InvalidNumberLiteral
+                                })?
+                            }
+                        }
                     }
-                }
+                },
                 Literal::LRoundBracket => {
                     Ok(Some(self.process_list(t.start.clone(), Literal::RRoundBracket, false, st)?))
                 },
