@@ -70,7 +70,13 @@ impl PriorityQueue {
 
     pub fn insert(&mut self, element: Datum, priority: Datum) {
         self.heap_size += 1;
-        self.array.push(PriorityQueueElement{ element, priority });
+
+        let pqe = PriorityQueueElement { element, priority };
+        if self.heap_size <= self.array.len() {
+            self.array[self.heap_size - 1] = pqe;
+        } else {
+            self.array.push(pqe);
+        }
 
         let mut i = self.heap_size;
 
