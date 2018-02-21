@@ -20,6 +20,37 @@ Progress:
 3. lambda shorthand, `&(+ &1 (* &2 2))` = `(fn (a b) (+ a (* b 2)))`
 4. streams (lazy iterators), `range~`, `map~`, `select~`, ...
 
+## Advanced Data Structures
+
+__Note: Some of these could (and should) be implemented in the target language
+at some later time__
+
+### Priority Queues
+
+* `(make-priority-queue pairs)`, create a (max-)priority queue from a list of
+   (element, priority) pairs
+* `(make-min-priority-queue pairs)`, create a (min-)priority queue from a list of
+   (element, priority) pairs
+* `(priority-queue-insert! pq element priority)`, insert a new element
+* `(priority-queue-max pq)`, get the (element, priority) pair with the highest
+   (or lowest, if the queue is a min-priority queue) priorty
+* `(priority-queue-pop! pq)`, same as `priority-queue-max`, but removes the element
+
+``` clojure
+>> (def pq (make-priority-queue (list (cons "foo" 1) (cons "bar" 5) (cons "baz" 7))))
+>> (priority-queue-insert! pq "qux" 20)
+>> (priority-queue-max pq)
+=> ("qux" . 20)
+>> (priority-queue-pop! pq)
+=> ("qux" . 20)
+>> (priority-queue-pop! pq)
+=> ("baz" . 7)
+>> (priority-queue-pop! pq)
+=> ("bar" . 5)
+>> (priority-queue-pop! pq)
+=> ("foo" . 1)
+```
+
 ## Notation for Solution Filenames
 
 * `00.scm` Solution that runs in < 60s

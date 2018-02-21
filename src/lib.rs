@@ -22,6 +22,7 @@ mod numbers;
 mod syntax_rule;
 mod lexer;
 mod stream;
+mod data_structures;
 
 use stream::LispIterator;
 use env::EnvRef;
@@ -43,6 +44,8 @@ use std::ops::Rem;
 use numbers::Rational;
 use std::rc::Rc;
 use std::cell::{Ref, RefMut, RefCell};
+
+use data_structures::priority_queue;
 
 pub type Fsize = f64;
 pub type LispResult = Result<Datum, LispErr>;
@@ -212,6 +215,7 @@ pub type PairRef = Rc<RefCell<Pair>>;
 
 pub type Vector = Vec<Datum>;
 pub type VectorRef = Rc<RefCell<Vector>>;
+pub type PriorityQueueRef = Rc<RefCell<priority_queue::PriorityQueue>>;
 
 #[derive(Clone, Debug)]
 pub enum Datum {
@@ -228,7 +232,9 @@ pub enum Datum {
     Lambda(Lambda),
     Builtin(LispFn),
     Stream(usize, Box<Stream>),
+    PriorityQueue(PriorityQueueRef),
     // Promise(Promise),
+    // TODO: Switch this to rc refcells
     HashMap(usize, HashMap<Datum, Datum>),
     Undefined,
     Nil,
@@ -307,6 +313,12 @@ impl Hash for Datum {
             Datum::HashMap(id, _) => {
                 "hashmap".hash(state);
                 id.hash(state);
+            },
+            Datum::PriorityQueue(ref ptr) => {
+                // Just test pointer equality
+                "priority_queue".hash(state);
+                let ptr = Rc::into_raw(ptr.clone());
+                ptr.hash(state);
             },
             Datum::Stream(id, _) => {
                 "stream".hash(state);
@@ -540,6 +552,10 @@ impl Datum {
         Datum::Pair(Rc::new(RefCell::new(pair)))
     }
 
+    fn make_priority_queue(pq: priority_queue::PriorityQueue) -> Datum {
+        Datum::PriorityQueue(Rc::new(RefCell::new(pq)))
+    }
+
     fn from(other: &ToDatum) -> Datum {
         other.to_datum()
     }
@@ -623,6 +639,20 @@ impl Datum {
         match self {
             &Datum::Pair(ref ptr) => Ok(ptr.borrow_mut()),
             other => Err(LispErr::TypeError("convert", "pair", other.clone()))
+        }
+    }
+
+    fn as_priority_queue(&self) -> Result<Ref<priority_queue::PriorityQueue>, LispErr> {
+        match self {
+            &Datum::PriorityQueue(ref ptr) => Ok(ptr.borrow()),
+            other => Err(LispErr::TypeError("convert", "priority-queue", other.clone()))
+        }
+    }
+
+    fn as_mut_priority_queue(&self) -> Result<RefMut<priority_queue::PriorityQueue>, LispErr> {
+        match self {
+            &Datum::PriorityQueue(ref ptr) => Ok(ptr.borrow_mut()),
+            other => Err(LispErr::TypeError("convert", "priority-queue", other.clone()))
         }
     }
 
@@ -768,6 +798,10 @@ impl Datum {
                 }
 
                 format!("{}", result)
+            },
+            Datum::PriorityQueue(ref _ptr) => {
+                // TODO: Display the actual elements
+                format!("#<priority queue>")
             }
             Datum::Vector(ref elems) => {
                 let mut result = String::new();

@@ -18,6 +18,7 @@ mod comparison;
 mod string;
 mod bignum;
 mod stream;
+mod data_structures;
 
 // The difference between builtins and special forms is
 // that special forms choose if they want to eval their arguments themselves,
@@ -43,4 +44,5 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     comparison::load(hm);
     bignum::load(hm);
     stream::load(hm);
+    data_structures::load(hm);
 }
