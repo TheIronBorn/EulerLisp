@@ -22,8 +22,8 @@ Progress:
 
 ## Advanced Data Structures
 
-__Note: Some of these could (and should) be implemented in the target language
-at some later time__
+_Note: Some of these could (and should) be implemented in the target language
+at some later time._
 
 ### Priority Queues
 
