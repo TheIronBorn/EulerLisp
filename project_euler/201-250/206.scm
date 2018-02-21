@@ -5,10 +5,6 @@
 ; This means, that the last 3 digits must be 900
 ; => number ends with 30 or 70
 
-; 30^2, 130^2, ...
-; [900, 16900, 52900, 108900, 184900, 280900, 396900, 532900, 688900, 864900]
-;   ^     x      x       x       ^       ^      x       x        ^       x
-
 (def square-min (floor (sqrt 1020304050607080900)))
 
 (def square-min1 (+ 30 (* (div square-min 100) 100)))
