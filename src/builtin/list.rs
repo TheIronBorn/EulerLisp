@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 use std::cmp::Ordering;
 
+use rand::{thread_rng, Rng};
+
 use ::LispFn;
 use ::Datum;
 use ::LispErr;
 use ::LispErr::*;
 use ::LispResult;
 use ::Arity;
-
 use ::eval::Evaluator;
 use ::EnvRef;
 use ::builtin::register;
@@ -227,6 +228,19 @@ fn vector_push(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> Lis
     Ok(Datum::Undefined)
 }
 
+// Fisher-Yates Shuffle
+// SEE: TAOCP, Volume 2, Third Edition: Algorithm P, Shuffling (page 142)
+fn vector_shuffle(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let mut vector = vs[0].as_mut_vector()?;
+    let mut rng = thread_rng();
+    for j in (0..vector.len()).rev() {
+        let k = rng.gen_range(0, j + 1);
+        vector.swap(j, k);
+    }
+
+    Ok(Datum::Undefined)
+}
+
 fn vector_length(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let vector = vs[0].as_vector()?;
     Ok(Datum::from(&vector.len()))
@@ -253,6 +267,7 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "vector-ref", vector_ref, Arity::Exact(2));
     register(hm, "vector-set!", vector_set, Arity::Exact(3));
     register(hm, "vector-push!", vector_push, Arity::Exact(2));
+    register(hm, "vector-shuffle!", vector_shuffle, Arity::Exact(1));
     register(hm, "vector-length", vector_length, Arity::Exact(1));
     register(hm, "list->vector", list_to_vector, Arity::Exact(1));
     register(hm, "vector->list", vector_to_list, Arity::Exact(1));
