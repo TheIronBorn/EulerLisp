@@ -2,8 +2,8 @@
 
 ; Generate all paths through a binary tree
 ; of depth 15,
-; left (1) means the player picked the blue disk,
-; right (0) means red.
+; left (#t) means the player picked the blue disk (chance 1 / total),
+; right (#f) means red (chance (total - 1) / total).
 ;
 ; Any path with more than n/2 1s wins
 
