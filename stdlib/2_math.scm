@@ -2,6 +2,7 @@
 (defn dec (n) (- n 1))
 
 (defn square (x) (* x x))
+(defn cube (x) (* x x x))
 
 (defn pow (b e)
   (cond
@@ -16,6 +17,7 @@
 
 (defn abs (x) (if (< x 0) (- x) x))
 (defn isqrt (n) (floor (sqrt n)))
+(defn icbrt (n) (floor (cbrt n)))
 (defn square? (n) (= (square (isqrt n)) n))
 
 (defn gauss-sum (n) (div (* n (inc n)) 2))
