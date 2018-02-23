@@ -133,19 +133,19 @@ impl LispIterator for AccumulateStream {
 }
 
 #[derive(PartialEq, Clone, Debug)]
-pub struct FlatMapStream {
+pub struct FlatMapListStream {
     source: Box<Stream>,
     fun: Box<Datum>,
     stack: Vec<Datum>
 }
 
-impl FlatMapStream {
+impl FlatMapListStream {
     pub fn new(source: Stream, fun: Datum) -> Self {
         Self { source: Box::new(source), fun: Box::new(fun), stack: Vec::new() }
     }
 }
 
-impl LispIterator for FlatMapStream {
+impl LispIterator for FlatMapListStream {
     fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
         if self.stack.len() == 0 {
             let next = self.source.borrow_mut().next(eval, env_ref.clone());
@@ -159,6 +159,63 @@ impl LispIterator for FlatMapStream {
         } else {
             Some(self.stack.remove(0))
         }
+    }
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct FlatMapStreamStream {
+    source: Box<Stream>,
+    fun: Box<Datum>,
+    current: Option<Box<Stream>>
+}
+
+impl FlatMapStreamStream {
+    pub fn new(source: Stream, fun: Datum) -> Self {
+        Self { source: Box::new(source), fun: Box::new(fun), current: None }
+    }
+}
+
+// TODO: Find a more elegant way to implement this
+impl LispIterator for FlatMapStreamStream {
+    fn next(&mut self, eval: &mut eval::Evaluator, env_ref: EnvRef) -> Option<Datum> {
+        if self.current.is_none() {
+            let next_s = self.source.borrow_mut().next(eval, env_ref.clone());
+            match next_s {
+                Some(v) => {
+                    self.current = Some(eval.full_apply((*self.fun).clone(), vec![v], env_ref.clone()).as_stream().unwrap())
+                },
+                None => return None
+            }
+        }
+
+
+        let mut c = self.current.clone().unwrap();
+        let n;
+
+        loop {
+            let nv = c.borrow_mut().next(eval, env_ref.clone());
+            match nv {
+                Some(d) => {
+                    n = Some(d);
+                    break;
+                },
+                None => {
+                    let next_s = self.source.borrow_mut().next(eval, env_ref.clone());
+                    match next_s {
+                        Some(v) => {
+                            c = eval.full_apply((*self.fun).clone(), vec![v], env_ref.clone()).as_stream().unwrap()
+                        },
+                        None => {
+                            n = None;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        self.current = Some(c);
+        n
     }
 }
 

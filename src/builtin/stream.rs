@@ -12,7 +12,8 @@ use std::cell::RefCell;
 use stream::RangeStream;
 use stream::StepStream;
 use stream::MapStream;
-use stream::FlatMapStream;
+use stream::FlatMapListStream;
+use stream::FlatMapStreamStream;
 use stream::AccumulateStream;
 use stream::EnumerateStream;
 use stream::SelectStream;
@@ -66,7 +67,14 @@ fn flatmap_list(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> Lis
     let fun = vs[0].clone();
     let s = vs[1].as_stream()?;
 
-    Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(FlatMapStream::new(*s, fun))))))
+    Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(FlatMapListStream::new(*s, fun))))))
+}
+
+fn flatmap_stream(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let fun = vs[0].clone();
+    let s = vs[1].as_stream()?;
+
+    Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(FlatMapStreamStream::new(*s, fun))))))
 }
 
 fn accumulate(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -230,6 +238,7 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "combinations~", combinations, Arity::Exact(2));
     register(hm, "map~", map, Arity::Exact(2));
     register(hm, "flatmap-list~", flatmap_list, Arity::Exact(2));
+    register(hm, "flatmap-stream~", flatmap_stream, Arity::Exact(2));
     register(hm, "accumulate~", accumulate, Arity::Exact(3));
     register(hm, "enumerate~", enumerate, Arity::Exact(1));
     register(hm, "nth~", nth, Arity::Exact(2));
