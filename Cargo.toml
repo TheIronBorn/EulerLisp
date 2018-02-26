@@ -9,6 +9,7 @@ nom = "3.2.0"
 rustyline = "1.0.0"
 rand = "0.3"
 glob = "0.2"
+bit-vec = "0.4.4"
 
 # [profile.release]
 # debug = true
