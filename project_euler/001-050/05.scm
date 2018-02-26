@@ -19,10 +19,9 @@
                         (cons k2 v2)
                         (merge a1 (rst a2)))]))]))
 
-(~>
-  (range 2 20)
-  (map prime-factors)
-  (reduce merge '())
-  (reduce-product &(pow (fst &1) (rst &1)))
-  solution)
+(~> (range 2 20)
+    (map prime-factors)
+    (reduce merge '())
+    (reduce-product &(pow (fst &1) (rst &1)))
+    solution)
 

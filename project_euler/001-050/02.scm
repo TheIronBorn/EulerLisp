@@ -1,15 +1,33 @@
 ; Solved: 17.12.2017
 
-; a = fib_n, even
-; b = fib_n+1
-; c = fib_n+2
-(defn sum_even_fib (limit (a 2) (b 3) (c 5) (sum 0))
-  (if (< a limit)
-    (let*
-      ([a_ (+ b c)]
-       [b_ (+ c a_)]
-       [c_ (+ a_ b_)])
-      (sum_even_fib limit a_ b_ c_ (+ sum a)))
+;; $$
+;; \begin{aligned}
+;; f(0) =& 1 \\
+;; f(1) =& 2 \\
+;; f(n) =& f(n - 1) + f(n - 2)
+;; \end{aligned}
+;; $$
+;;
+;; The first few values are $1,2,3,5,8,13,21,34, \ldots$.
+;;
+;; It is obvious that starting from $f(2)$ every third value will be even.
+;;
+;; Let $a$ be some even $f(n)$, $b = f(n+1), c = f(n+2)$.
+;;
+;; In the next step $a \gets b + c$,
+;; $b \gets b + 2c$ (the new $a$ plus $c$) and $c \gets 2b + 3c$ (the new $a$ plus the new $c$).
+;;
+;; The only remaining part it to start with $a = 2$, the first even $f(n)$,
+;; iterate until it is greater than four million
+;; and sum up all $a$ along the way.
+
+(defn sum-even-fib (a b c (sum 0))
+  (if (< a 4_000_000)
+      (sum-even-fib
+        (+ b c)
+        (+ b c c)
+        (+ b b c c c)
+        (+ sum a))
       sum))
 
-(solution (sum_even_fib 4000000))
+(solution (sum-even-fib 2 3 5))
