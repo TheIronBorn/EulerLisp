@@ -19,6 +19,7 @@ use stream::EnumerateStream;
 use stream::SelectStream;
 use stream::PermutationStream;
 use stream::CombinationStream;
+use stream::PrimeStream;
 
 use ::eval::Evaluator;
 use ::EnvRef;
@@ -54,6 +55,11 @@ fn range(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult
     } else {
         Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(RangeStream::new(from, to, 1))))))
     }
+}
+
+fn primes(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let to = vs[0].as_integer()?;
+    Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(PrimeStream::new(to))))))
 }
 
 fn map(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -234,6 +240,7 @@ fn clone(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult 
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "range~", range, Arity::Range(2, 3));
     register(hm, "step~", step, Arity::Range(0, 2));
+    register(hm, "primes~", primes, Arity::Exact(1));
     register(hm, "permutations~", permutations, Arity::Exact(1));
     register(hm, "combinations~", combinations, Arity::Exact(2));
     register(hm, "map~", map, Arity::Exact(2));

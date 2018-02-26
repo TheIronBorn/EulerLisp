@@ -1,4 +1,5 @@
 use std::fmt;
+use bit_vec::BitVec;
 
 use ::Datum;
 use ::Stream;
@@ -22,11 +23,79 @@ impl PartialEq for LispIterator {
 }
 
 #[derive(PartialEq, Clone, Debug)]
+pub struct PrimeStream {
+    capacity: isize,
+    current: isize,
+    sieve: BitVec,
+}
+
+impl PrimeStream {
+    pub fn new(capacity: isize) -> PrimeStream {
+        // Start at 2
+        let bv = BitVec::from_elem(capacity as usize + 1, true);
+        PrimeStream {
+            capacity,
+            current: 2,
+            sieve: bv
+        }
+    }
+}
+
+impl LispIterator for PrimeStream {
+    fn next(&mut self, _eval: &mut eval::Evaluator, _env_ref: EnvRef) -> Option<Datum> {
+        if self.current > self.capacity {
+            return None;
+        }
+
+        loop {
+            let c = self.current;
+            self.current += 1;
+
+            if self.current > self.capacity {
+                return None;
+            }
+
+            let v = self.sieve[c as usize];
+            if v {
+                for i in 1..((self.capacity / c) + 1) {
+                    self.sieve.set((i * c) as usize, false);
+                }
+                return Some(Datum::Integer(c));
+            }
+        }
+    }
+}
+
+#[derive(PartialEq, Clone, Debug)]
 pub struct RangeStream {
     from: isize,
     to: isize,
     step: isize,
     current: isize
+}
+
+impl RangeStream {
+    pub fn new(from: isize, to: isize, step: isize) -> RangeStream {
+        RangeStream {
+            from: from,
+            step: step,
+            // The first value from + n*step > to
+            to: (to / step) * step + step,
+            current: from
+        }
+    }
+}
+
+impl LispIterator for RangeStream {
+    fn next(&mut self, _eval: &mut eval::Evaluator, _env_ref: EnvRef) -> Option<Datum> {
+        if self.current == self.to {
+            None
+        } else {
+            let ret = self.current;
+            self.current += self.step;
+            Some(Datum::Integer(ret))
+        }
+    }
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -327,31 +396,6 @@ impl LispIterator for PermutationStream {
             }
 
             Some(Datum::make_list_from_vec(ret))
-        }
-    }
-}
-
-
-impl RangeStream {
-    pub fn new(from: isize, to: isize, step: isize) -> RangeStream {
-        RangeStream {
-            from: from,
-            step: step,
-            // The first value from + n*step > to
-            to: (to / step) * step + step,
-            current: from
-        }
-    }
-}
-
-impl LispIterator for RangeStream {
-    fn next(&mut self, _eval: &mut eval::Evaluator, _env_ref: EnvRef) -> Option<Datum> {
-        if self.current == self.to {
-            None
-        } else {
-            let ret = self.current;
-            self.current += self.step;
-            Some(Datum::Integer(ret))
         }
     }
 }
