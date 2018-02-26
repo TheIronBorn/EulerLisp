@@ -5,12 +5,14 @@ extern crate time;
 extern crate nom;
 extern crate rustyline;
 extern crate rand;
+extern crate bit_vec;
 
 #[macro_use]
 mod macros;
 
 pub mod repl;
 pub mod eval;
+pub mod doc;
 
 mod builtin;
 mod parser;

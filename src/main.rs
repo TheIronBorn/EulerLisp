@@ -7,6 +7,7 @@ use std::cell::RefCell;
 use std::time::{Duration, Instant};
 
 use lisp::eval::Evaluator;
+use lisp::{repl, doc};
 
 fn main() {
     let mut args: Vec<String> = env::args().collect();
@@ -24,7 +25,7 @@ fn main() {
         let use_stdlib = !args.iter().any(|x| *x == String::from("--no-stdlib"));
         match &command[..] {
             "repl" => {
-                lisp::repl::run(use_stdlib);
+                repl::run(use_stdlib);
             },
             "run" => {
                 let filename = args.get(0).expect("No filename provided");
@@ -37,6 +38,10 @@ fn main() {
                     _ => (),
                 }
             },
+            "doc" => {
+                let filename = args.get(0).expect("No filename provided");
+                doc::process_file(filename);
+            }
             "test" => {
                 let mut full = Duration::new(0, 0);
 
