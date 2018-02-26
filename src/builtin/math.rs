@@ -522,6 +522,41 @@ fn lcm_single(x : isize, y : isize) -> isize {
     (x * y) / gcd_single(x, y)
 }
 
+// SEE: https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
+fn mod_inverse(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let a = vs[0].as_integer()?;
+    let n = vs[1].as_integer()?;
+
+    let mut t = 0;
+    let mut r = n;
+    let mut t_new = 1;
+    let mut r_new = a;
+
+    while r_new != 0 {
+        let quotient = r / r_new;
+        let t_ = t_new;
+        let r_ = r_new;
+
+        t_new = t - quotient * t_new;
+        r_new = r - quotient * r_new;
+
+        t = t_;
+        r = r_;
+    }
+
+    if r > 1 {
+        panic!("not invertible");
+    }
+
+    if t < 0 {
+        t += n;
+    }
+
+    Ok(Datum::Integer(t))
+}
+
+// TODO: Implement the extended euclidian algorithm, TAoCP 2, page 342
+
 fn gcd(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let mut res = vs[0].as_integer()?;
     for v in &mut vs[1..] {
@@ -605,6 +640,7 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "div", fx_div, Arity::Exact(2));
     register(hm, "divmod", divmod, Arity::Exact(2));
     register(hm, "modexp", builtin_modexp, Arity::Exact(3));
+    register(hm, "modular-inverse", mod_inverse, Arity::Exact(2));
     register(hm, "rand", rand, Arity::Exact(2));
     register(hm, "factors", factors, Arity::Exact(1));
     register(hm, "prime-factors", prime_factors, Arity::Exact(1));
