@@ -336,8 +336,9 @@ impl RangeStream {
     pub fn new(from: isize, to: isize, step: isize) -> RangeStream {
         RangeStream {
             from: from,
-            to: to,
             step: step,
+            // The first value from + n*step > to
+            to: (to / step) * step + step,
             current: from
         }
     }
@@ -345,7 +346,7 @@ impl RangeStream {
 
 impl LispIterator for RangeStream {
     fn next(&mut self, _eval: &mut eval::Evaluator, _env_ref: EnvRef) -> Option<Datum> {
-        if self.current > self.to {
+        if self.current == self.to {
             None
         } else {
             let ret = self.current;
