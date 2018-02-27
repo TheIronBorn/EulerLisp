@@ -555,7 +555,38 @@ fn mod_inverse(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> Lis
     Ok(Datum::Integer(t))
 }
 
-// TODO: Implement the extended euclidian algorithm, TAoCP 2, page 342
+// SEE: Extended Euclidian Algorithm, TAoCP Vol. 2,  page 342
+fn extended_euclidian(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    // determine u_1, u_2, u_3 so that uu_1 + vu_2 = u_3 = gcd(u, v)
+    let mut u1 = 1;
+    let mut u2 = 0;
+    let mut u3 = vs[0].as_integer()?;
+
+    let mut v1 = 0;
+    let mut v2 = 1;
+    let mut v3 = vs[1].as_integer()?;
+
+    while v3 != 0 {
+        let q = u3 / v3;
+        let t1 = u1 - v1 * q;
+        let t2 = u2 - v2 * q;
+        let t3 = u3 - v3 * q;
+
+        u1 = v1;
+        u2 = v2;
+        u3 = v3;
+
+        v1 = t1;
+        v2 = t2;
+        v3 = t3;
+    }
+
+    Ok(Datum::make_list_from_vec(vec![
+        Datum::Integer(u1),
+        Datum::Integer(u2),
+        Datum::Integer(u3),
+    ]))
+}
 
 fn gcd(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
     let mut res = vs[0].as_integer()?;
@@ -662,6 +693,7 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "round", round, Arity::Exact(1));
     register(hm, "gcd", gcd, Arity::Min(2));
     register(hm, "lcm", lcm, Arity::Min(2));
+    register(hm, "extended-euclidian", extended_euclidian, Arity::Exact(2));
     register(hm, "sin", sin, Arity::Exact(1));
     register(hm, "cos", cos, Arity::Exact(1));
     register(hm, "tan", tan, Arity::Exact(1));
