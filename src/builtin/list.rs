@@ -246,10 +246,37 @@ fn vector_length(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> L
     Ok(Datum::from(&vector.len()))
 }
 
+fn vector_copy(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let vector = vs[0].as_vector()?;
+
+    let from: usize;
+    if vs.len() > 1 {
+        from = vs[1].as_uinteger()?;
+    } else {
+        from = 0;
+    }
+
+    let to: usize;
+    if vs.len() > 2 {
+        to = vs[2].as_uinteger()?;
+    } else {
+        to = vector.len();
+    }
+
+    let new: Vec<Datum> = vector.iter().skip(from).take(to - from).cloned().collect();
+    Ok(Datum::make_vector_from_vec(new))
+}
+
 fn list_to_vector(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
-    let pair = vs[0].as_pair()?;
-    let elems = pair.collect_list()?;
-    Ok(Datum::make_vector_from_vec(elems))
+    let pair = &vs[0];
+
+    if pair.is_nil() {
+        Ok(Datum::make_vector_from_vec(vec![]))
+    } else {
+        let pair = vs[0].as_pair()?;
+        let elems = pair.collect_list()?;
+        Ok(Datum::make_vector_from_vec(elems))
+    }
 }
 
 fn vector_to_list(vs: &mut [Datum], _eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -269,6 +296,7 @@ pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "vector-push!", vector_push, Arity::Exact(2));
     register(hm, "vector-shuffle!", vector_shuffle, Arity::Exact(1));
     register(hm, "vector-length", vector_length, Arity::Exact(1));
+    register(hm, "vector-copy", vector_copy, Arity::Range(1, 3));
     register(hm, "list->vector", list_to_vector, Arity::Exact(1));
     register(hm, "vector->list", vector_to_list, Arity::Exact(1));
     register(hm, "list", list, Arity::Min(0));

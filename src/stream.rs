@@ -120,6 +120,28 @@ impl LispIterator for StepStream {
 }
 
 #[derive(PartialEq, Clone, Debug)]
+pub struct VectorStream {
+    v: Vec<Datum>,
+}
+
+impl VectorStream {
+    pub fn new(v: Vec<Datum>) -> VectorStream {
+        VectorStream { v }
+    }
+}
+
+impl LispIterator for VectorStream {
+    fn next(&mut self, _eval: &mut eval::Evaluator, _env_ref: EnvRef) -> Option<Datum> {
+        if self.v.len() > 0 {
+            let ret = self.v.remove(0);
+            Some(ret)
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(PartialEq, Clone, Debug)]
 pub struct MapStream {
     source: Box<Stream>,
     fun: Box<Datum>,

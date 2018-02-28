@@ -11,6 +11,7 @@ use std::cell::RefCell;
 
 use stream::RangeStream;
 use stream::StepStream;
+use stream::VectorStream;
 use stream::MapStream;
 use stream::FlatMapListStream;
 use stream::FlatMapStreamStream;
@@ -33,6 +34,11 @@ fn step(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult 
     }
 
     Err(InvalidTypeOfArguments)
+}
+
+fn vector(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
+    let v = vs[0].as_vector()?.clone();
+    Ok(Datum::Stream(eval.get_unique_id(), Box::new(Rc::new(RefCell::new(VectorStream::new(v))))))
 }
 
 fn permutations(vs: &mut [Datum], eval: &mut Evaluator, _env_ref: EnvRef) -> LispResult {
@@ -240,6 +246,7 @@ fn clone(vs: &mut [Datum], eval: &mut Evaluator, env_ref: EnvRef) -> LispResult 
 pub fn load(hm: &mut HashMap<String, LispFn>) {
     register(hm, "range~", range, Arity::Range(2, 3));
     register(hm, "step~", step, Arity::Range(0, 2));
+    register(hm, "vector~", vector, Arity::Exact(1));
     register(hm, "primes~", primes, Arity::Exact(1));
     register(hm, "permutations~", permutations, Arity::Exact(1));
     register(hm, "combinations~", combinations, Arity::Exact(2));
