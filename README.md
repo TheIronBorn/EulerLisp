@@ -1,7 +1,5 @@
 # EulerLisp
 
-Progress:
-
 ![](https://projecteuler.net/profile/leonrische.png)
 
 ## Code Samples
