@@ -22,13 +22,15 @@
            (!= b 0)
            (fraction= f (cons a c))))))
 
-(defn solve (d n (acc '()))
-  (cond
-    [(>= n d) (solve (inc d) 10 acc)]
-    [(> d 99) acc]
-    [(digit-cancelling? (cons n d))
-      (solve d (inc n) (cons (cons n d) acc))]
-    [else (solve d (inc n) acc)]))
+(defn solve (d n)
+  (defn inner (d n acc)
+    (cond
+      [(>= n d) (inner (inc d) 10 acc)]
+      [(> d 99) acc]
+      [(digit-cancelling? (cons n d))
+        (inner d (inc n) (cons (cons n d) acc))]
+      [else (inner d (inc n) acc)]))
+  (inner d n '()))
 
 (defn fraction* (a b)
   (cons

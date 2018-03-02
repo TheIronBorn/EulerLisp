@@ -17,7 +17,6 @@
 ; the first pair is 3 + 4 + 5 = 12
 ; and p must be even,
 ; otherwise a^2 + b^2 = c^2 is not possible
-(~>
-  (range 12 1000 2)
-  (max-by count-solutions)
-  solution)
+(~> (range 12 1000 2)
+    (max-by count-solutions)
+    solution)

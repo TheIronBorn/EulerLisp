@@ -1,11 +1,13 @@
 ; Solved: 22.12.2017
 
-(defn prime-sum (limit (cur 3) (acc 2))
+(defn prime-sum (limit)
+  (defn inner (cur acc)
       (if (> cur limit)
           acc
           (if (prime? cur)
-              (prime-sum limit (+ cur 2) (+ acc cur))
-              (prime-sum limit (+ cur 2) acc))))
+              (inner (+ cur 2) (+ acc cur))
+              (inner (+ cur 2) acc))))
+  (inner 3 2))
 
 (solution (prime-sum 2_000_000))
 

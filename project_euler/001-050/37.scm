@@ -26,9 +26,8 @@
   (and (prime? n)
        (all? prime? (truncations n))))
 
-(~>
-  (step~ 11 2)
-  (select~ truncatable-prime?)
-  (take~ 11)
-  sum
-  solution)
+(~> (step~ 11 2)
+    (select~ truncatable-prime?)
+    (take~ 11)
+    sum
+    solution)

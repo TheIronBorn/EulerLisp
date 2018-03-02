@@ -1,8 +1,11 @@
 ; Solved: 17.12.2017
 
-(defn solve ((a 1) (b 1) (n 1))
-      (if (>= (number-of-digits a) 1000)
-          n
-          (solve b (+ a b) (inc n))))
+(defn solve (a b)
+  (defn inner (a b n)
+    (if (>= (number-of-digits a) 1000)
+      n
+      (inner b (+ a b) (inc n))))
+  (inner a b 1))
 
-(solution (solve))
+
+(solution (solve 1 1))

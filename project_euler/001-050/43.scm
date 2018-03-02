@@ -13,10 +13,9 @@
         (divides?  3 (substring n 2))
         (divides?  2 (substring n 1))))
 
-(~>
-  (range 0 9)
-  permutations~
-  (map~ digits->number)
-  (select~ substring-divisible?)
-  sum~
-  solution)
+(~> (range 0 9)
+    permutations~
+    (map~ digits->number)
+    (select~ substring-divisible?)
+    sum~
+    solution)

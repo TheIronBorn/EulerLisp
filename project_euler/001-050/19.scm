@@ -24,21 +24,21 @@
             (list 1 (inc month) year))
           (list (inc day) month year))))
 
-(defn step (from to wday (acc 0))
-      (if (= from to)
-          acc
-          (let ([day (fst from)]
-                [month (frst from)]
-                [year (frrst from)])
-               (step
-                 (next-date from)
-                 to
-                 (% (inc wday) 7)
-                 (if (and (> year 1900) (<= year 2000)
-                          (= day 1)
-                          (= wday 6))
-                     (inc acc)
-                     acc
-                )))))
+(defn step (from to wday)
+  (defn inner (cur wday acc)
+    (if (= cur to)
+      acc
+      (let ([day (fst cur)]
+            [month (frst cur)]
+            [year (frrst cur)])
+        (inner
+          (next-date cur)
+          (% (inc wday) 7)
+          (if (and (> year 1900) (<= year 2000)
+                   (= day 1)
+                   (= wday 6))
+            (inc acc)
+            acc)))))
+  (inner from wday 0))
 
 (solution (step (list 1 1 1900) (list 1 1 2001) 0))

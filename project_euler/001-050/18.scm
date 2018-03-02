@@ -1,16 +1,16 @@
 ; Solved 1.1.2018
 
-(defn reduce-rows (a b (acc '()))
-  (if (nil? b)
+(defn reduce-rows (a b)
+  (defn inner (a b acc)
+    (if (nil? b)
       (reverse acc)
-      (reduce-rows
-        (rst a)
-        (rst b)
-        (cons
-          (max
-            (+ (fst a) (fst b))
-            (+ (frst a) (fst b)))
-          acc))))
+      (inner (rst a) (rst b)
+             (cons
+               (max
+                 (+ (fst a) (fst b))
+                 (+ (frst a) (fst b)))
+               acc))))
+  (inner a b '()))
 
 (defn reduce-full (input)
     (if (= 1 (length input))

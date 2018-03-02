@@ -27,4 +27,5 @@
      (~> file
          file-read
          lines
-         (reject &(= "" &1))))
+         (reject &(= "" &1))
+         (map string-trim)))

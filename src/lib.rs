@@ -143,7 +143,6 @@ pub struct Lambda {
     id: usize,
     env: EnvRef,
     arity: usize,
-    defaults: Vec<Datum>,
     body: Box<Meaning>,
     dotted: bool
 }
@@ -842,7 +841,7 @@ pub struct BindingRef(usize, usize);
 #[derive(Clone)]
 pub enum Meaning {
     If(Box<Meaning>, Box<Meaning>, Box<Meaning>),
-    LambdaDef(usize, Vec<Datum>, Box<Meaning>, bool),
+    LambdaDef(usize, Box<Meaning>, bool),
     Do(Vec<Meaning>, Box<Meaning>),
     Quote(Box<Datum>),
     Definition(Box<Meaning>),

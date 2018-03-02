@@ -19,4 +19,6 @@
       n
       (~> n dec find-bracket (apply find-digit))))
 
-(solution (reduce-product &(digit (pow 10 &1)) (range 0 6)))
+(~> (range 0 6)
+    (reduce-product &(digit (pow 10 &1)))
+    solution)

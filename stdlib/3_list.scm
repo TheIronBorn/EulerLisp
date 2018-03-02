@@ -31,26 +31,32 @@
 (defn rrrfst (lst) (rst (rst (rst (fst lst)))))
 (defn rrrrst (lst) (rst (rst (rst (rst lst)))))
 
-(defn length (lst (acc 0))
-  (if (nil? lst)
-      acc
-      (length (rst lst) (inc acc))))
+(defn length (lst)
+  (defn inner (lst acc)
+    (if (nil? lst)
+        acc
+        (inner (rst lst) (inc acc))))
+  (inner lst 0))
 
 (defn nth (n lst)
   (if (zero? n)
       (fst lst)
       (nth (dec n) (rst lst))))
 
-(defn reverse (lst (acc '()))
-  (if (nil? lst)
-      acc
-      (reverse (rst lst) (cons (fst lst) acc))))
+(defn reverse (lst)
+  (defn inner (lst acc)
+    (if (nil? lst)
+        acc
+        (inner (rst lst) (cons (fst lst) acc))))
+  (inner lst '()))
 
 (defn range_ (from to step acc)
       (if (< to from) acc
           (range_ from (- to step) step (cons to acc))))
-(defn range (from to (step 1))
-      (range_ from to step '()))
+(defn range (from to . r)
+  (if (nil? r)
+      (range_ from to 1 '())
+      (range_ from to (fst r) '())))
 
 (defn any? (pred lst)
   (cond
@@ -64,25 +70,29 @@
     [(pred (fst lst)) (all? pred (rst lst))]
     [else #f]))
 
-(defn count (pred lst (acc 0))
-  (if (nil? lst)
-      acc
-      (count pred (rst lst)
-             (if (pred (fst lst)) (inc acc) acc))))
+(defn count (pred lst)
+  (defn inner (lst acc)
+    (if (nil? lst)
+        acc
+        (inner pred (rst lst)
+               (if (pred (fst lst)) (inc acc) acc))))
+  (inner lst 0))
 
-(defn map (f lst (acc '()))
-  (if (nil? lst)
-      (reverse acc)
-      (map f (rst lst) (cons (f (fst lst)) acc))))
+(defn map (f lst)
+  (defn inner (lst acc)
+    (if (nil? lst)
+        (reverse acc)
+        (inner  (rst lst) (cons (f (fst lst)) acc))))
+  (inner lst '()))
 
-(defn map* (f lsts (acc '()))
-  (if (any? nil? lsts)
-      (reverse acc)
-      (map* f
-             (map rst lsts)
-             (cons
-               (apply f (map fst lsts))
-               acc))))
+(defn map* (f lsts)
+  (defn inner (lsts acc)
+    (if (any? nil? lsts)
+        (reverse acc)
+        (inner (map rst lsts)
+               (cons (apply f (map fst lsts))
+                     acc))))
+  (inner lsts '()))
 
 (defn transpose (lsts) (map* list lsts))
 
@@ -173,18 +183,21 @@
 (defn product~ (lst) (reduce~ * 1 lst))
 (defn sum~ (lst) (reduce~ + 0 lst))
 
-(defn take (n lst (acc '()))
-  (if (or (zero? n) (nil? lst))
-    (reverse acc)
-    (take (dec n) (rst lst)
-          (cons (fst lst) acc))))
-
-(defn chunks (size lst (acc '()))
-  (if (< (length lst) size)
+(defn take (n lst)
+  (defn inner (n lst acc)
+    (if (or (zero? n) (nil? lst))
       (reverse acc)
-      (chunks size
-              (rst lst)
-              (cons (take size lst) acc))))
+      (inner (dec n) (rst lst)
+            (cons (fst lst) acc))))
+  (inner n lst '()))
+
+(defn chunks (size lst)
+  (defn inner (lst acc)
+    (if (< (length lst) size)
+        (reverse acc)
+        (inner (rst lst)
+               (cons (take size lst) acc))))
+  (inner lst '()))
 
 (defn first~ (stream) (nth~ 0 stream))
 

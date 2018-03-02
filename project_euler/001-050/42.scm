@@ -8,18 +8,20 @@
               0))
         (string->chars name)))
 
-(defn solve (names (index 1) (acc 0))
+(defn solve (names)
+  (defn inner (names index acc)
       (if (empty? names)
           acc
           (if (~> names fst value triangular?)
-              (solve
+              (inner
                 (rst names)
                 (inc index)
                 (inc acc))
-              (solve
+              (inner
                 (rst names)
                 (inc index)
                 acc))))
+  (inner names 1 0))
 
 (~> "project_euler/input-files/42.txt"
    file-read

@@ -82,29 +82,19 @@ impl Evaluator {
 
     pub fn apply(&mut self, f: Datum, mut evaled_args: Vec<Datum>, env_ref: EnvRef) -> TCOResult {
         match f {
-            Datum::Lambda(mut lambda) => {
+            Datum::Lambda(lambda) => {
                 let mut child_env = Env::new(Some(lambda.env.clone()));
 
                 if lambda.dotted {
                     let given = evaled_args.len();
                     let takes = lambda.arity - 1;
 
-                    if given > takes {
+                    if given >= takes {
                         let rest = evaled_args.split_off(takes);
                         evaled_args.push(Datum::make_list_from_vec(rest));
                         child_env.extend(evaled_args);
                     } else {
-                        let defaults = lambda.defaults.len();
-                        let missing = takes - given;
-
-                        if missing > defaults {
-                            return Err(InvalidNumberOfArguments);
-                        } else {
-                            let mut defs = lambda.defaults.split_off(defaults - missing);
-                            evaled_args.append(&mut defs);
-                            evaled_args.push(Datum::make_list_from_vec(vec!()));
-                            child_env.extend(evaled_args);
-                        }
+                        return Err(InvalidNumberOfArguments);
                     }
                 } else {
                     let given = evaled_args.len();
@@ -113,16 +103,7 @@ impl Evaluator {
                     if given == takes {
                         child_env.extend(evaled_args);
                     } else {
-                        let defaults = lambda.defaults.len();
-                        let missing = takes - given;
-
-                        if missing > defaults {
-                            return Err(InvalidNumberOfArguments);
-                        } else {
-                            let mut defs = lambda.defaults.split_off(defaults - missing);
-                            evaled_args.append(&mut defs);
-                            child_env.extend(evaled_args);
-                        }
+                        return Err(InvalidNumberOfArguments);
                     }
                 }
 
@@ -237,12 +218,12 @@ impl Evaluator {
                     let mut evaled_args = self.eval_list(args, env_ref.clone())?;
                     TCOWrapper::Return(fun(evaled_args.as_mut_slice(), self, env_ref)?)
                 },
-                Meaning::LambdaDef(arity, defaults, body, dotted) => {
+                Meaning::LambdaDef(arity, body, dotted) => {
                     TCOWrapper::Return(Datum::Lambda(
                         Lambda{
                             id: self.get_unique_id(),
                             env: env_ref,
-                            arity, defaults, body, dotted
+                            arity, body, dotted
                         }
                     ))
                 },

@@ -10,18 +10,25 @@
     [(even? e) (pow (* b b) (div e 2))]
     [else (* b (pow b (dec e)))]))
 
-; (defn fac (n) (product~ (range~ 1 n)))
-(defn fac (n (acc 1))
-  (if (zero? n) acc
-      (fac (dec n) (* acc n))))
+(defn fac (n)
+  (defn inner (n acc)
+    (if (zero? n) acc
+        (inner (dec n) (* acc n))))
+  (inner n 1))
 
-(defn abs (x) (if (< x 0) (- x) x))
-(defn isqrt (n) (floor (sqrt n)))
-(defn icbrt (n) (floor (cbrt n)))
-(defn square? (n) (= (square (isqrt n)) n))
+(defn abs (x)
+  (if (< x 0) (- x) x))
+(defn isqrt (n)
+  (floor (sqrt n)))
+(defn icbrt (n)
+  (floor (cbrt n)))
+(defn square? (n)
+  (= (square (isqrt n)) n))
 
-(defn gauss-sum (n) (div (* n (inc n)) 2))
-(defn gauss-square-sum (n) (div (* n (inc n) (inc (* 2 n))) 6))
+(defn gauss-sum (n)
+  (div (* n (inc n)) 2))
+(defn gauss-square-sum (n)
+  (div (* n (inc n) (inc (* 2 n))) 6))
 
 (defn binomial (n k)
   (div (fac n) (* (fac k) (fac (- n k)))))

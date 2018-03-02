@@ -21,13 +21,15 @@
 ;; iterate until it is greater than four million
 ;; and sum up all $a$ along the way.
 
-(defn sum-even-fib (a b c (sum 0))
-  (if (< a 4_000_000)
-      (sum-even-fib
-        (+ b c)
-        (+ b c c)
-        (+ b b c c c)
-        (+ sum a))
-      sum))
+(defn sum-even-fib (a b)
+  (defn inner (a b c sum)
+    (if (< a 4_000_000)
+        (inner
+          (+ b c)
+          (+ b c c)
+          (+ b b c c c)
+          (+ sum a))
+        sum))
+  (inner a b (+ a b) 0))
 
-(solution (sum-even-fib 2 3 5))
+(solution (sum-even-fib 2 3))

@@ -35,14 +35,16 @@
 (defn cycle-len (f)
       (find-cycle-len f (find-in-cycle f)))
 
-(defn loop (from (max-n 0) (max-len 0))
+(defn solve (from)
+  (defn inner (from max-n max-len)
       (if (> from 1000)
         max-n
         (let*
           ([f (make-stepper from)]
            [len (cycle-len f)])
           (if (> len max-len)
-              (loop (inc from) from len)
-              (loop (inc from) max-n max-len)))))
+              (inner (inc from) from len)
+              (inner (inc from) max-n max-len)))))
+  (inner from 0 0))
 
-(solution (loop 2))
+(solution (solve 2))

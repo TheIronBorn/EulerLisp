@@ -37,13 +37,15 @@
                  '()
                  (map &(cons (fst seq) &1) rests))))]))
 
-(defn solve (from to (acc '()))
-  (if (>= from to)
-      acc
-      (let ([perm (find-permutations from)])
-        (if (>= (length perm) 3)
-          (solve (inc from) to (cons (map digits->number perm) acc))
-          (solve (inc from) to acc)))))
+(defn solve (from to)
+  (defn inner (cur acc)
+    (if (>= cur to)
+        acc
+        (let ([perm (find-permutations cur)])
+          (if (>= (length perm) 3)
+            (inner (inc cur) (cons (map digits->number perm) acc))
+            (inner (inc cur) acc)))))
+  (inner from '()))
 
 (def sequences (solve 0 (vector-length myprimes)))
 (def all-sequences (flatmap (fn (x) (subsequences x 3)) sequences))
