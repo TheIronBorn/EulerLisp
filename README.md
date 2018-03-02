@@ -1,7 +1,5 @@
 # EulerLisp
 
-Progress:
-
 ![](https://projecteuler.net/profile/leonrische.png)
 
 ## Code Samples
@@ -58,8 +56,3 @@ at some later time._
   but I'm not sure if the math behind it is always valid
 * `00_S.scm` SLOW, Solution that is correct but to slow
 * `00_W.scm` WIP, Work-in-progress
-
-## Problems for Performance Testing
-
-* 14, runs in ~22s
-* 23, runs in ~62s
