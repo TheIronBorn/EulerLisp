@@ -1,7 +1,7 @@
 ; Solved 1.1.2018
 
 (defn factor-sum (n)
-      (- (sum (factors n)) n))
+      (- (list-sum (factors n)) n))
 
 (defn amicable? (n)
    (let ([fsum (factor-sum n)])

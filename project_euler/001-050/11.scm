@@ -18,7 +18,7 @@
 (def diagonal-chunks (flatmap diagonals (chunks 4 grid)))
 (def antidiagonal-chunks (flatmap diagonals (chunks 4 (map reverse grid))))
 
-(defn max-product (lst) (apply max (map product lst)))
+(defn max-product (lst) (apply max (map list-product lst)))
 
 (solution
   (max

@@ -27,7 +27,7 @@
 (defn process-saved (n (acc 0))
   (if (< n 10)
       acc
-      (let ([ds (sum (number->digits n))])
+      (let ([ds (list-sum (number->digits n))])
         (process-saved
           ds
           (+ acc (count-saved n ds))))))

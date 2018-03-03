@@ -40,4 +40,4 @@
                     collect))))
               (range 0 maxl)))
 
-(~> families5 fst sum solution)
+(~> families5 fst list-sum solution)

@@ -7,12 +7,14 @@
            (zip row (rst row))))
     1))
 
-(defn rows (n cur (acc '()))
-  (if (zero? n)
-      acc
-      (rows (dec n)
-            (next-row cur)
-            (append acc cur))))
+(defn rows (n cur)
+  (defn inner (n cur acc)
+    (if (zero? n)
+        acc
+        (inner (dec n)
+               (next-row cur)
+               (append acc cur))))
+  (inner n cur '()))
 
 (defn squarefree? (n)
   (let ([pf (prime-factors n)])
@@ -23,5 +25,5 @@
     sort
     uniq
     (select squarefree?)
-    sum
+    list-sum
     solution)

@@ -36,5 +36,5 @@
   (append (find-pandigital range2 range3))
   sort
   uniq
-  sum
+  list-sum
   solution)

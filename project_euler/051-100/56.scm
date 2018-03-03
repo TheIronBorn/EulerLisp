@@ -5,6 +5,6 @@
   (map~ &(~> (frst &1)
              (pow (fst &1))
              number->digits
-             sum))
+             list-sum))
   (reduce~ max 0)
   solution)

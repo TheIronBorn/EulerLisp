@@ -26,6 +26,6 @@
     (flatmap-stream~ n-digit-palindromes)
     (select~ &(= 4 (count-ways &1)))
     (take~ 5)
-    sum
+    list-sum
     solution)
 

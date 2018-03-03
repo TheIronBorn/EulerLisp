@@ -6,5 +6,5 @@
     (select char-numeric?)
     (map char->digit)
     (chunks 13)
-    (reduce &(max (product &1) &2) 0)
+    (reduce &(max (list-product &1) &2) 0)
     solution)

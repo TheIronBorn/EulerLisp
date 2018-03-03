@@ -29,5 +29,5 @@
 (~> (step~ 11 2)
     (select~ truncatable-prime?)
     (take~ 11)
-    sum
+    list-sum
     solution)

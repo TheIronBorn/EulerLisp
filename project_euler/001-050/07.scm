@@ -1,7 +1,7 @@
 ; Solved: 20.12.2017
 
-(~>
-  (step~ 3 2)
-  (select~ prime?)
-  (nth~ (- 10001 2))
-  solution)
+(~> (step-stream 3 2)
+    (stream-select prime?)
+    (stream-nth (- 10001 2))
+    solution)
+

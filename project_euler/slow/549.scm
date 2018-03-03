@@ -1,6 +1,7 @@
 ; Solved: 19.2.2018
 ; Time: 39:20
-
+;
+; TODO: Look at https://en.wikipedia.org/wiki/Legendre%27s_formula
 ; TODO: Is it viable to create a vector with lists for each number?
 
 (defn count-p (p n (acc 1))

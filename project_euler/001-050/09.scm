@@ -16,17 +16,6 @@
 ; b = (1000 - fixed - 1) / 2
 
 (defn find-triplets (a)
-  (~>
-    (range~ (inc a) (div (- n a) 2))
-    (map~ &(list a &1 (- n a &1)))
-    (select~ triplet?)
-    collect))
-
-(~>
-  (range~ 1 (div (dec n) 3))
-  (map~ find-triplets)
-  collect
-  flatten
-  fst
-  product
-  solution)
+  (~> (range-stream (inc a) (div (- n a) 2))
+      (stream-map &(list a &1 (- n a &1)))
+      (stream-select triplet?)))

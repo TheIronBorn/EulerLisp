@@ -30,10 +30,9 @@
 
 (defn convergent (a) (convergent_ a (integer->frac 0)))
 
-(~>
-  (- 100 2)
-  convergent
-  fst
-  number->digits
-  sum
-  solution)
+(~> (- 100 2)
+    convergent
+    fst
+    number->digits
+    list-sum
+    solution)

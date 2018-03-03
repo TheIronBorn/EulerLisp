@@ -13,7 +13,7 @@
     (if (nil? (fst numbers))
         acc
         (let*
-          ([cur-sum (sum (map fst numbers))]
+          ([cur-sum (reduce-sum fst numbers)]
            [next-sum (+ acc (* cur-sum (pow 10 p)))])
           (if (> next-sum 9999999999)
               (inner (map rst numbers) (div next-sum 10) p)

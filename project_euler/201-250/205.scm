@@ -21,7 +21,7 @@
   (vector-set! id n (inc (vector-ref id n))))
 
 (~> (combinations~ 6 (list 1 2 3 4 5 6))
-    (map~ sum)
+    (map~ list-sum)
     (each~ &(vector-inc! colin-res &1)))
 
 (defn count-wins (pete)
@@ -33,7 +33,7 @@
 (def total-wins
   (~>
     (combinations~ 9 (list 1 2 3 4))
-    (map~ sum)
+    (map~ list-sum)
     (map~ &(count-wins &1))
     sum~))
 

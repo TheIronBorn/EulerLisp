@@ -43,7 +43,7 @@
 
 (~>
   (range~ 0 999)
-  (map~ (fn (a) (~> (vector-ref buckets a) sort uniq sum)))
+  (map~ (fn (a) (~> (vector-ref buckets a) sort uniq list-sum)))
   sum~
   inc
   solution)

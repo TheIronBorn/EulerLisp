@@ -11,7 +11,4 @@
 ;; = \prod_{i=1}^{20} \frac{20 + i}{i}
 ;; $$
 
-(~> (range~ 1 n)
-    (map~ &(/ (+ n &1) &1))
-    product~
-    solution)
+(solution (product 1 20 &(/ (+ 20 &1) &1)))
