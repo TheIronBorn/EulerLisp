@@ -177,8 +177,8 @@
             (cons (fst lst) (f (fst lst)))
             (rst lst)))))
 
-(defn product (lst) (reduce * 1 lst))
-(defn sum (lst) (reduce + 0 lst))
+(defn list-product (lst) (reduce * 1 lst))
+(defn list-sum (lst) (reduce + 0 lst))
 
 (defn product~ (lst) (reduce~ * 1 lst))
 (defn sum~ (lst) (reduce~ + 0 lst))
