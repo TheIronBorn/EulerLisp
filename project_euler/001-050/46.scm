@@ -8,7 +8,7 @@
       [else (inner (inc sq))]))
   (inner 1))
 
-(~> (step~ 9 2)
-    (select~ &(not (or (prime? &1) (goldbach? &1))))
-    first~
+(~> (step-stream 9 2)
+    (stream-select &(not (or (prime? &1) (goldbach? &1))))
+    fst
     solution)

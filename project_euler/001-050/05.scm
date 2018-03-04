@@ -12,7 +12,7 @@
                  [(= k1 k2) (cons
                              (cons k1 (max v1 v2))
                              (merge (rst a1) (rst a2)))]
-                 [(< k1 k2) (cons
+                 [(> k1 k2) (cons
                              (cons k1 v1)
                              (merge (rst a1) a2))]
                  [else (cons

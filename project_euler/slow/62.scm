@@ -1,8 +1,6 @@
 ; Solved 22.1.2018
 
-(defn cube (x) (* x x x))
-
-(defn count-other_ (cur target (cnt 0))
+(defn count-other_ (cur target cnt)
   (let ([next (~> cur cube number->digits sort)])
     (cond
       [(> (length next) (length target)) cnt]
@@ -10,7 +8,8 @@
       [else (count-other_ (inc cur) target cnt)])))
 
 (defn count-other (n)
-  (count-other_ (inc n) (sort (number->digits (cube n)))))
+  (println n)
+  (count-other_ (inc n) (sort (number->digits (cube n))) 0))
 
 (~>
   (step~ 1)

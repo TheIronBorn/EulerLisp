@@ -26,8 +26,8 @@
   (and (prime? n)
        (all? prime? (truncations n))))
 
-(~> (step~ 11 2)
-    (select~ truncatable-prime?)
-    (take~ 11)
+(~> (step-stream 11 2)
+    (stream-select truncatable-prime?)
+    (stream-take 11)
     list-sum
     solution)

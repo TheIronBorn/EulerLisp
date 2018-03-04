@@ -9,7 +9,7 @@
 ;;
 ;; `(gauss-sum n)` is $1 + 2 + \ldots + n = \frac{n(n+1)}{2}$.
 
-(def n 1000)
+(def n (dec 1000))
 
 (solution
   (+ (* 3 (gauss-sum (div n 3)))
