@@ -77,5 +77,4 @@ at some later time._
 * [R5RS](http://www.schemers.org/Documents/Standards/R5RS/)
 * [R6RS](http://www.r6rs.org/)
 * [R7RS](https://bitbucket.org/cowan/r7rs-wg1-infra/src/default/R7RSHomePage.md?fileviewer=file-view-default)
-
 * [The Scheme Programming Language](https://www.scheme.com/tspl4/)
