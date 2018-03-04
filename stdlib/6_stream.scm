@@ -150,3 +150,17 @@
     (stream-cons 3
       (stream-cons 5
          (inner 3 2)))))
+
+(defn stream-take (n stream)
+  (defn inner (n stream acc)
+    ; Stop on 1 to avoid forcing elements that are not needed with stream-rst
+    (if (or {n = 1} (nil? stream))
+        (reverse (cons (fst stream) acc))
+        (inner
+          (dec n)
+          (stream-rst stream)
+          (cons (fst stream) acc))))
+  (if (zero? n)
+      '()
+      (inner n stream '())))
+

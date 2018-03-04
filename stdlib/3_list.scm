@@ -74,7 +74,7 @@
   (defn inner (lst acc)
     (if (nil? lst)
         acc
-        (inner pred (rst lst)
+        (inner (rst lst)
                (if (pred (fst lst)) (inc acc) acc))))
   (inner lst 0))
 
@@ -179,6 +179,14 @@
 
 (defn list-product (lst) (reduce * 1 lst))
 (defn list-sum (lst) (reduce + 0 lst))
+(defn list-min (lst) 
+  (if (nil? lst)
+      '()
+      (reduce min (fst lst) (rst lst))))
+(defn list-max (lst) 
+  (if (nil? lst)
+      '()
+      (reduce max (fst lst) (rst lst))))
 
 (defn product~ (lst) (reduce~ * 1 lst))
 (defn sum~ (lst) (reduce~ + 0 lst))
