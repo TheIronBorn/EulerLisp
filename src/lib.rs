@@ -132,12 +132,6 @@ impl PartialEq for LispFn {
     }
 }
 
-// #[derive(Clone, Debug, PartialEq)]
-// pub enum Promise {
-//     Delayed(EnvRef, Box<Datum>),
-//     Result(Box<Datum>),
-// }
-
 #[derive(Clone)]
 pub struct Lambda {
     id: usize,
@@ -234,7 +228,6 @@ pub enum Datum {
     Builtin(LispFn),
     Stream(usize, Box<Stream>),
     PriorityQueue(PriorityQueueRef),
-    // Promise(Promise),
     // TODO: Switch this to rc refcells
     HashMap(usize, HashMap<Datum, Datum>),
     Undefined,
@@ -332,7 +325,7 @@ impl Hash for Datum {
                 // so it's not that bad.
                 "float".hash(state);
                 v.to_string().hash(state);
-            }
+            },
         }
     }
 }
@@ -827,8 +820,6 @@ impl Datum {
             Datum::Builtin(_) => format!("<builtin>"),
             Datum::Stream(_, _) => format!("<stream>"),
             Datum::HashMap(_, _) => format!("<hashmap>"),
-            // Datum::Promise(Promise::Delayed(_, _)) => write!(f, "promise(?)"),
-            // Datum::Promise(Promise::Result(ref r)) => write!(f, "promise({})", r),
         }
     }
 }
